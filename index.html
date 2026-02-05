@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1E1B4B" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="Tu copiloto académico inteligente">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="StudyTrack">
+    <title>StudyTrack Pro - Tu Copiloto Académico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }, colors: { primary: { 50: '#EEF2FF', 100: '#E0E7FF', 500: '#6366F1', 600: '#4F46E5', 700: '#4338CA', 900: '#312E81' } } } } }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; font-family: 'Inter', system-ui, sans-serif; }
+        body { overscroll-behavior: none; touch-action: pan-y; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.3); border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: rgb(71 85 105 / 0.5); }
+        .glass { background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .dark .glass { background: rgba(15, 23, 42, 0.90); }
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .collapsible-content.open { max-height: 10000px; }
+        .badge-critical { animation: badge-pulse 2s ease-in-out infinite; }
+        @keyframes badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .animate-slide-up { animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        input[type="checkbox"] { appearance: none; width: 1.5rem; height: 1.5rem; border: 2px solid #cbd5e1; border-radius: 0.5rem; cursor: pointer; position: relative; transition: all 0.2s; }
+        input[type="checkbox"]:checked { background-color: #4F46E5; border-color: #4F46E5; }
+        input[type="checkbox"]:checked::after { content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; font-size: 0.875rem; }
+        .dark input[type="checkbox"] { border-color: #475569; }
+        .safe-top { padding-top: env(safe-area-inset-top); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* Modern Select Styles */
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            appearance: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
+
+    <!-- WELCOME MODAL (ONBOARDING) -->
+    <div id="welcome-modal" class="fixed inset-0 z-[200] bg-white dark:bg-slate-950 flex flex-col items-center justify-center p-6 hidden animate-fade-in">
+        <div class="w-full max-w-md space-y-8 text-center">
+            
+            <!-- Logo & Intro -->
+            <div class="space-y-4">
+                <div class="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-700 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-primary-500/40 mx-auto transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <i class="fas fa-graduation-cap text-4xl"></i>
+                </div>
+                <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">StudyTrack <span class="text-primary-600">Pro</span></h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Tu compañero inteligente para dominar tu carrera universitaria.</p>
+            </div>
+
+            <!-- Features -->
+            <div class="grid grid-cols-3 gap-4 text-xs font-medium text-slate-600 dark:text-slate-400 py-4 border-y border-slate-100 dark:border-slate-800">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary-500 text-lg"><i class="fas fa-map-signs"></i></div>
+                    <span>Elige Camino</span>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-emerald-500 text-lg"><i class="fas fa-check-circle"></i></div>
+                    <span>Marca Progreso</span>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-amber-500 text-lg"><i class="fas fa-award"></i></div>
+                    <span>Gradúate</span>
+                </div>
+            </div>
+
+            <!-- Selectors -->
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Universidad</label>
+                    <select id="welcome-uni-select" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                        <option value="" disabled selected>Selecciona una institución...</option>
+                    </select>
+                </div>
+                
+                <div id="welcome-career-container" class="opacity-50 pointer-events-none transition-all duration-300">
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Carrera</label>
+                    <select id="welcome-career-select" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                        <option value="" disabled selected>Primero elige universidad...</option>
+                    </select>
+                </div>
+
+                <button id="welcome-start-btn" onclick="startAppFromWelcome()" class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-lg shadow-xl shadow-slate-300/50 dark:shadow-none hover:scale-[1.02] active:scale-95 transition-all opacity-50 pointer-events-none">
+                    Comenzar <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+            
+            <p class="text-[10px] text-slate-400">Tus datos se guardan localmente en tu dispositivo.</p>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header id="app-header" class="sticky top-0 z-50 glass border-b border-slate-200/50 dark:border-slate-800/50 safe-top transition-opacity duration-300">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
+                        <i class="fas fa-graduation-cap text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="header-career" class="font-extrabold text-base leading-tight text-slate-900 dark:text-white line-clamp-1">Cargando...</h1>
+                        <p id="header-institution" class="text-xs text-slate-500 dark:text-slate-400 font-medium">StudyTrack Pro</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><i id="theme-icon" class="fas fa-moon text-sm"></i></button>
+                    <button onclick="openSettings()" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><i class="fas fa-cog text-sm"></i></button>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-4 px-4">
+                <div class="snap-start shrink-0 w-32 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-4 text-white shadow-xl shadow-primary-500/30">
+                    <div class="text-[10px] uppercase font-bold opacity-90 mb-1">Progreso</div>
+                    <div class="text-3xl font-black" id="stat-progress">0%</div>
+                    <div class="mt-2 h-1 bg-white/20 rounded-full overflow-hidden"><div id="progress-bar-mini" class="h-full bg-white rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                </div>
+                <div class="snap-start shrink-0 w-32 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">Índice</div>
+                    <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400" id="stat-gpa">0.0</div>
+                    <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Escala 0-100</div>
+                </div>
+                <div class="snap-start shrink-0 w-40 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">Completadas</div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-2xl font-black text-slate-900 dark:text-white" id="stat-completed-count">0</span>
+                        <span class="text-sm text-slate-400 dark:text-slate-500">/</span>
+                        <span class="text-sm font-bold text-slate-400 dark:text-slate-500" id="stat-total-subjects">0</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-1" id="stat-remaining-text">0 faltantes</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 py-6 pb-32 space-y-6">
+        <div class="relative">
+            <input type="search" id="search-input" placeholder="Buscar materia, código..." class="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none text-sm font-medium shadow-sm">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
+        </div>
+
+        <div id="requirements-card" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-fade-in">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2"><i class="fas fa-award text-amber-500"></i> Requisitos de Grado</h3>
+                <button onclick="openSettings()" class="text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline">Editar</button>
+            </div>
+            <div class="p-4" id="requirements-list-main"></div>
+        </div>
+        
+        <div id="periods-container" class="space-y-4"></div>
+    </main>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-white dark:bg-slate-900 w-full sm:w-[500px] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl animate-slide-up flex flex-col">
+            <div class="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-5 flex items-center justify-between shrink-0 z-10">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Configuración</h2>
+                <button onclick="closeSettings()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-8 overflow-y-auto flex-1">
+                <!-- LIBRARY SECTION (DROPDOWNS) -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 flex items-center gap-2"><i class="fas fa-book"></i> Cambiar Carrera</h3>
+                        <button onclick="updateLibraryFromCloud()" class="text-xs text-primary-500 font-bold hover:underline"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                    </div>
+                    
+                    <div id="library-loading" class="hidden py-4 text-center">
+                        <div class="loading-spinner mx-auto mb-2"></div>
+                        <span class="text-xs text-slate-400">Buscando en la nube...</span>
+                    </div>
+
+                    <!-- Settings Selectors -->
+                    <div class="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Universidad</label>
+                            <select id="settings-uni-select" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="" disabled selected>Selecciona...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Carrera</label>
+                            <select id="settings-career-select" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500" disabled>
+                                <option value="" disabled selected>Elige universidad primero...</option>
+                            </select>
+                        </div>
+                        <button id="settings-load-btn" onclick="startAppFromSettings()" class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-sm shadow-md transition-all opacity-50 pointer-events-none">
+                            Cargar Carrera Seleccionada
+                        </button>
+                    </div>
+                    
+                    <!-- Advanced Import -->
+                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <label for="import-file" class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-2 border border-dashed border-slate-300 dark:border-slate-600 text-slate-500">
+                            <i class="fas fa-file-import"></i> Importar Archivo JSON
+                        </label>
+                        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(this)">
+                        
+                        <button onclick="toggleCustomJson()" class="mt-3 text-xs text-primary-600 font-bold flex items-center gap-1 hover:underline w-full justify-center"><i class="fas fa-code"></i> Avanzado: JSON Manual</button>
+                        <div id="custom-json-area" class="hidden mt-3">
+                            <textarea id="custom-json-input" placeholder='Pegar JSON aquí...' class="w-full h-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs font-mono outline-none"></textarea>
+                            <button onclick="loadCustomJSON()" class="mt-2 w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold text-xs">Cargar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REQUIREMENTS & DATA SECTIONS (Same as before) -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2"><i class="fas fa-list-check"></i> Requisitos</h3>
+                    <div class="space-y-2" id="settings-requirements-list"></div>
+                    <div class="mt-3">
+                        <div id="new-req-form" class="hidden flex gap-2 mb-2 animate-fade-in">
+                            <input type="text" id="new-req-name" placeholder="Nombre (ej. Tesis)" class="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none">
+                            <button onclick="confirmAddRequirement()" class="px-3 bg-primary-600 text-white rounded-lg"><i class="fas fa-check"></i></button>
+                            <button onclick="toggleAddReqForm()" class="px-3 bg-slate-200 text-slate-500 rounded-lg"><i class="fas fa-times"></i></button>
+                        </div>
+                        <button onclick="toggleAddReqForm()" id="add-req-btn" class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary-500 hover:border-primary-200 font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-plus"></i> Agregar Requisito</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i class="fas fa-shield-halved"></i> Datos</h3>
+                    <div class="space-y-2">
+                        <button onclick="exportProgress()" class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fas fa-download mr-2 text-primary-500"></i> Exportar / Compartir</button>
+                        <button onclick="resetProgress()" class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-orange-600"><i class="fas fa-rotate-left mr-2"></i> Reiniciar Notas</button>
+                        <button onclick="deleteAllData()" class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600"><i class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="scroll-top-btn" onclick="scrollToTop()" class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none safe-bottom"><i class="fas fa-arrow-up text-xl"></i></button>
+    <div id="toast-container" class="fixed top-20 right-4 z-[110] space-y-2 max-w-sm"></div>
+
+    <script>
+        const GITHUB_REPO_BASE = 'https://raw.githubusercontent.com/ERCamilo/LIBRERIA_DE_CARRERAS/main';
+        const GITHUB_INDEX_URL = `${GITHUB_REPO_BASE}/index.json`;
+
+        const APP_CONFIG = {
+            storageKeys: {
+                curriculum: 'studytrack_curriculum_v8',
+                progress: 'studytrack_progress_v8',
+                library_cache: 'studytrack_library_v4'
+            },
+            darkMode: localStorage.getItem('dark-mode') === 'true',
+            collapsedPeriods: new Set(JSON.parse(localStorage.getItem('collapsed_periods') || '[]'))
+        };
+        
+        const LOCAL_LIBRARY = [
+            { id: 'uapa-soft', institution: "UAPA", degree_type: "Grado", career_name: "Ingeniería en Software", source: 'local', path: null },
+            { id: 'uasd-quim', institution: "UASD", degree_type: "Grado", career_name: "Licenciatura en Química", source: 'local', path: null }
+        ];
+
+        let libraryData = [...LOCAL_LIBRARY];
+        let currentCurriculum = null;
+        let userProgress = {};
+        let dependencyGraph = null;
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+
+        async function initApp() {
+            if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
+            
+            // Check persistence first
+            const storedCurriculum = localStorage.getItem(APP_CONFIG.storageKeys.curriculum);
+            
+            if (storedCurriculum) {
+                try {
+                    currentCurriculum = JSON.parse(storedCurriculum);
+                    loadUserProgress();
+                    dependencyGraph = buildDependencyGraph(currentCurriculum);
+                    renderUI();
+                    calculateStatistics();
+                    renderRequirementsWidget();
+                } catch(e) {
+                    console.error("Error loading saved data", e);
+                    showWelcomeScreen(); // Fallback
+                }
+            } else {
+                showWelcomeScreen();
+            }
+            
+            loadLibraryCache();
+            setupSelectors('welcome'); // Prepare welcome selectors
+            setupSelectors('settings'); // Prepare settings selectors
+            setTimeout(updateLibraryFromCloud, 1000); 
+            setupEventListeners();
+        }
+
+        // ============================================================
+        // LOGIC FOR WELCOME SCREEN & SELECTORS
+        // ============================================================
+
+        function showWelcomeScreen() {
+            document.getElementById('welcome-modal').classList.remove('hidden');
+            // Hide header if no data loaded to focus on onboarding
+            document.getElementById('app-header').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function hideWelcomeScreen() {
+            document.getElementById('welcome-modal').classList.add('hidden');
+            document.getElementById('app-header').classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function setupSelectors(prefix) {
+            const uniSelect = document.getElementById(`${prefix}-uni-select`);
+            const careerSelect = document.getElementById(`${prefix}-career-select`);
+            const btn = document.getElementById(`${prefix}-start-btn`) || document.getElementById(`${prefix}-load-btn`);
+            
+            if(!uniSelect || !careerSelect) return;
+
+            // 1. Populate Universities
+            const unis = [...new Set(libraryData.map(item => item.institution))].sort();
+            uniSelect.innerHTML = '<option value="" disabled selected>Selecciona institución...</option>' + 
+                unis.map(uni => `<option value="${uni}">${uni}</option>`).join('');
+
+            // 2. Handle Uni Change
+            uniSelect.addEventListener('change', (e) => {
+                const selectedUni = e.target.value;
+                const careers = libraryData.filter(item => item.institution === selectedUni);
+                
+                careerSelect.innerHTML = '<option value="" disabled selected>Selecciona carrera...</option>' + 
+                    careers.map(c => `<option value="${c.id}">${c.career_name} (${c.degree_type || 'Grado'})</option>`).join('');
+                
+                careerSelect.disabled = false;
+                if(prefix === 'welcome') {
+                    document.getElementById('welcome-career-container').classList.remove('opacity-50', 'pointer-events-none');
+                }
+                
+                // Reset button
+                if(btn) { btn.classList.add('opacity-50', 'pointer-events-none'); }
+            });
+
+            // 3. Handle Career Change
+            careerSelect.addEventListener('change', () => {
+                if(btn) { btn.classList.remove('opacity-50', 'pointer-events-none'); }
+            });
+        }
+
+        // Triggered by Welcome Button
+        function startAppFromWelcome() {
+            const careerId = document.getElementById('welcome-career-select').value;
+            loadSelectedCareer(careerId, 'welcome');
+        }
+
+        // Triggered by Settings Button
+        function startAppFromSettings() {
+            const careerId = document.getElementById('settings-career-select').value;
+            loadSelectedCareer(careerId, 'settings');
+        }
+
+        async function loadSelectedCareer(careerId, origin) {
+            const selectedItem = libraryData.find(i => i.id === careerId);
+            if(!selectedItem) return;
+
+            // Warning if switching careers via settings
+            if (origin === 'settings' && !confirm(`¿Cargar ${selectedItem.career_name}? \n⚠️ Se reiniciará tu progreso actual.`)) {
+                return;
+            }
+
+            await loadCareer(selectedItem.id, selectedItem.source, selectedItem.fullUrl);
+            
+            if(origin === 'welcome') hideWelcomeScreen();
+            if(origin === 'settings') closeSettings();
+        }
+
+        // ============================================================
+        // LIBRARY & DATA LOGIC
+        // ============================================================
+
+        function loadLibraryCache() {
+            const cached = localStorage.getItem(APP_CONFIG.storageKeys.library_cache);
+            if(cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    const remoteItems = parsed.filter(i => i.source === 'remote');
+                    libraryData = [...LOCAL_LIBRARY, ...remoteItems];
+                } catch(e) {}
+            }
+        }
+
+        async function updateLibraryFromCloud() {
+            const loader = document.getElementById('library-loading');
+            if(loader) loader.classList.remove('hidden');
+
+            try {
+                const response = await fetch(GITHUB_INDEX_URL);
+                if(!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const remoteList = await response.json();
+                
+                const processedRemote = remoteList.map(item => ({ 
+                    ...item, 
+                    source: 'remote',
+                    fullUrl: item.path.startsWith('http') ? item.path : `${GITHUB_REPO_BASE}/${item.path}`
+                }));
+                
+                localStorage.setItem(APP_CONFIG.storageKeys.library_cache, JSON.stringify(processedRemote));
+                libraryData = [...LOCAL_LIBRARY, ...processedRemote];
+                
+                // Refresh selectors dynamically
+                setupSelectors('welcome');
+                setupSelectors('settings');
+
+            } catch (error) {
+                console.warn("No se pudo sincronizar la biblioteca:", error);
+            } finally {
+                if(loader) loader.classList.add('hidden');
+            }
+        }
+
+        async function loadCareer(id, source, url) {
+            let data = null;
+            try {
+                if (source === 'local') {
+                    if (id === 'uapa-soft') data = getUAPAData();
+                    else if (id === 'uasd-quim') data = getUASDQuimicaData();
+                } else if (source === 'remote' && url) {
+                    showToast('Descargando carrera...', 'info');
+                    const res = await fetch(url);
+                    if(!res.ok) throw new Error('Error descarga');
+                    data = await res.json();
+                }
+
+                if (data) {
+                    currentCurriculum = data;
+                    userProgress = {}; 
+                    saveCurriculum();
+                    saveUserProgress();
+                    dependencyGraph = buildDependencyGraph(currentCurriculum);
+                    renderUI();
+                    calculateStatistics();
+                    renderRequirementsWidget();
+                    showToast('Carrera cargada exitosamente', 'success');
+                } else {
+                    throw new Error('Datos vacíos');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // CORE HELPER FUNCTIONS (Preserved)
+        // ============================================================
+        function loadUserProgress() { const s = localStorage.getItem(APP_CONFIG.storageKeys.progress); if(storedCurriculum = localStorage.getItem(APP_CONFIG.storageKeys.curriculum)) {} if(s) try { userProgress = JSON.parse(s); } catch { userProgress = {}; } } // Helper corrected below
+        function saveCurriculum() { localStorage.setItem(APP_CONFIG.storageKeys.curriculum, JSON.stringify(currentCurriculum)); }
+        function saveUserProgress() { localStorage.setItem(APP_CONFIG.storageKeys.progress, JSON.stringify(userProgress)); }
+        function setupEventListeners() { document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value)); window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); if (window.scrollY > 500) btn.classList.remove('opacity-0', 'pointer-events-none'); else btn.classList.add('opacity-0', 'pointer-events-none'); }); }
+        function handleSearch(text) { renderPeriods(text); }
+        function checkPrerequisites(prereqs) { if (!prereqs || !prereqs.length) return true; if (prereqs.includes('ALL')) return areAllOtherSubjectsCompleted(); return prereqs.every(grp => Array.isArray(grp) ? grp.some(id => userProgress[id]?.status === 'approved') : userProgress[grp]?.status === 'approved'); }
+        function areAllOtherSubjectsCompleted() { if (!currentCurriculum) return false; for (let p of currentCurriculum.periods) for (let s of p.subjects) if (!s.prerequisites?.includes('ALL') && !s.is_optional && userProgress[s.id]?.status !== 'approved') return false; return true; }
+        function formatPrerequisiteString(p) { if(!p?.length) return ""; if(p.includes('ALL')) return "Todas"; return p.map(g => Array.isArray(g) ? `(${g.join(' o ')})` : g).join(' y '); }
+        function buildDependencyGraph(c) { const graph = new Map(), dependents = new Map(), unlocks = new Map(), allPrereqSubjects = []; c.periods.forEach(p => p.subjects.forEach(s => { const raw = s.prerequisites || []; if (raw.includes('ALL')) allPrereqSubjects.push(s.id); raw.flat().forEach(pre => { if (pre !== 'ALL') { unlocks.set(pre, (unlocks.get(pre) || 0) + 1); if (!dependents.has(pre)) dependents.set(pre, []); dependents.get(pre).push(s.id); } }); })); return { dependents, unlocks, allPrereqSubjects }; }
+        function calculatePeriodStats(p) { let c=0; p.subjects.forEach(s => { if(userProgress[s.id]?.status === 'approved') c++; }); return { completed: c, completionPercentage: (c/p.subjects.length)*100, avgGrade: 0 }; }
+        function renderPeriodStatsHTML(s, t) { return `<div class="flex items-center gap-2"><div class="h-1.5 w-20 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${s.completionPercentage}%"></div></div><span class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">${s.completed}/${t}</span></div>`; }
+        function renderUI() { document.getElementById('header-career').textContent = currentCurriculum.metadata.career_name; document.getElementById('header-institution').textContent = currentCurriculum.metadata.institution; renderPeriods(); }
+        function renderSubjectCardString(s, pn) { const st = userProgress[s.id] || { status: 'pending', grade: null, attempts: [], completionDate: null }; const un = checkPrerequisites(s.prerequisites); const fo = dependencyGraph?.unlocks.get(s.id) || 0; const reqTxt = formatPrerequisiteString(s.prerequisites); let bc = 'border-l-4 border-slate-200 dark:border-slate-700', op = ''; if (st.status === 'approved') bc = 'border-l-4 border-emerald-500'; else if (!un) { bc = 'border-l-4 border-orange-300 dark:border-orange-700'; op = 'opacity-60 grayscale-[0.5]'; } return `<div id="subject-card-${s.id}" class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group"><div class="flex items-start gap-3"><div class="shrink-0 pt-0.5"><input type="checkbox" ${st.status === 'approved' ? 'checked' : ''} ${!un && st.status !== 'approved' ? 'disabled' : ''} onchange="toggleSubjectStatus('${s.id}')"></div><div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2 mb-2"><h4 class="font-bold text-slate-900 dark:text-white text-sm leading-tight">${s.name}</h4><span class="shrink-0 text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">${s.code}</span></div><div class="flex flex-wrap items-center gap-2 mb-3"><span class="text-xs bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-lg font-bold">${s.credits} CR</span>${fo > 0 ? `<span class="text-xs bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1"><i class="fas fa-key text-[9px]"></i> ${fo}</span>` : ''}${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${s.id}')" class="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all max-w-full truncate"><i class="fas fa-lock text-[9px]"></i> Req: ${reqTxt}</button>` : ''}</div><div class="flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[80px]"><label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Nota</label><input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none"></div><div class="w-16"><label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Retiros</label><input type="number" min="0" max="10" placeholder="0" value="${st.attempts?.length || 0}" onchange="updateAttempts('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none"></div><div class="w-32"><label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Fecha</label><input type="month" value="${st.completionDate || ''}" onchange="updateCompletionDate('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none"></div></div></div></div></div>`; }
+        function toggleSubjectStatus(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; userProgress[id].status = userProgress[id].status === 'approved' ? 'pending' : 'approved'; saveUserProgress(); const toUpdate = new Set([id]); const pUpdate = new Set(); (dependencyGraph.dependents.get(id)||[]).forEach(d => toUpdate.add(d)); dependencyGraph.allPrereqSubjects.forEach(d => toUpdate.add(d)); toUpdate.forEach(subId => { const loc = findSubjectLocation(subId); if(loc) { reRenderSubjectCardDOM(loc.subject, loc.period.period_number); pUpdate.add(loc.periodIndex); } }); pUpdate.forEach(idx => updatePeriodHeaderDOM(idx)); calculateStatistics(); }
+        function updateGrade(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; const g = parseInt(val); userProgress[id].grade = g || null; if (g >= 70 && userProgress[id].status !== 'approved') { userProgress[id].status = 'approved'; toggleSubjectStatus(id); } else { saveUserProgress(); calculateStatistics(); } }
+        function updateAttempts(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].attempts = Array(parseInt(val)||0).fill({}); saveUserProgress(); }
+        function updateCompletionDate(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].completionDate = val; saveUserProgress(); }
+        function calculateStatistics() { if(!currentCurriculum) return; let total=0, completed=0, earned=0, weighted=0, weightBase=0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { total++; const st = userProgress[s.id]; if(st?.status === 'approved') { completed++; earned += s.credits; if(st.grade) { weighted += st.grade * s.credits; weightBase += s.credits; } } })); const gpa = weightBase > 0 ? weighted/weightBase : 0; const progress = total > 0 ? (completed/total)*100 : 0; document.getElementById('stat-progress').textContent = Math.round(progress) + '%'; document.getElementById('progress-bar-mini').style.width = progress + '%'; document.getElementById('stat-gpa').textContent = gpa.toFixed(1); document.getElementById('stat-completed-count').textContent = completed; document.getElementById('stat-total-subjects').textContent = total; document.getElementById('stat-remaining-text').textContent = (total-completed) + ' faltantes'; }
+        function findSubjectLocation(id) { if (!currentCurriculum) return null; for (let i = 0; i < currentCurriculum.periods.length; i++) { const s = currentCurriculum.periods[i].subjects.find(s => s.id === id); if (s) return { subject: s, period: currentCurriculum.periods[i], periodIndex: i }; } return null; }
+        function reRenderSubjectCardDOM(s, pn) { const el = document.getElementById(`subject-card-${s.id}`); if (el) el.outerHTML = renderSubjectCardString(s, pn); }
+        function updatePeriodHeaderDOM(i) { const el = document.getElementById(`period-header-stats-${i}`); if (el) el.innerHTML = renderPeriodStatsHTML(calculatePeriodStats(currentCurriculum.periods[i]), currentCurriculum.periods[i].subjects.length); }
+        function togglePeriod(i) { if(APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); localStorage.setItem('collapsed_periods', JSON.stringify([...APP_CONFIG.collapsedPeriods])); renderPeriods(document.getElementById('search-input').value); }
+        function renderPeriods(filter) { const c = document.getElementById('periods-container'); c.innerHTML = ''; if(!currentCurriculum) return; currentCurriculum.periods.forEach((p, idx) => { const subs = p.subjects.filter(s => !filter || s.name.toLowerCase().includes(filter.toLowerCase()) || s.code.toLowerCase().includes(filter.toLowerCase())); if(!subs.length) return; const open = !APP_CONFIG.collapsedPeriods.has(idx) || filter; const stats = calculatePeriodStats(p); const div = document.createElement('div'); div.className = 'bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm animate-fade-in'; div.innerHTML = `<div onclick="togglePeriod(${idx})" class="px-5 py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all select-none flex items-center justify-between"><div class="flex items-center gap-4 flex-1 min-w-0"><div class="shrink-0 w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-primary-500/30">${p.period_number}</div><div class="flex-1 min-w-0"><h3 class="font-bold text-slate-900 dark:text-white text-sm mb-1 truncate">${p.name}</h3><div id="period-header-stats-${idx}" class="flex items-center gap-3">${renderPeriodStatsHTML(stats, p.subjects.length)}</div></div></div><i class="fas fa-chevron-down text-slate-400 transition-transform duration-300 ${open ? 'rotate-180' : ''}"></i></div><div class="collapsible-content ${open ? 'open' : ''}"><div class="px-3 pb-3 space-y-2 bg-slate-50/50 dark:bg-slate-900/30">${subs.map(s => renderSubjectCardString(s, p.period_number)).join('')}</div></div>`; c.appendChild(div); }); }
+        function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; localStorage.setItem('dark-mode', APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); }
+        function scrollToTop() { window.scrollTo({top:0, behavior:'smooth'}); }
+        function showPrerequisites(id) { const loc = findSubjectLocation(id); if(loc) showToast(`Requisitos: ${formatPrerequisiteString(loc.subject.prerequisites)}`, 'info'); }
+        function openSettings() { renderSettingsRequirements(); document.getElementById('settings-modal').classList.remove('hidden'); }
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+        function showToast(msg, type='info') { const t = document.createElement('div'); const c = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-slate-800' }; t.className = `${c[type]} text-white px-4 py-3 rounded-lg shadow-xl fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
+        function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); if(!d.metadata || !d.periods) throw new Error(); if(confirm('¿Cargar?')) { currentCurriculum=d; userProgress={}; saveCurriculum(); saveUserProgress(); dependencyGraph=buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch(e) { showToast('Error en JSON', 'error'); } }
+        function exportProgress() { const b = new Blob([JSON.stringify({curriculum:currentCurriculum, progress:userProgress}, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup.json'; a.click(); }
+        function resetProgress() { if(confirm('¿Reiniciar?')) { userProgress={}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
+        function deleteAllData() { if(confirm('¿Borrar todo?')) { localStorage.clear(); location.reload(); } }
+        function importData(inp) { const f = inp.files[0]; if(!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if(!d.curriculum || !d.progress) throw new Error(); if(confirm('¿Importar?')) { currentCurriculum=d.curriculum; userProgress=d.progress; saveCurriculum(); saveUserProgress(); dependencyGraph=buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch { showToast('Error', 'error'); } }; r.readAsText(f); }
+        function renderRequirementsWidget() { const c = document.getElementById('requirements-list-main'); if(!currentCurriculum) return; const r = currentCurriculum.requirements || []; c.innerHTML = r.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${r.map(q => `<div class="flex items-center gap-3 p-2 rounded-lg ${q.completed ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-slate-50 dark:bg-slate-700/30'}"><div class="shrink-0 text-lg">${q.completed ? '<i class="fas fa-check-circle text-emerald-500"></i>' : '<i class="fas fa-circle text-slate-300 dark:text-slate-600"></i>'}</div><span class="text-sm font-medium ${q.completed ? 'text-emerald-800 dark:text-emerald-300' : 'text-slate-600 dark:text-slate-300'}">${q.name}</span></div>`).join('')}</div>` : '<div class="text-xs text-slate-400 text-center italic">Sin requisitos</div>'; }
+        function renderSettingsRequirements() { const c = document.getElementById('settings-requirements-list'); if(!currentCurriculum) return; c.innerHTML = (currentCurriculum.requirements||[]).map((r, i) => `<div class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 group"><input type="checkbox" ${r.completed ? 'checked' : ''} onchange="toggleRequirement(${i})" class="shrink-0 cursor-pointer"><div class="flex-1 font-medium text-sm text-slate-900 dark:text-white">${r.name}</div><button onclick="deleteRequirement(${i})" class="text-slate-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt"></i></button></div>`).join(''); }
+        function toggleRequirement(i) { currentCurriculum.requirements[i].completed = !currentCurriculum.requirements[i].completed; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); }
+        function deleteRequirement(i) { if(confirm('¿Borrar?')) { currentCurriculum.requirements.splice(i, 1); saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
+        function toggleAddReqForm() { document.getElementById('new-req-form').classList.toggle('hidden'); document.getElementById('add-req-btn').classList.toggle('hidden'); }
+        function confirmAddRequirement() { const v = document.getElementById('new-req-name').value.trim(); if(v) { if(!currentCurriculum.requirements) currentCurriculum.requirements=[]; currentCurriculum.requirements.push({id:`req-${Date.now()}`, name:v, completed:false}); saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); toggleAddReqForm(); document.getElementById('new-req-name').value=''; } }
+
+        function getUAPAData() {
+            return {
+                "id": "uapa-isw-2018",
+                "metadata": { "institution": "UAPA", "career_name": "Ingeniería en Software", "degree": "Ingeniero/a en Software", "period_type": "Trimestre", "total_credits": 209, "duration_years": 4, "last_update": "2024-01-15T00:00:00Z" },
+                "requirements": [ { "id": "req-1", "name": "Servicio Social (60h)", "completed": false }, { "id": "req-2", "name": "Inglés", "completed": false }, { "id": "req-3", "name": "Pasantía (240h)", "completed": false } ],
+                "periods": [
+                    { "period_number": 1, "name": "Primer Trimestre", "subjects": [ { "id": "CBC-101", "code": "CBC-101", "name": "Taller de Orientación Universitaria", "credits": 0, "prerequisites": [] }, { "id": "CBC-102", "code": "CBC-102", "name": "Introducción a la Educación a Distancia", "credits": 3, "prerequisites": [] }, { "id": "CBE-103", "code": "CBE-103", "name": "Español I", "credits": 4, "prerequisites": [] }, { "id": "CBC-104", "code": "CBC-104", "name": "Infotecnología para el Aprendizaje", "credits": 3, "prerequisites": [] }, { "id": "FGI-101", "code": "FGI-101", "name": "Propedéutico de Ingeniería", "credits": 0, "prerequisites": [] } ] },
+                    { "period_number": 2, "name": "Segundo Trimestre", "subjects": [ { "id": "CBE-105", "code": "CBE-105", "name": "Español II", "credits": 4, "prerequisites": ["CBE-103"] }, { "id": "FGI-102", "code": "FGI-102", "name": "Álgebra y Geometría para Ingenieros", "credits": 4, "prerequisites": [] }, { "id": "FGI-103", "code": "FGI-103", "name": "Lógica Computacional", "credits": 4, "prerequisites": [] }, { "id": "FGC-104", "code": "FGC-104", "name": "Filosofía General", "credits": 2, "prerequisites": [] } ] },
+                    { "period_number": 3, "name": "Tercer Trimestre", "subjects": [ { "id": "FGC-102", "code": "FGC-102", "name": "Sociología", "credits": 3, "prerequisites": [] }, { "id": "FGM-102", "code": "FGM-102", "name": "Análisis Matemático I", "credits": 5, "prerequisites": ["FGI-102"] }, { "id": "CBC-107", "code": "CBC-107", "name": "Ser Humano y Desarrollo Sostenible", "credits": 3, "prerequisites": [] }, { "id": "FGI-104", "code": "FGI-104", "name": "Programación I", "credits": 4, "prerequisites": ["FGI-103"] } ] },
+                    { "period_number": 4, "name": "Cuarto Trimestre", "subjects": [ { "id": "FGM-103", "code": "FGM-103", "name": "Análisis Matemático II", "credits": 5, "prerequisites": ["FGM-102"] }, { "id": "FGI-105", "code": "FGI-105", "name": "Programación II", "credits": 4, "prerequisites": ["FGI-104"] }, { "id": "FGI-106", "code": "FGI-106", "name": "Sistema de Base de Datos", "credits": 4, "prerequisites": ["FGI-104"] } ] },
+                    { "period_number": 5, "name": "Quinto Trimestre", "subjects": [ { "id": "FGF-201", "code": "FGF-201", "name": "Física General", "credits": 4, "prerequisites": ["FGI-102"] }, { "id": "LAF-201", "code": "LAF-201", "name": "Práctica de Física General", "credits": 1, "prerequisites": ["FGF-201"] }, { "id": "FGI-207", "code": "FGI-207", "name": "Programación III", "credits": 4, "prerequisites": ["FGI-105"] }, { "id": "FGI-208", "code": "FGI-208", "name": "Análisis y Diseño de Sistema", "credits": 4, "prerequisites": ["FGI-106"] } ] },
+                    { "period_number": 6, "name": "Sexto Trimestre", "subjects": [ { "id": "FGC-205", "code": "FGC-205", "name": "Metodología de la Investigación I", "credits": 4, "prerequisites": [] }, { "id": "FGI-209", "code": "FGI-209", "name": "Electrónica Básica", "credits": 4, "prerequisites": ["FGF-201"] }, { "id": "ISW-201", "code": "ISW-201", "name": "Ingeniería de Software I", "credits": 4, "prerequisites": ["FGI-208"] } ] },
+                    { "period_number": 7, "name": "Séptimo Trimestre", "subjects": [ { "id": "FGN-204", "code": "FGN-204", "name": "Contabilidad y Finanzas", "credits": 4, "prerequisites": ["FGM-102"] }, { "id": "FGI-210", "code": "FGI-210", "name": "Arquitectura de Hardware", "credits": 4, "prerequisites": ["FGI-209"] }, { "id": "ISW-202", "code": "ISW-202", "name": "Ingeniería de Software II", "credits": 4, "prerequisites": ["ISW-201"] }, { "id": "FGC-206", "code": "FGC-206", "name": "Metodología de la Investigación II", "credits": 4, "prerequisites": ["FGC-205"] } ] },
+                    { "period_number": 8, "name": "Octavo Trimestre", "subjects": [ { "id": "FGM-205", "code": "FGM-205", "name": "Matemática Discreta", "credits": 3, "prerequisites": ["FGM-103"] }, { "id": "FGM-206", "code": "FGM-206", "name": "Álgebra Lineal", "credits": 4, "prerequisites": ["FGI-102"] }, { "id": "ISW-203", "code": "ISW-203", "name": "Calidad de Software", "credits": 4, "prerequisites": ["ISW-202"] }, { "id": "OPT-1", "code": "OPT-1", "name": "Optativa 1", "credits": 3, "prerequisites": [] } ] },
+                    { "period_number": 9, "name": "Noveno Trimestre", "subjects": [ { "id": "FGM-207", "code": "FGM-207", "name": "Estadística y Probabilidades", "credits": 4, "prerequisites": ["FGM-103"] }, { "id": "FGI-311", "code": "FGI-311", "name": "Teleinformática", "credits": 4, "prerequisites": ["FGI-210"] }, { "id": "ISW-304", "code": "ISW-304", "name": "Desarrollo de Proyectos con Software Libre", "credits": 4, "prerequisites": ["FGI-208"] } ] },
+                    { "period_number": 10, "name": "Décimo Trimestre", "subjects": [ { "id": "INF-303", "code": "INF-303", "name": "Seguridad Informática", "credits": 4, "prerequisites": ["FGI-311"] }, { "id": "FGM-314", "code": "FGM-314", "name": "Matemática Numérica", "credits": 4, "prerequisites": ["FGM-205"] }, { "id": "ISW-305", "code": "ISW-305", "name": "Estructura de Datos y Algoritmos", "credits": 4, "prerequisites": ["FGI-207"] }, { "id": "OPT-2", "code": "OPT-2", "name": "Optativa 2", "credits": 3, "prerequisites": [] } ] },
+                    { "period_number": 11, "name": "Décimo Primer Trimestre", "subjects": [ { "id": "INF-304", "code": "INF-304", "name": "Informática Gerencial", "credits": 4, "prerequisites": ["ISW-202"] }, { "id": "INF-305", "code": "INF-305", "name": "Sistemas Operativos", "credits": 4, "prerequisites": ["FGI-207"] }, { "id": "ISW-306", "code": "ISW-306", "name": "Desarrollo de Aplicaciones Web", "credits": 4, "prerequisites": ["ISW-304"] } ] },
+                    { "period_number": 12, "name": "Décimo Segundo Trimestre", "subjects": [ { "id": "ISW-307", "code": "ISW-307", "name": "Programación de Dispositivos Móviles", "credits": 4, "prerequisites": ["ISW-306"] }, { "id": "ISW-308", "code": "ISW-308", "name": "Gráficos por Computadoras", "credits": 4, "prerequisites": ["FGI-207"] }, { "id": "ISW-309", "code": "ISW-309", "name": "Inteligencia Artificial", "credits": 4, "prerequisites": ["FGI-210"] } ] },
+                    { "period_number": 13, "name": "Décimo Tercer Trimestre", "subjects": [ { "id": "MER-415", "code": "MER-415", "name": "Marketing Digital", "credits": 3, "prerequisites": ["ISW-306"] }, { "id": "INF-408", "code": "INF-408", "name": "Investigación de Operaciones", "credits": 4, "prerequisites": ["FGM-207"] }, { "id": "INF-409", "code": "INF-409", "name": "Formación de Empresa de Base Tecnológica", "credits": 4, "prerequisites": ["INF-304"] } ] },
+                    { "period_number": 14, "name": "Décimo Cuarto Trimestre", "subjects": [ { "id": "ISW-410", "code": "ISW-410", "name": "Seminario de Proyecto I", "credits": 4, "prerequisites": ["ISW-306"] }, { "id": "FGC-409", "code": "FGC-409", "name": "Ética Profesional", "credits": 3, "prerequisites": [] }, { "id": "INF-307", "code": "INF-307", "name": "Gestión del Conocimiento y la Toma de Decisiones", "credits": 4, "prerequisites": ["INF-304"] } ] },
+                    { "period_number": 15, "name": "Décimo Quinto Trimestre", "subjects": [ { "id": "ISW-411", "code": "ISW-411", "name": "Seminario de Proyecto II", "credits": 4, "prerequisites": ["ISW-410"] }, { "id": "ISW-412", "code": "ISW-412", "name": "Minería de Datos", "credits": 4, "prerequisites": ["INF-307"] }, { "id": "ISW-413", "code": "ISW-413", "name": "Simulación Digital", "credits": 4, "prerequisites": ["INF-408"] }, { "id": "OPT-3", "code": "OPT-3", "name": "Optativa 3", "credits": 3, "prerequisites": [] } ] },
+                    { "period_number": 16, "name": "Décimo Sexto Trimestre", "subjects": [ { "id": "CFI-500", "code": "CFI-500", "name": "Curso Final de Grado", "credits": 6, "prerequisites": ["ALL"] } ] }
+                ]
+            };
+        }
+
+        function getUASDQuimicaData() {
+            return {
+                "id": "uasd-quim-2011",
+                "metadata": { "institution": "UASD", "career_name": "Licenciatura en Química", "period_type": "Semestre", "total_credits": 181 },
+                "requirements": [ { "id": "req-1", "name": "Tesis de Grado", "completed": false } ],
+                "periods": [
+                    { "period_number": 1, "name": "Semestre 1", "subjects": [ { "id": "BIO-0170", "code": "BIO-0170", "name": "Biología Básica", "credits": 2, "prerequisites": [] }, { "id": "BIO-0180", "code": "BIO-0180", "name": "Laboratorio de Biología Básica", "credits": 1, "prerequisites": [] }, { "id": "DOP-1000", "code": "DOP-1000", "name": "Orientación Institucional", "credits": 1, "prerequisites": [] }, { "id": "EFS-0120", "code": "EFS-0120", "name": "Educación Física", "credits": 1, "prerequisites": [] }, { "id": "HIS-0110", "code": "HIS-0110", "name": "Fundamentos de Historia Social Dominicana", "credits": 3, "prerequisites": [] }, { "id": "LET-0110", "code": "LET-0110", "name": "Lengua Española Básica I", "credits": 3, "prerequisites": [] }, { "id": "MAT-0140", "code": "MAT-0140", "name": "Matemática Básica", "credits": 4, "prerequisites": [] }, { "id": "QUI-0140", "code": "QUI-0140", "name": "Química Básica", "credits": 3, "prerequisites": [] }, { "id": "SOC-0100", "code": "SOC-0100", "name": "Introducción a las Ciencias Sociales", "credits": 3, "prerequisites": [] } ] },
+                    { "period_number": 2, "name": "Semestre 2", "subjects": [ { "id": "BIO-2400", "code": "BIO-2400", "name": "Bioética", "credits": 2, "prerequisites": ["FIL-0110", ["BIO-0140", "BIO-0170"], ["BIO-0180", "BIO-0110"], ["QUI-0140", "QUI-0110"]] }, { "id": "FIL-0110", "code": "FIL-0110", "name": "Introducción a la Filosofía", "credits": 3, "prerequisites": [] }, { "id": "FIS-0140", "code": "FIS-0140", "name": "Física Básica", "credits": 4, "prerequisites": [] }, { "id": "LET-0120", "code": "LET-0120", "name": "Lengua Española Básica II", "credits": 3, "prerequisites": [["LET-0110", "LET-0130", "LET-0150"]] }, { "id": "MAT-2300", "code": "MAT-2300", "name": "Álgebra Superior", "credits": 5, "prerequisites": ["MAT-0140"] }, { "id": "QUI-1040", "code": "QUI-1040", "name": "Química General", "credits": 5, "prerequisites": [["QUI-0140", "QUI-0110", "QUI-1020"]] } ] },
+                    { "period_number": 3, "name": "Semestre 3", "subjects": [ { "id": "FIS-2110", "code": "FIS-2110", "name": "Física General I", "credits": 3, "prerequisites": [["FIS-0140", "FIS-0120", "FIS-0180"], "FIS-0200", ["FIS-2210"]] }, { "id": "FIS-2210", "code": "FIS-2210", "name": "Lab. de Física General I", "credits": 1, "prerequisites": [["FIS-0120", "FIS-0140", "FIS-0180"], "FIS-0200", ["FIS-2110"]] }, { "id": "MAT-2510", "code": "MAT-2510", "name": "Cálculo y Analítica I", "credits": 6, "prerequisites": [["MAT-2300"]] }, { "id": "QUI-1150", "code": "QUI-1150", "name": "Química Inorgánica I", "credits": 4, "prerequisites": ["QUI-1040"] }, { "id": "QUI-1430", "code": "QUI-1430", "name": "Química Analítica I", "credits": 5, "prerequisites": [["QUI-1040", "QUI-1010", "QUI-1050"]] }, { "id": "QUI-2220", "code": "QUI-2220", "name": "Química Orgánica I", "credits": 4, "prerequisites": [["QUI-0140", "QUI-0110"]] } ] },
+                    { "period_number": 4, "name": "Semestre 4", "subjects": [ { "id": "FIS-2120", "code": "FIS-2120", "name": "Física General II", "credits": 3, "prerequisites": [["FIS-2110", "FIS-1110"], "FIS-2210", ["FIS-2220"]] }, { "id": "FIS-2220", "code": "FIS-2220", "name": "Lab. de Física General II", "credits": 1, "prerequisites": [["FIS-2110", "FIS-1110"], "FIS-2210", ["FIS-2120"]] }, { "id": "MAT-3500", "code": "MAT-3500", "name": "Cálculo y Geom. Analítica II", "credits": 6, "prerequisites": [["MAT-2510", "MAT-2500", "MAT-2570"]] }, { "id": "QUI-1160", "code": "QUI-1160", "name": "Química Inorgánica II", "credits": 4, "prerequisites": ["QUI-1150"] }, { "id": "QUI-1440", "code": "QUI-1440", "name": "Química Analítica II", "credits": 5, "prerequisites": ["QUI-1430"] }, { "id": "QUI-3260", "code": "QUI-3260", "name": "Química Orgánica II", "credits": 5, "prerequisites": ["QUI-1040", "QUI-2220"] } ] },
+                    { "period_number": 5, "name": "Semestre 5", "subjects": [ { "id": "FIS-2130", "code": "FIS-2130", "name": "Física General III", "credits": 3, "prerequisites": ["FIS-2120", "FIS-2220", ["FIS-2230"]] }, { "id": "FIS-2230", "code": "FIS-2230", "name": "Lab. de Física General III", "credits": 1, "prerequisites": ["FIS-2120", "FIS-2220", ["FIS-2130"]] }, { "id": "MAT-3600", "code": "MAT-3600", "name": "Ecuaciones Diferenciales", "credits": 5, "prerequisites": [["MAT-2840", "MAT-3500", "MAT-3510", "MAT-3520", "MAT-3570"]] }, { "id": "QUI-1450", "code": "QUI-1450", "name": "Química Analítica III", "credits": 5, "prerequisites": ["QUI-1040", "QUI-1440"] }, { "id": "QUI-2320", "code": "QUI-2320", "name": "Química Física I", "credits": 4, "prerequisites": ["FIS-2110", "FIS-2210", ["MAT-3500", "MAT-3510"]] }, { "id": "QUI-3270", "code": "QUI-3270", "name": "Química Orgánica III", "credits": 5, "prerequisites": ["QUI-3260"] } ] },
+                    { "period_number": 6, "name": "Semestre 6", "subjects": [ { "id": "EST-1210", "code": "EST-1210", "name": "Estadística Industrial", "credits": 3, "prerequisites": ["MAT-2300"] }, { "id": "QUI-3360", "code": "QUI-3360", "name": "Química Física II", "credits": 5, "prerequisites": ["QUI-2320", "FIS-2120", "FIS-2220"] }, { "id": "QUI-4240", "code": "QUI-4240", "name": "Química Biorgánica", "credits": 4, "prerequisites": ["QUI-2220", "QUI-3270"] }, { "id": "QUI-4500", "code": "QUI-4500", "name": "Métodos de Invest. en Química", "credits": 4, "prerequisites": ["SOC-0100", "FIL-0110"] }, { "id": "QUI-4540", "code": "QUI-4540", "name": "Procesos Químicos Industriales", "credits": 4, "prerequisites": ["QUI-1450"] }, { "id": "OPT-1", "code": "OPT-1", "name": "Asignatura Optativa", "credits": 3, "prerequisites": [] } ] },
+                    { "period_number": 7, "name": "Semestre 7", "subjects": [ { "id": "INQ-2110", "code": "INQ-2110", "name": "Balances de Materia y Energía", "credits": 5, "prerequisites": ["QUI-3360"] }, { "id": "QUI-2570", "code": "QUI-2570", "name": "Int. al Aseguramiento Calidad", "credits": 3, "prerequisites": ["EST-1210"] }, { "id": "QUI-3370", "code": "QUI-3370", "name": "Química Física III", "credits": 5, "prerequisites": ["QUI-2320", "QUI-3360", "FIS-2130", "FIS-2230"] }, { "id": "OPT-2", "code": "OPT-2", "name": "Asignatura Optativa", "credits": 2, "prerequisites": [] } ] },
+                    { "period_number": 8, "name": "Semestre 8", "subjects": [ { "id": "MIP-3150", "code": "MIP-3150", "name": "Microbiología y Fermentación", "credits": 4, "prerequisites": ["BIO-0170", "BIO-0180", "QUI-2220"] }, { "id": "QUI-2540", "code": "QUI-2540", "name": "Química Ambiental", "credits": 3, "prerequisites": ["QUI-1450"] }, { "id": "QUI-3460", "code": "QUI-3460", "name": "Análisis Químico Industrial", "credits": 3, "prerequisites": ["QUI-4540"] }, { "id": "OPT-3", "code": "OPT-3", "name": "Asignatura Optativa", "credits": 4, "prerequisites": [] } ] },
+                    { "period_number": 9, "name": "Noveno Semestre", "subjects": [ { "id": "QUI-4590", "code": "QUI-4590", "name": "Pasantía Industrial", "credits": 3, "prerequisites": ["QUI-4540"] }, { "id": "QUI-7000", "code": "QUI-7000", "name": "Tesis de Grado o Curso Equivalente", "credits": 8, "prerequisites": [] }, { "id": "OPT-4", "code": "OPT-4", "name": "Asignatura Optativa", "credits": 4, "prerequisites": [] } ] }
+                ]
+            };
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+        document.getElementById('settings-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeSettings(); });
+    </script>
+</body>
+</html>
