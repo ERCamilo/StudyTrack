@@ -484,6 +484,14 @@
             <div class="p-3 sm:p-4" id="requirements-list-main"></div>
         </div>
 
+        <div class="flex items-center justify-between px-1 sm:px-2">
+            <h3 class="text-xs sm:text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                Periodos Académicos</h3>
+            <button onclick="toggleAllPeriods()"
+                class="text-[10px] sm:text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i class="fas fa-expand-alt"></i> <span id="toggle-all-text">Contraer Todo</span>
+            </button>
+        </div>
         <div id="periods-container" class="space-y-3 sm:space-y-4"></div>
     </main>
 
@@ -838,6 +846,24 @@
                     </div>
                 </div>
 
+                <!-- GRADE SCALE SECTION -->
+                <div class="mt-6">
+                    <h3
+                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        <i class="fas fa-medal"></i> Escala de Calificaciones
+                    </h3>
+                    <div
+                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-3">Define los rangos para asignar
+                            letras a tus notas.</p>
+                        <div id="grade-scale-settings-list" class="space-y-2 mb-3"></div>
+                        <button onclick="addGradeRange()"
+                            class="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <i class="fas fa-plus mr-1"></i> Agregar Rango
+                        </button>
+                    </div>
+                </div>
+
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
                     <button onclick="closeSettings()"
@@ -867,7 +893,26 @@
             darkMode: localStorage.getItem('dark-mode') === 'true',
             collapsedPeriods: new Set(JSON.parse(localStorage.getItem('collapsed_periods') || '[]')),
             allowSkipPrerequisites: localStorage.getItem('allow_skip_prereqs') !== 'false', // true by default
-            maxEnrolledSubjects: parseInt(localStorage.getItem('max_enrolled_subjects')) || 10
+            maxEnrolledSubjects: parseInt(localStorage.getItem('max_enrolled_subjects')) || 10,
+            gradeScale: (function () {
+                const s = JSON.parse(localStorage.getItem('grade_scale'));
+                if (s && s.length && s[0].points !== undefined) return s;
+                // Default or migration if missing points
+                const defaults = [
+                    { min: 90, label: 'A', color: 'text-emerald-500', points: 4 },
+                    { min: 80, label: 'B', color: 'text-blue-500', points: 3 },
+                    { min: 70, label: 'C', color: 'text-yellow-500', points: 2 },
+                    { min: 60, label: 'D', color: 'text-orange-500', points: 1 },
+                    { min: 0, label: 'F', color: 'text-red-500', points: 0 }
+                ];
+                if (!s) return defaults;
+                // Add points to existing
+                return s.map(i => {
+                    let p = 0;
+                    if (i.min >= 90) p = 4; else if (i.min >= 80) p = 3; else if (i.min >= 70) p = 2; else if (i.min >= 60) p = 1;
+                    return { ...i, points: p };
+                });
+            })()
         };
 
         const LOCAL_LIBRARY = [
@@ -1087,6 +1132,7 @@
             const un = checkPrerequisites(s.prerequisites);
             const fo = dependencyGraph?.unlocks.get(s.id) || 0;
             const reqTxt = formatPrerequisiteString(s.prerequisites);
+            const gradeLabel = getGradeLabel(st.grade);
 
             const isSkippedPrereq = st.status === 'approved' && !un && s.prerequisites?.length;
             let bc = 'border-l-4 border-slate-200 dark:border-slate-700', op = '';
@@ -1144,7 +1190,7 @@
                             </div>
                             <div class="flex flex-wrap items-center gap-3">
                                 <div class="flex-1 min-w-[65px] sm:min-w-[80px]">
-                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Nota</label>
+                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1 flex justify-between">Nota ${gradeLabel ? `<span class="${gradeLabel.color}">${gradeLabel.label}</span>` : ''}</label>
                                     <input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
                                 </div>
                                 <div class="w-12 sm:w-16">
@@ -1221,16 +1267,24 @@
             if (el) {
                 const p = currentCurriculum.periods[i];
                 const avg = calculatePeriodAverage(p);
-                el.innerHTML = renderPeriodStatsHTML(calculatePeriodStats(p), p.subjects.length) + (avg ? `<span class="sm:hidden text-[10px] font-bold text-slate-500">• Prom: ${avg}</span>` : '');
+                const gpa4 = calculatePeriodGPA4(p);
+                let statsHtml = renderPeriodStatsHTML(calculatePeriodStats(p), p.subjects.length);
+                if (avg) statsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-2">Prom: ${avg}</span>`;
+                if (gpa4) statsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-1">• GPA: ${gpa4}</span>`;
+                el.innerHTML = statsHtml;
             }
             // Update desktop Average badge if exists
             const titleContainer = document.querySelector(`#period-header-stats-${i}`).parentElement.querySelector('h3').parentElement;
             if (titleContainer) {
-                const existingBadge = titleContainer.querySelector('.fa-chart-line')?.parentElement;
+                // Remove existing badges
+                titleContainer.querySelectorAll('.badge-stat').forEach(b => b.remove());
+
                 const p = currentCurriculum.periods[i];
                 const avg = calculatePeriodAverage(p);
-                if (existingBadge) existingBadge.remove();
-                if (avg) titleContainer.insertAdjacentHTML('beforeend', `<span class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"><i class="fas fa-chart-line mr-1 text-slate-400"></i>${avg}</span>`);
+                const gpa4 = calculatePeriodGPA4(p);
+
+                if (avg) titleContainer.insertAdjacentHTML('beforeend', `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-2"><i class="fas fa-chart-line mr-1 text-slate-400"></i>${avg}</span>`);
+                if (gpa4) titleContainer.insertAdjacentHTML('beforeend', `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-1"><i class="fas fa-star mr-1 text-slate-400"></i>${gpa4}</span>`);
             }
             // Update Badge Color
             const badge = document.querySelector(`div[onclick="togglePeriod(${i})"] .shadow-lg`);
@@ -1238,14 +1292,135 @@
                 badge.className = `shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${getPeriodStatusColor(currentCurriculum.periods[i])} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500`;
             }
         }
-        function togglePeriod(i) { if (APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); localStorage.setItem('collapsed_periods', JSON.stringify([...APP_CONFIG.collapsedPeriods])); renderPeriods(document.getElementById('search-input').value); }
-        function renderPeriods(filter) { const c = document.getElementById('periods-container'); c.innerHTML = ''; if (!currentCurriculum) return; currentCurriculum.periods.forEach((p, idx) => { const subs = p.subjects.filter(s => { const matchesText = !filter || s.name.toLowerCase().includes(filter.toLowerCase()) || s.code.toLowerCase().includes(filter.toLowerCase()); const status = userProgress[s.id]?.status || 'pending'; let matchesFilter = true; if (currentFilter === 'enrolled') matchesFilter = status === 'enrolled'; else if (currentFilter === 'completed') matchesFilter = status === 'approved'; else if (currentFilter === 'pending') matchesFilter = status === 'pending'; return matchesText && matchesFilter; }); if (!subs.length) return; const open = !APP_CONFIG.collapsedPeriods.has(idx) || filter || currentFilter !== 'all'; const stats = calculatePeriodStats(p); const avg = calculatePeriodAverage(p); const statusColor = getPeriodStatusColor(p); const div = document.createElement('div'); div.className = 'bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm animate-fade-in transition-all duration-300 hover:shadow-md'; div.innerHTML = `<div onclick="togglePeriod(${idx})" class="px-3 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all select-none flex items-center justify-between group"><div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0"><div class="shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${statusColor} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500">${p.period_number}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-0.5 sm:mb-1"><h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">${p.name}</h3>${avg ? `<span class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"><i class="fas fa-chart-line mr-1 text-slate-400"></i>${avg}</span>` : ''}</div><div id="period-header-stats-${idx}" class="flex items-center gap-3">${renderPeriodStatsHTML(stats, p.subjects.length)} ${avg ? `<span class="sm:hidden text-[10px] font-bold text-slate-500">• Prom: ${avg}</span>` : ''}</div></div></div><i class="fas fa-chevron-down text-slate-300 dark:text-slate-600 transition-transform duration-300 ${open ? 'rotate-180' : ''} group-hover:text-slate-400 dark:group-hover:text-slate-500"></i></div><div class="collapsible-content ${open ? 'open' : ''}"><div class="px-2 sm:px-3 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">${subs.map(s => renderSubjectCardString(s, p.period_number)).join('')}</div></div>`; c.appendChild(div); }); }
+        function togglePeriod(i) { if (APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); localStorage.setItem('collapsed_periods', JSON.stringify([...APP_CONFIG.collapsedPeriods])); renderPeriods(document.getElementById('search-input').value); updateToggleAllButton(); }
+
+        function toggleAllPeriods() {
+            const allIndices = currentCurriculum.periods.map((_, i) => i);
+            // If all are collapsed (size == length), Expand All. Otherwise, Collapse All.
+            if (APP_CONFIG.collapsedPeriods.size === allIndices.length) {
+                APP_CONFIG.collapsedPeriods.clear(); // Expand All
+            } else {
+                allIndices.forEach(i => APP_CONFIG.collapsedPeriods.add(i)); // Collapse All
+            }
+            localStorage.setItem('collapsed_periods', JSON.stringify([...APP_CONFIG.collapsedPeriods]));
+            renderPeriods(document.getElementById('search-input').value);
+            updateToggleAllButton();
+        }
+
+        function updateToggleAllButton() {
+            if (!currentCurriculum) return;
+            const btnText = document.getElementById('toggle-all-text');
+            const btnIcon = document.querySelector('button[onclick="toggleAllPeriods()"] i');
+            const allCollapsed = APP_CONFIG.collapsedPeriods.size === currentCurriculum.periods.length;
+
+            if (allCollapsed) {
+                btnText.textContent = "Expandir Todo";
+                btnIcon.className = "fas fa-expand-alt";
+            } else {
+                btnText.textContent = "Contraer Todo";
+                btnIcon.className = "fas fa-compress-alt";
+            }
+        }
+        function renderPeriods(filter) {
+            const c = document.getElementById('periods-container');
+            c.innerHTML = '';
+            if (!currentCurriculum) return;
+            currentCurriculum.periods.forEach((p, idx) => {
+                const subs = p.subjects.filter(s => {
+                    const matchesText = !filter || s.name.toLowerCase().includes(filter.toLowerCase()) || s.code.toLowerCase().includes(filter.toLowerCase());
+                    const status = userProgress[s.id]?.status || 'pending';
+                    let matchesFilter = true;
+                    if (currentFilter === 'enrolled') matchesFilter = status === 'enrolled';
+                    else if (currentFilter === 'completed') matchesFilter = status === 'approved';
+                    else if (currentFilter === 'pending') matchesFilter = status === 'pending';
+                    return matchesText && matchesFilter;
+                });
+                if (!subs.length) return;
+                const open = !APP_CONFIG.collapsedPeriods.has(idx) || filter || currentFilter !== 'all';
+                const stats = calculatePeriodStats(p);
+                const avg = calculatePeriodAverage(p);
+                const gpa4 = calculatePeriodGPA4(p);
+                const statusColor = getPeriodStatusColor(p);
+
+                const div = document.createElement('div');
+                div.className = 'bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm animate-fade-in transition-all duration-300 hover:shadow-md';
+
+                let badgesHtml = '';
+                if (avg) badgesHtml += `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-2"><i class="fas fa-chart-line mr-1 text-slate-400"></i>${avg}</span>`;
+                if (gpa4) badgesHtml += `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-1"><i class="fas fa-star mr-1 text-slate-400"></i>${gpa4}</span>`;
+
+                let mobileStatsHtml = renderPeriodStatsHTML(stats, p.subjects.length);
+                if (avg) mobileStatsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-2">Prom: ${avg}</span>`;
+                if (gpa4) mobileStatsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-1">• GPA: ${gpa4}</span>`;
+
+                div.innerHTML = `<div onclick="togglePeriod(${idx})" class="px-3 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all select-none flex items-center justify-between group"><div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0"><div class="shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${statusColor} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500">${p.period_number}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-0.5 sm:mb-1"><h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">${p.name}</h3>${badgesHtml}</div><div id="period-header-stats-${idx}" class="flex items-center gap-3">${mobileStatsHtml}</div></div></div><i class="fas fa-chevron-down text-slate-300 dark:text-slate-600 transition-transform duration-300 ${open ? 'rotate-180' : ''} group-hover:text-slate-400 dark:group-hover:text-slate-500"></i></div><div class="collapsible-content ${open ? 'open' : ''}"><div class="px-2 sm:px-3 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">${subs.map(s => renderSubjectCardString(s, p.period_number)).join('')}</div></div>`;
+                c.appendChild(div);
+            });
+        }
         function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
         function updateFilterCounts() { if (!currentCurriculum) return; let all = 0, enrolled = 0, completed = 0, pending = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { all++; const status = userProgress[s.id]?.status || 'pending'; if (status === 'enrolled') enrolled++; else if (status === 'approved') completed++; else pending++; })); document.getElementById('count-all').textContent = all; document.getElementById('count-enrolled').textContent = enrolled; document.getElementById('count-completed').textContent = completed; document.getElementById('count-pending').textContent = pending; }
         function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; localStorage.setItem('dark-mode', APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
         function showPrerequisites(id) { const loc = findSubjectLocation(id); if (loc) showToast(`Requisitos: ${formatPrerequisiteString(loc.subject.prerequisites)}`, 'info'); }
-        function openSettings() { renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
+
+        function getGradeLabel(score) {
+            if (score === null || score === "" || isNaN(score)) return null;
+            const s = parseFloat(score);
+            const scale = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min);
+            for (let g of scale) {
+                if (s >= g.min) return g;
+            }
+            return { label: 'F', color: 'text-red-500', points: 0 };
+        }
+
+        function getGradePoints(score) {
+            if (score === null || score === "" || isNaN(score)) return 0;
+            const s = parseFloat(score);
+            const scale = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min);
+            for (let g of scale) {
+                if (s >= g.min) return g.points !== undefined ? g.points : 0;
+            }
+            return 0;
+        }
+
+        function saveGradeScale() {
+            localStorage.setItem('grade_scale', JSON.stringify(APP_CONFIG.gradeScale));
+            renderGradeScaleSettings();
+            renderUI(); // Refresh Cards to show new labels
+            renderPeriods(document.getElementById('search-input').value); // Re-calculate Period GPA
+        }
+
+        function addGradeRange() {
+            APP_CONFIG.gradeScale.push({ min: 0, label: '?', color: 'text-slate-500', points: 0 });
+            saveGradeScale();
+        }
+
+        function removeGradeRange(index) {
+            APP_CONFIG.gradeScale.splice(index, 1);
+            saveGradeScale();
+        }
+
+        function updateGradeRange(index, field, value) {
+            APP_CONFIG.gradeScale[index][field] = (field === 'min' || field === 'points') ? parseFloat(value) : value;
+            saveGradeScale();
+        }
+
+        function renderGradeScaleSettings() {
+            const container = document.getElementById('grade-scale-settings-list');
+            if (!container) return;
+            container.innerHTML = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min).map((g, i) => `
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="number" value="${g.min}" onchange="updateGradeRange(${i}, 'min', this.value)" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
+                    <span class="text-xs text-slate-400">→</span>
+                    <input type="text" value="${g.label}" onchange="updateGradeRange(${i}, 'label', this.value)" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${g.color}" placeholder="Letra">
+                    <span class="text-xs text-slate-400">=</span>
+                    <input type="number" step="0.1" value="${g.points}" onchange="updateGradeRange(${i}, 'points', this.value)" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
+                    <button onclick="removeGradeRange(${i})" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; localStorage.setItem('allow_skip_prereqs', APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
@@ -1293,6 +1468,23 @@
                 }
             });
             return totalCredits > 0 ? (weightedSum / totalCredits).toFixed(1) : null;
+        }
+
+        function calculatePeriodGPA4(p) {
+            let weightedPoints = 0;
+            let totalCredits = 0;
+            p.subjects.forEach(s => {
+                const st = userProgress[s.id];
+                if (st && st.grade !== null && st.grade !== undefined && st.grade !== "") {
+                    // Use new helper
+                    const grade = parseFloat(st.grade);
+                    if (!isNaN(grade)) {
+                        weightedPoints += getGradePoints(grade) * s.credits;
+                        totalCredits += s.credits;
+                    }
+                }
+            });
+            return totalCredits > 0 ? (weightedPoints / totalCredits).toFixed(2) : null;
         }
 
         function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
