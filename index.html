@@ -402,16 +402,29 @@
             <div
                 class="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-3 sm:-mx-4 px-3 sm:px-4">
                 <div
-                    class="snap-start shrink-0 w-24 sm:w-32 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-white shadow-xl shadow-primary-500/30">
-                    <div class="text-[8px] sm:text-[10px] uppercase font-bold opacity-90 mb-0.5 sm:mb-1">Progreso</div>
-                    <div class="text-xl sm:text-3xl font-black" id="stat-progress">0%</div>
-                    <div class="mt-1 sm:mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div id="progress-bar-mini" class="h-full bg-white rounded-full transition-all duration-500"
+                    class="snap-start shrink-0 w-36 sm:w-56 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-white shadow-xl shadow-primary-500/30 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-0.5 sm:mb-1">
+                        <div class="text-[8px] sm:text-[10px] uppercase font-bold opacity-90">Progreso</div>
+                        <div class="text-xs sm:text-sm opacity-100 font-bold bg-white/20 px-1.5 py-0.5 rounded">
+                            <span id="stat-completed-count">0</span>/<span id="stat-total-subjects">0</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-end justify-between gap-2 mb-1">
+                        <div class="text-xl sm:text-3xl font-black" id="stat-progress">0%</div>
+                        <div class="text-[10px] sm:text-xs opacity-90 font-bold mb-1" id="stat-remaining-text">0
+                            faltantes</div>
+                    </div>
+
+                    <div class="h-1.5 bg-black/20 rounded-full overflow-hidden">
+                        <div id="progress-bar-mini"
+                            class="h-full bg-white/90 rounded-full transition-all duration-500 shadow-sm"
                             style="width: 0%"></div>
                     </div>
                 </div>
+
                 <div
-                    class="snap-start shrink-0 w-24 sm:w-32 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    class="snap-start shrink-0 w-24 sm:w-32 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
                     <div
                         class="text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5 sm:mb-1">
                         Índice Académico</div>
@@ -420,22 +433,16 @@
                     <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">Escala
                         0-100</div>
                 </div>
+
                 <div
-                    class="snap-start shrink-0 w-28 sm:w-40 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    class="snap-start shrink-0 w-24 sm:w-32 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
                     <div
                         class="text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5 sm:mb-1">
-                        Completadas
-                    </div>
-                    <div class="flex items-baseline gap-0.5 sm:gap-1">
-                        <span class="text-lg sm:text-2xl font-black text-slate-900 dark:text-white"
-                            id="stat-completed-count">0</span>
-                        <span class="text-xs sm:text-sm text-slate-400 dark:text-slate-500">/</span>
-                        <span class="text-xs sm:text-sm font-bold text-slate-400 dark:text-slate-500"
-                            id="stat-total-subjects">0</span>
-                    </div>
-                    <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1"
-                        id="stat-remaining-text">0
-                        faltantes</div>
+                        Calificación</div>
+                    <div class="text-xl sm:text-3xl font-black text-blue-600 dark:text-blue-400"
+                        id="stat-global-letter">--</div>
+                    <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">GPA: <span
+                            id="stat-global-gpa-points">0.0</span></div>
                 </div>
             </div>
         </div>
@@ -1188,18 +1195,24 @@
                                 ${fo > 0 ? `<span class="text-xs bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1"><i class="fas fa-key text-[9px]"></i> ${fo}</span>` : ''}
                                 ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${s.id}')" class="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all max-w-full truncate"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[9px]"></i> Req: ${reqTxt}</button>` : ''}
                             </div>
-                            <div class="flex flex-wrap items-center gap-3">
-                                <div class="flex-1 min-w-[65px] sm:min-w-[80px]">
-                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1 flex justify-between">Nota ${gradeLabel ? `<span class="${gradeLabel.color}">${gradeLabel.label}</span>` : ''}</label>
-                                    <input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                            <div class="flex flex-wrap items-end gap-2 sm:gap-3">
+                                <div class="flex-1 min-w-[60px]">
+                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Nota</label>
+                                    <input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none h-[38px]">
                                 </div>
+                                
+                                <!-- Large Grade Letter Display -->
+                                <div class="shrink-0 w-[38px] h-[38px] rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                                    ${gradeLabel ? `<span class="text-xl font-black ${gradeLabel.color}">${gradeLabel.label}</span>` : '<span class="text-slate-300 dark:text-slate-700 font-bold">-</span>'}
+                                </div>
+
                                 <div class="w-12 sm:w-16">
                                     <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Retiros</label>
-                                    <input type="number" min="0" max="10" placeholder="0" value="${st.attempts?.length || 0}" onchange="updateAttempts('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                                    <input type="number" min="0" max="10" placeholder="0" value="${st.attempts?.length || 0}" onchange="updateAttempts('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none h-[38px]">
                                 </div>
                                 <div class="w-24 sm:w-32">
                                     <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Fecha</label>
-                                    <input type="month" value="${st.completionDate || ''}" onchange="updateCompletionDate('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                                    <input type="month" value="${st.completionDate || ''}" onchange="updateCompletionDate('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none h-[38px]">
                                 </div>
                             </div>
                         </div>
@@ -1228,6 +1241,8 @@
         function calculateStatistics() {
             if (!currentCurriculum) return;
             let total = 0, completed = 0, earned = 0, weightedSum = 0, weightBase = 0;
+            let weightedPoints = 0; // For GPA 4.0 scale
+
             currentCurriculum.periods.forEach(p => p.subjects.forEach(s => {
                 total++;
                 const st = userProgress[s.id];
@@ -1243,17 +1258,32 @@
                     const grade = parseFloat(st.grade);
                     if (!isNaN(grade)) {
                         weightedSum += grade * s.credits;
+                        weightedPoints += getGradePoints(grade) * s.credits;
                         weightBase += s.credits;
                     }
                 }
             }));
 
             const globalAvg = weightBase > 0 ? weightedSum / weightBase : 0;
+            const globalGPA = weightBase > 0 ? weightedPoints / weightBase : 0;
+
             const progress = total > 0 ? (completed / total) * 100 : 0;
+            const letterObj = getGradeLabel(globalAvg);
 
             document.getElementById('stat-progress').textContent = Math.round(progress) + '%';
             document.getElementById('progress-bar-mini').style.width = progress + '%';
             document.getElementById('stat-gpa').textContent = globalAvg.toFixed(1);
+
+            // Update new stats card
+            const letterEl = document.getElementById('stat-global-letter');
+            const gpaEl = document.getElementById('stat-global-gpa-points');
+
+            if (letterEl) {
+                letterEl.textContent = letterObj ? letterObj.label : '--';
+                if (letterObj) letterEl.className = `text-4xl sm:text-5xl font-black ${letterObj.color}`;
+            }
+            if (gpaEl) gpaEl.textContent = globalGPA.toFixed(2);
+
             document.getElementById('stat-completed-count').textContent = completed;
             document.getElementById('stat-total-subjects').textContent = total;
             document.getElementById('stat-remaining-text').textContent = (total - completed) + ' faltantes';
