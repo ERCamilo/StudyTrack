@@ -1135,7 +1135,7 @@
         function renderPeriodStatsHTML(s, t) { return `<div class="flex items-center gap-2"><div class="h-1.5 w-20 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${s.completionPercentage}%"></div></div><span class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">${s.completed}/${t}</span></div>`; }
         function renderUI() { document.getElementById('header-career').textContent = currentCurriculum.metadata.career_name; document.getElementById('header-institution').textContent = currentCurriculum.metadata.institution; renderPeriods(); }
         function renderSubjectCardString(s, pn) {
-            const st = userProgress[s.id] || { status: 'pending', grade: null, attempts: [], completionDate: null };
+            const st = userProgress[s.id] || { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
             const un = checkPrerequisites(s.prerequisites);
             const fo = dependencyGraph?.unlocks.get(s.id) || 0;
             const reqTxt = formatPrerequisiteString(s.prerequisites);
@@ -1178,42 +1178,63 @@
                     ${st.status === 'enrolled' ? 'En curso' : 'Inscribir'}
                 </button>` : '';
 
+            // Check if there's any extra data to show a filled indicator
+            const hasExtraData = st.section || st.classroom || st.teacher || st.attempts?.length || st.completionDate;
+
             return `
-                <div id="subject-card-${s.id}" class="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group">
-                    <div class="flex items-start gap-2 sm:gap-3">
-                        <div class="shrink-0 pt-0.5">${checkboxOrLock}</div>
+                <div id="subject-card-${s.id}" class="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="shrink-0">${checkboxOrLock}</div>
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-start justify-between gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                                <h4 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-tight">
+                            <div class="flex items-center justify-between gap-1.5 sm:gap-2">
+                                <h4 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-tight truncate">
                                     ${s.name}${st.status === 'enrolled' ? ' 📚' : ''}
                                 </h4>
-                                <span class="shrink-0 text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">${s.code}</span>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${s.code}</span>
+                                    <span class="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-1.5 py-0.5 rounded font-bold">${s.credits}CR</span>
+                                </div>
                             </div>
-                            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-3">
-                                <span class="text-xs bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-lg font-bold">${s.credits} CR</span>
-                                ${enrolledButton}
-                                ${fo > 0 ? `<span class="text-xs bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1"><i class="fas fa-key text-[9px]"></i> ${fo}</span>` : ''}
-                                ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${s.id}')" class="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all max-w-full truncate"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[9px]"></i> Req: ${reqTxt}</button>` : ''}
+                            <div class="flex items-center justify-between gap-2 mt-1.5">
+                                <div class="flex flex-wrap items-center gap-1">
+                                    ${enrolledButton}
+                                    ${fo > 0 ? `<span class="text-[10px] bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><i class="fas fa-key text-[8px]"></i>${fo}</span>` : ''}
+                                    ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${s.id}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${reqTxt}</button>` : ''}
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-12 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-1 text-xs font-bold text-center focus:ring-1 focus:ring-primary-500 outline-none">
+                                    <div class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                                        ${gradeLabel ? `<span class="text-sm font-black ${gradeLabel.color}">${gradeLabel.label}</span>` : '<span class="text-slate-300 dark:text-slate-600 text-xs">-</span>'}
+                                    </div>
+                                    <button onclick="toggleSubjectDetails('${s.id}')" class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all ${hasExtraData ? 'text-primary-500' : 'text-slate-400 dark:text-slate-500'}">
+                                        <i class="fas fa-chevron-down text-[10px] transition-transform" id="chevron-${s.id}"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex flex-wrap items-end gap-2 sm:gap-3">
-                                <div class="flex-1 min-w-[60px]">
-                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Nota</label>
-                                    <input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none h-[38px]">
-                                </div>
-                                
-                                <!-- Large Grade Letter Display -->
-                                <div class="shrink-0 w-[38px] h-[38px] rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                                    ${gradeLabel ? `<span class="text-xl font-black ${gradeLabel.color}">${gradeLabel.label}</span>` : '<span class="text-slate-300 dark:text-slate-700 font-bold">-</span>'}
-                                </div>
-
-                                <div class="w-12 sm:w-16">
-                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Retiros</label>
-                                    <input type="number" min="0" max="10" placeholder="0" value="${st.attempts?.length || 0}" onchange="updateAttempts('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none h-[38px]">
-                                </div>
-                                <div class="w-24 sm:w-32">
-                                    <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Fecha</label>
-                                    <input type="month" value="${st.completionDate || ''}" onchange="updateCompletionDate('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none h-[38px]">
-                                </div>
+                        </div>
+                    </div>
+                    <!-- Collapsible Details Section -->
+                    <div id="details-${s.id}" class="hidden mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Sección</label>
+                                <input type="text" placeholder="Ej: 01" value="${st.section || ''}" onchange="updateSubjectExtra('${s.id}', 'section', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Aula</label>
+                                <input type="text" placeholder="Ej: A-101" value="${st.classroom || ''}" onchange="updateSubjectExtra('${s.id}', 'classroom', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Maestro</label>
+                                <input type="text" placeholder="Nombre del profesor" value="${st.teacher || ''}" onchange="updateSubjectExtra('${s.id}', 'teacher', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Retiros</label>
+                                <input type="number" min="0" max="10" placeholder="0" value="${st.attempts?.length || 0}" onchange="updateAttempts('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium text-center focus:ring-1 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Fecha</label>
+                                <input type="month" value="${st.completionDate || ''}" onchange="updateCompletionDate('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
                             </div>
                         </div>
                     </div>
@@ -1238,6 +1259,19 @@
         }
         function updateAttempts(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].attempts = Array(parseInt(val) || 0).fill({}); saveUserProgress(); }
         function updateCompletionDate(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].completionDate = val; saveUserProgress(); }
+        function toggleSubjectDetails(id) {
+            const detailsEl = document.getElementById(`details-${id}`);
+            const chevronEl = document.getElementById(`chevron-${id}`);
+            if (detailsEl) {
+                detailsEl.classList.toggle('hidden');
+                if (chevronEl) chevronEl.classList.toggle('rotate-180');
+            }
+        }
+        function updateSubjectExtra(id, field, val) {
+            if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
+            userProgress[id][field] = val;
+            saveUserProgress();
+        }
         function calculateStatistics() {
             if (!currentCurriculum) return;
             let total = 0, completed = 0, earned = 0, weightedSum = 0, weightBase = 0;
