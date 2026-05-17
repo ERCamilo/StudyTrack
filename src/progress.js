@@ -38,6 +38,19 @@
     return nextProgress;
   }
 
+  function toggleSubjectApproval(currentProgress) {
+    const nextProgress = { ...createDefaultSubjectProgress(), ...(currentProgress || {}) };
+    nextProgress.status = nextProgress.status === 'approved' ? 'pending' : 'approved';
+    return nextProgress;
+  }
+
+  function getAffectedSubjectIds(subjectId, dependencyGraph) {
+    const affected = new Set([subjectId]);
+    (dependencyGraph?.dependents?.get(subjectId) || []).forEach((dependentId) => affected.add(dependentId));
+    (dependencyGraph?.allPrereqSubjects || []).forEach((allPrereqSubjectId) => affected.add(allPrereqSubjectId));
+    return [...affected];
+  }
+
   function normalizeSubjectProgress(progress) {
     const source = progress && typeof progress === 'object' ? progress : {};
     const status = VALID_STATUSES.has(source.status) ? source.status : 'pending';
@@ -74,9 +87,11 @@
   global.StudyTrackProgress = {
     applyGradeToSubjectProgress,
     createDefaultSubjectProgress,
+    getAffectedSubjectIds,
     getCurriculumSubjectIds,
     normalizeSubjectProgress,
     normalizeUserProgress,
-    parseGradeInput
+    parseGradeInput,
+    toggleSubjectApproval
   };
 })(typeof window !== 'undefined' ? window : globalThis);

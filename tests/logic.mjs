@@ -36,6 +36,8 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' 
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved' }, '65').status, 'pending');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'enrolled' }, '65').status, 'enrolled');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved' }, '').status, 'approved');
+assert.equal(StudyTrackProgress.toggleSubjectApproval({ status: 'pending', grade: 95 }).status, 'approved');
+assert.equal(StudyTrackProgress.toggleSubjectApproval({ status: 'approved', grade: 95 }).status, 'pending');
 
 assert.equal(StudyTrackSanitize.escapeHtml(`<img src=x onerror='bad'>`), '&lt;img src=x onerror=&#39;bad&#39;&gt;');
 assert.equal(StudyTrackSanitize.escapeJsString(`a'b"c`), 'a\\&#39;b&quot;c');
@@ -152,6 +154,7 @@ const graph = StudyTrackPrerequisites.buildDependencyGraph(curriculum);
 assert.deepEqual(Array.from(graph.dependents.get('MAT-101')), ['MAT-102', 'SCI-201']);
 assert.equal(graph.unlocks.get('MAT-101'), 2);
 assert.deepEqual(Array.from(graph.allPrereqSubjects), ['CAP-400']);
+assert.equal(JSON.stringify(StudyTrackProgress.getAffectedSubjectIds('MAT-101', graph)), JSON.stringify(['MAT-101', 'MAT-102', 'SCI-201', 'CAP-400']));
 
 const rawRequirements = [
   { id: 'r1', name: '  Pasantia  ', completed: true },

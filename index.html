@@ -1268,7 +1268,37 @@
                     </div>
                 </div>`;
         }
-        function toggleSubjectStatus(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const loc = findSubjectLocation(id); const isCurrentlyApproved = userProgress[id].status === 'approved'; if (!isCurrentlyApproved && loc) { const prereqsMet = checkPrerequisites(loc.subject.prerequisites); if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } } userProgress[id].status = isCurrentlyApproved ? 'pending' : 'approved'; saveUserProgress(); const toUpdate = new Set([id]); const pUpdate = new Set(); (dependencyGraph.dependents.get(id) || []).forEach(d => toUpdate.add(d)); dependencyGraph.allPrereqSubjects.forEach(d => toUpdate.add(d)); toUpdate.forEach(subId => { const loc = findSubjectLocation(subId); if (loc) { reRenderSubjectCardDOM(loc.subject, loc.period.period_number); pUpdate.add(loc.periodIndex); } }); pUpdate.forEach(idx => updatePeriodHeaderDOM(idx)); calculateStatistics(); }
+        function refreshAffectedSubjects(subjectId) {
+            const periodIndexes = new Set();
+            StudyTrackProgress.getAffectedSubjectIds(subjectId, dependencyGraph).forEach(subId => {
+                const loc = findSubjectLocation(subId);
+                if (!loc) return;
+
+                reRenderSubjectCardDOM(loc.subject, loc.period.period_number);
+                periodIndexes.add(loc.periodIndex);
+            });
+            periodIndexes.forEach(idx => updatePeriodHeaderDOM(idx));
+        }
+
+        function toggleSubjectStatus(id) {
+            if (!userProgress[id]) userProgress[id] = StudyTrackProgress.createDefaultSubjectProgress();
+
+            const loc = findSubjectLocation(id);
+            const isCurrentlyApproved = userProgress[id].status === 'approved';
+
+            if (!isCurrentlyApproved && loc) {
+                const prereqsMet = checkPrerequisites(loc.subject.prerequisites);
+                if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) {
+                    showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error');
+                    return;
+                }
+            }
+
+            userProgress[id] = StudyTrackProgress.toggleSubjectApproval(userProgress[id]);
+            saveUserProgress();
+            refreshAffectedSubjects(id);
+            calculateStatistics();
+        }
         function updateGrade(id, val) {
             userProgress[id] = StudyTrackProgress.applyGradeToSubjectProgress(userProgress[id], val);
             const g = userProgress[id].grade;
@@ -1277,18 +1307,7 @@
 
             if (g >= 70) {
                 saveUserProgress();
-                const toUpdate = new Set([id]);
-                const pUpdate = new Set();
-                (dependencyGraph?.dependents.get(id) || []).forEach(d => toUpdate.add(d));
-                dependencyGraph?.allPrereqSubjects.forEach(d => toUpdate.add(d));
-                toUpdate.forEach(subId => {
-                    const updateLoc = findSubjectLocation(subId);
-                    if (updateLoc) {
-                        reRenderSubjectCardDOM(updateLoc.subject, updateLoc.period.period_number);
-                        pUpdate.add(updateLoc.periodIndex);
-                    }
-                });
-                pUpdate.forEach(idx => updatePeriodHeaderDOM(idx));
+                refreshAffectedSubjects(id);
                 calculateStatistics();
             } else {
                 saveUserProgress();
