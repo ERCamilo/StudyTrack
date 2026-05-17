@@ -160,6 +160,53 @@
     return html;
   }
 
+  function timeToDecimal(time) {
+    const [hourPart, minutePart = '0'] = String(time || '').split(':');
+    const hour = Number.parseInt(hourPart, 10);
+    const minute = Number.parseInt(minutePart, 10);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
+    return hour + minute / 60;
+  }
+
+  function getVisualScheduleRange(blocks) {
+    const starts = blocks.map((block) => Number.parseInt(String(block.startTime).split(':')[0], 10)).filter(Number.isFinite);
+    const ends = blocks.map((block) => {
+      const endHour = Number.parseInt(String(block.endTime).split(':')[0], 10);
+      return Number.isFinite(endHour) ? endHour + (String(block.endTime).includes(':30') ? 1 : 0) : null;
+    }).filter(Number.isFinite);
+
+    const minHour = Math.max(0, Math.min(24, ...starts) - 1);
+    const maxHour = Math.min(24, Math.max(0, ...ends) + 1);
+    return { minHour, maxHour };
+  }
+
+  function renderVisualScheduleHTML(blocks, { escapeHtml = String, escapeJsString = String } = {}) {
+    const { minHour, maxHour } = getVisualScheduleRange(blocks);
+    const hourHeight = 60;
+    const headerHeight = 40;
+    const timeColWidth = 65;
+    const totalHours = maxHour - minHour;
+    const height = headerHeight + (totalHours * hourHeight);
+    let html = `<div class="sticky top-0 left-0 w-full h-[${headerHeight}px] flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/95 backdrop-blur shadow-sm font-bold text-xs text-slate-500 dark:text-slate-400 z-30"><div class="w-[${timeColWidth}px] shrink-0 border-r border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="far fa-clock"></i></div>${DAYS.map((day) => `<div class="flex-1 flex items-center justify-center border-r border-slate-200 dark:border-slate-700 last:border-0">${escapeHtml(DAY_NAMES[day])}</div>`).join('')}</div>`;
+
+    for (let hour = minHour; hour < maxHour; hour++) {
+      const timeLabel = escapeHtml(formatTime12h(`${hour}:00`));
+      html += `<div class="absolute left-0 w-full flex border-b border-slate-100 dark:border-slate-800/50" style="top:${headerHeight + (hour - minHour) * hourHeight}px; height:${hourHeight}px"><div class="w-[${timeColWidth}px] shrink-0 flex items-start justify-center pt-1 text-[10px] text-slate-400 font-mono border-r border-slate-200 dark:border-slate-700">${timeLabel}</div><div class="flex-1"></div></div>`;
+    }
+
+    blocks.forEach((block) => {
+      const dayIndex = DAYS.indexOf(block.day);
+      if (dayIndex === -1) return;
+      const startHour = timeToDecimal(block.startTime);
+      const endHour = timeToDecimal(block.endTime);
+      const top = headerHeight + (startHour - minHour) * hourHeight;
+      const blockHeight = (endHour - startHour) * hourHeight;
+      html += `<div class="absolute px-1 py-0.5 rounded-lg ${block.color} text-white text-[10px] leading-tight overflow-hidden shadow-sm hover:z-20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-center" style="top:${top + 2}px; height:${blockHeight - 4}px; left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${dayIndex} / 7); width: calc((100% - ${timeColWidth}px) / 7 - 4px); margin-left: 2px;" onclick="showBlockDetails('${escapeJsString(block.subject.id)}', '${escapeJsString(block.id)}')"><div class="font-bold truncate">${escapeHtml(block.subject.name)}</div><div class="opacity-90 truncate">${escapeHtml(formatTime12h(block.startTime))} - ${escapeHtml(formatTime12h(block.endTime))}</div>${block.room ? `<div class="opacity-75 truncate text-[9px]">${escapeHtml(block.room)}</div>` : ''}</div>`;
+    });
+
+    return { html, height };
+  }
+
   global.StudyTrackSchedule = {
     DAYS,
     DAY_NAMES,
@@ -176,6 +223,9 @@
     upsertScheduleBlock,
     deleteScheduleBlock,
     renderEnrolledScheduleHTML,
-    renderWeeklyScheduleHTML
+    renderWeeklyScheduleHTML,
+    timeToDecimal,
+    getVisualScheduleRange,
+    renderVisualScheduleHTML
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1131,7 +1131,7 @@
         // ============================================================
         // CORE HELPER FUNCTIONS (Preserved)
         // ============================================================
-        function loadUserProgress() { userProgress = StudyTrackStorage.getJson(APP_CONFIG.storageKeys.progress, {}); }
+        function loadUserProgress() { userProgress = StudyTrackProgress.normalizeUserProgress(StudyTrackStorage.getJson(APP_CONFIG.storageKeys.progress, {}), currentCurriculum); }
         function saveCurriculum() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.curriculum, currentCurriculum); }
         function saveUserProgress() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.progress, userProgress); }
         let appEventListenersReady = false;
@@ -1585,7 +1585,7 @@
         function exportProgress() { const b = new Blob([JSON.stringify({ curriculum: currentCurriculum, progress: userProgress }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup.json'; a.click(); }
         function resetProgress() { if (confirm('¿Reiniciar?')) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
         function deleteAllData() { if (confirm('¿Borrar todo?')) { StudyTrackStorage.clearAll(); location.reload(); } }
-        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = d.progress; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
+        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum); saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
 
         let isRequirementsExpanded = true;
         function toggleRequirementsWidget() {
@@ -1640,16 +1640,9 @@
             const allBlocks = StudyTrackSchedule.collectScheduleBlocks(enrolled, scheduleData);
             if (allBlocks.length === 0) { container.innerHTML = ''; noClasses.classList.remove('hidden'); return; }
             noClasses.classList.add('hidden');
-            const starts = allBlocks.map(b => parseInt(b.startTime.split(':')[0]));
-            const ends = allBlocks.map(b => parseInt(b.endTime.split(':')[0]) + (b.endTime.includes(':30') ? 1 : 0));
-            const minHour = Math.max(0, Math.min(24, ...starts) - 1);
-            const maxHour = Math.min(24, Math.max(0, ...ends) + 1);
-            const hourHeight = 60, headerHeight = 40, timeColWidth = 65, totalHours = maxHour - minHour;
-            container.style.height = `${headerHeight + (totalHours * hourHeight)}px`;
-            let html = `<div class="sticky top-0 left-0 w-full h-[${headerHeight}px] flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/95 backdrop-blur shadow-sm font-bold text-xs text-slate-500 dark:text-slate-400 z-30"><div class="w-[${timeColWidth}px] shrink-0 border-r border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="far fa-clock"></i></div>${DAYS.map(d => `<div class="flex-1 flex items-center justify-center border-r border-slate-200 dark:border-slate-700 last:border-0">${escapeHtml(DAY_NAMES[d])}</div>`).join('')}</div>`;
-            for (let h = minHour; h < maxHour; h++) { const timeLabel = escapeHtml(formatTime12h(`${h}:00`)); html += `<div class="absolute left-0 w-full flex border-b border-slate-100 dark:border-slate-800/50" style="top:${headerHeight + (h - minHour) * hourHeight}px; height:${hourHeight}px"><div class="w-[${timeColWidth}px] shrink-0 flex items-start justify-center pt-1 text-[10px] text-slate-400 font-mono border-r border-slate-200 dark:border-slate-700">${timeLabel}</div><div class="flex-1"></div></div>`; }
-            allBlocks.forEach(b => { const startParts = b.startTime.split(':'), endParts = b.endTime.split(':'); const startH = parseInt(startParts[0]) + parseInt(startParts[1]) / 60; const endH = parseInt(endParts[0]) + parseInt(endParts[1]) / 60; const top = headerHeight + (startH - minHour) * hourHeight; const height = (endH - startH) * hourHeight; const dayIndex = DAYS.indexOf(b.day); if (dayIndex === -1) return; html += `<div class="absolute px-1 py-0.5 rounded-lg ${b.color} text-white text-[10px] leading-tight overflow-hidden shadow-sm hover:z-20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-center" style="top:${top + 2}px; height:${height - 4}px; left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${dayIndex} / 7); width: calc((100% - ${timeColWidth}px) / 7 - 4px); margin-left: 2px;" onclick="showBlockDetails('${escapeJsString(b.subject.id)}', '${escapeJsString(b.id)}')"><div class="font-bold truncate">${escapeHtml(b.subject.name)}</div><div class="opacity-90 truncate">${escapeHtml(formatTime12h(b.startTime))} - ${escapeHtml(formatTime12h(b.endTime))}</div>${b.room ? `<div class="opacity-75 truncate text-[9px]">${escapeHtml(b.room)}</div>` : ''}</div>`; });
-            container.innerHTML = html;
+            const rendered = StudyTrackSchedule.renderVisualScheduleHTML(allBlocks, { escapeHtml, escapeJsString });
+            container.style.height = `${rendered.height}px`;
+            container.innerHTML = rendered.html;
         }
 
         function renderWeeklySchedule(enrolled) {
@@ -1682,9 +1675,64 @@
             });
         }
 
-        function saveScheduleBlock() { const subjectId = document.getElementById('schedule-subject-id').value; const day = document.getElementById('schedule-day').value; const start = document.getElementById('schedule-start').value; const end = document.getElementById('schedule-end').value; const room = document.getElementById('schedule-room').value.trim(); const existingBlockId = currentEditingBlock?.blockToEdit?.id || null; const validation = StudyTrackSchedule.validateScheduleBlockOperation({ day, start, end, enrolledSubjects: getEnrolledSubjects(), scheduleData, excludeSubjectId: currentEditingBlock?.subjectId || null, excludeBlockId: existingBlockId }); if (!validation.valid && validation.reason === 'invalid-range') { showToast('La hora de fin debe ser mayor a la hora de inicio', 'error'); return; } if (!validation.valid && validation.reason === 'conflict') { document.getElementById('schedule-conflict-alert').classList.remove('hidden'); document.getElementById('conflict-message').textContent = `Conflicto con ${validation.conflict.subject} (${validation.conflict.time})`; return; } const result = StudyTrackSchedule.upsertScheduleBlock(scheduleData, subjectId, { id: `block-${Date.now()}`, day, startTime: start, endTime: end, room }, existingBlockId); if (!result.changed) { showToast('No se pudo actualizar el horario', 'error'); return; } scheduleData = result.scheduleData; showToast(existingBlockId ? 'Horario actualizado' : 'Horario agregado', 'success'); saveScheduleData(); closeScheduleModal(); renderScheduleView(); }
+        function saveScheduleBlock() {
+            const subjectId = document.getElementById('schedule-subject-id').value;
+            const day = document.getElementById('schedule-day').value;
+            const start = document.getElementById('schedule-start').value;
+            const end = document.getElementById('schedule-end').value;
+            const room = document.getElementById('schedule-room').value.trim();
+            const existingBlockId = currentEditingBlock?.blockToEdit?.id || null;
 
-        function deleteScheduleBlock(subjectId, blockId) { const result = StudyTrackSchedule.deleteScheduleBlock(scheduleData, subjectId, blockId); if (!result.changed) return; scheduleData = result.scheduleData; saveScheduleData(); renderScheduleView(); showToast('Bloque eliminado', 'info'); }
+            const validation = StudyTrackSchedule.validateScheduleBlockOperation({
+                day,
+                start,
+                end,
+                enrolledSubjects: getEnrolledSubjects(),
+                scheduleData,
+                excludeSubjectId: currentEditingBlock?.subjectId || null,
+                excludeBlockId: existingBlockId
+            });
+
+            if (!validation.valid && validation.reason === 'invalid-range') {
+                showToast('La hora de fin debe ser mayor a la hora de inicio', 'error');
+                return;
+            }
+
+            if (!validation.valid && validation.reason === 'conflict') {
+                document.getElementById('schedule-conflict-alert').classList.remove('hidden');
+                document.getElementById('conflict-message').textContent = `Conflicto con ${validation.conflict.subject} (${validation.conflict.time})`;
+                return;
+            }
+
+            const result = StudyTrackSchedule.upsertScheduleBlock(scheduleData, subjectId, {
+                id: `block-${Date.now()}`,
+                day,
+                startTime: start,
+                endTime: end,
+                room
+            }, existingBlockId);
+
+            if (!result.changed) {
+                showToast('No se pudo actualizar el horario', 'error');
+                return;
+            }
+
+            scheduleData = result.scheduleData;
+            showToast(existingBlockId ? 'Horario actualizado' : 'Horario agregado', 'success');
+            saveScheduleData();
+            closeScheduleModal();
+            renderScheduleView();
+        }
+
+        function deleteScheduleBlock(subjectId, blockId) {
+            const result = StudyTrackSchedule.deleteScheduleBlock(scheduleData, subjectId, blockId);
+            if (!result.changed) return;
+
+            scheduleData = result.scheduleData;
+            saveScheduleData();
+            renderScheduleView();
+            showToast('Bloque eliminado', 'info');
+        }
 
         window.addEventListener('DOMContentLoaded', initApp);
         document.getElementById('settings-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });

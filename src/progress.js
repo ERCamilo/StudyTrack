@@ -3,6 +3,18 @@
     return { status: 'pending', grade: null, attempts: [], completionDate: null };
   }
 
+  const VALID_STATUSES = new Set(['pending', 'enrolled', 'approved']);
+
+  function getCurriculumSubjectIds(curriculum) {
+    const ids = new Set();
+    (curriculum?.periods || []).forEach((period) => {
+      (period.subjects || []).forEach((subject) => {
+        if (subject?.id) ids.add(subject.id);
+      });
+    });
+    return ids;
+  }
+
   function parseGradeInput(value) {
     if (value === null || value === undefined || value === '') return null;
 
@@ -26,9 +38,45 @@
     return nextProgress;
   }
 
+  function normalizeSubjectProgress(progress) {
+    const source = progress && typeof progress === 'object' ? progress : {};
+    const status = VALID_STATUSES.has(source.status) ? source.status : 'pending';
+    const grade = parseGradeInput(source.grade);
+    const attemptsCount = Array.isArray(source.attempts)
+      ? source.attempts.length
+      : Math.max(0, Number.parseInt(source.attempts, 10) || 0);
+
+    return {
+      status,
+      grade,
+      attempts: Array(attemptsCount).fill({}),
+      completionDate: typeof source.completionDate === 'string' ? source.completionDate : null,
+      section: typeof source.section === 'string' ? source.section : '',
+      classroom: typeof source.classroom === 'string' ? source.classroom : '',
+      teacher: typeof source.teacher === 'string' ? source.teacher : ''
+    };
+  }
+
+  function normalizeUserProgress(progress, curriculum) {
+    if (!progress || typeof progress !== 'object' || Array.isArray(progress)) return {};
+
+    const subjectIds = getCurriculumSubjectIds(curriculum);
+    const normalized = {};
+
+    Object.entries(progress).forEach(([subjectId, subjectProgress]) => {
+      if (!subjectIds.has(subjectId)) return;
+      normalized[subjectId] = normalizeSubjectProgress(subjectProgress);
+    });
+
+    return normalized;
+  }
+
   global.StudyTrackProgress = {
     applyGradeToSubjectProgress,
     createDefaultSubjectProgress,
+    getCurriculumSubjectIds,
+    normalizeSubjectProgress,
+    normalizeUserProgress,
     parseGradeInput
   };
 })(typeof window !== 'undefined' ? window : globalThis);

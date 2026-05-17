@@ -36,6 +36,7 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' 
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved' }, '65').status, 'pending');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'enrolled' }, '65').status, 'enrolled');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved' }, '').status, 'approved');
+
 assert.equal(StudyTrackSanitize.escapeHtml(`<img src=x onerror='bad'>`), '&lt;img src=x onerror=&#39;bad&#39;&gt;');
 assert.equal(StudyTrackSanitize.escapeJsString(`a'b"c`), 'a\\&#39;b&quot;c');
 assert.equal(
@@ -96,6 +97,42 @@ const validCurriculum = {
 
 assert.equal(StudyTrackCurriculum.validateCurriculum(validCurriculum).valid, true);
 assert.equal(StudyTrackCurriculum.validateCurriculum({}).valid, false);
+
+const normalizedProgress = StudyTrackProgress.normalizeUserProgress({
+  'MAT-101': {
+    status: 'approved',
+    grade: '95',
+    attempts: '2',
+    completionDate: '2026-05',
+    section: '01',
+    classroom: 'A-1',
+    teacher: 'Docente'
+  },
+  'LET-101': {
+    status: 'invalid',
+    grade: 'bad',
+    attempts: [{}, {}, {}],
+    completionDate: 202605,
+    section: 1,
+    classroom: null,
+    teacher: false
+  },
+  'NOPE-999': {
+    status: 'approved',
+    grade: 100
+  }
+}, validCurriculum);
+assert.equal(Object.hasOwn(normalizedProgress, 'NOPE-999'), false);
+assert.equal(normalizedProgress['MAT-101'].status, 'approved');
+assert.equal(normalizedProgress['MAT-101'].grade, 95);
+assert.equal(normalizedProgress['MAT-101'].attempts.length, 2);
+assert.equal(normalizedProgress['MAT-101'].completionDate, '2026-05');
+assert.equal(normalizedProgress['LET-101'].status, 'pending');
+assert.equal(normalizedProgress['LET-101'].grade, null);
+assert.equal(normalizedProgress['LET-101'].attempts.length, 3);
+assert.equal(normalizedProgress['LET-101'].completionDate, null);
+assert.equal(normalizedProgress['LET-101'].section, '');
+assert.equal(JSON.stringify([...StudyTrackProgress.getCurriculumSubjectIds(validCurriculum)].sort()), JSON.stringify(['LET-101', 'MAT-101', 'MAT-102', 'SCI-201', 'CAP-400'].sort()));
 
 const progress = {
   'MAT-101': { status: 'approved' },
@@ -339,5 +376,21 @@ const weeklyScheduleHtml = StudyTrackSchedule.renderWeeklyScheduleHTML(
 assert.ok(weeklyScheduleHtml.includes('&lt;img src=x onerror=&#39;bad&#39;&gt;'));
 assert.ok(weeklyScheduleHtml.includes('&lt;script&gt;room&lt;/script&gt;'));
 assert.ok(!weeklyScheduleHtml.includes('<script>room</script>'));
+
+assert.equal(StudyTrackSchedule.timeToDecimal('08:30'), 8.5);
+assert.equal(JSON.stringify(StudyTrackSchedule.getVisualScheduleRange([
+  { startTime: '08:00', endTime: '10:00' },
+  { startTime: '13:30', endTime: '15:30' }
+])), JSON.stringify({ minHour: 7, maxHour: 17 }));
+
+const visualSchedule = StudyTrackSchedule.renderVisualScheduleHTML(
+  StudyTrackSchedule.collectScheduleBlocks(unsafeSubject, unsafeScheduleData),
+  { escapeHtml: StudyTrackSanitize.escapeHtml, escapeJsString: StudyTrackSanitize.escapeJsString }
+);
+assert.ok(visualSchedule.height > 0);
+assert.ok(visualSchedule.html.includes('&lt;img src=x onerror=&#39;bad&#39;&gt;'));
+assert.ok(visualSchedule.html.includes('&lt;script&gt;room&lt;/script&gt;'));
+assert.ok(visualSchedule.html.includes("showBlockDetails('MAT\\&#39;101', 'b\\&#39;1')"));
+assert.ok(!visualSchedule.html.includes('<script>room</script>'));
 
 console.log('Logic checks passed');
