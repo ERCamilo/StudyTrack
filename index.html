@@ -15,6 +15,14 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
+    <script src="./src/storage.js"></script>
+    <script src="./src/sanitize.js"></script>
+    <script src="./src/curriculum.js"></script>
+    <script src="./src/grades.js"></script>
+    <script src="./src/progress.js"></script>
+    <script src="./src/prerequisites.js"></script>
+    <script src="./src/requirements.js"></script>
+    <script src="./src/schedule.js"></script>
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }, colors: { primary: { 50: '#EEF2FF', 100: '#E0E7FF', 500: '#6366F1', 600: '#4F46E5', 700: '#4338CA', 900: '#312E81' } } } } }
     </script>
@@ -428,7 +436,7 @@
                     <div
                         class="text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5 sm:mb-1">
                         Índice Académico</div>
-                    <div class="text-xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400" id="stat-gpa">0.0
+                    <div class="text-xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400" id="stat-gpa">N/A
                     </div>
                     <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">Escala
                         0-100</div>
@@ -440,9 +448,9 @@
                         class="text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5 sm:mb-1">
                         Calificación</div>
                     <div class="text-xl sm:text-3xl font-black text-blue-600 dark:text-blue-400"
-                        id="stat-global-letter">--</div>
+                        id="stat-global-letter">N/A</div>
                     <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">GPA: <span
-                            id="stat-global-gpa-points">0.0</span></div>
+                            id="stat-global-gpa-points">N/A</span></div>
                 </div>
             </div>
         </div>
@@ -882,9 +890,6 @@
         </div>
     </div>
 
-    <button id="scroll-top-btn" onclick="scrollToTop()"
-        class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none safe-bottom"><i
-            class="fas fa-arrow-up text-xl"></i></button>
     <div id="toast-container" class="fixed top-20 right-4 z-[110] space-y-2 max-w-sm"></div>
 
     <script>
@@ -893,16 +898,16 @@
 
         const APP_CONFIG = {
             storageKeys: {
-                curriculum: 'studytrack_curriculum_v8',
-                progress: 'studytrack_progress_v8',
-                library_cache: 'studytrack_library_v4'
+                curriculum: StudyTrackStorage.KEYS.curriculum,
+                progress: StudyTrackStorage.KEYS.progress,
+                library_cache: StudyTrackStorage.KEYS.libraryCache
             },
-            darkMode: localStorage.getItem('dark-mode') === 'true',
-            collapsedPeriods: new Set(JSON.parse(localStorage.getItem('collapsed_periods') || '[]')),
-            allowSkipPrerequisites: localStorage.getItem('allow_skip_prereqs') !== 'false', // true by default
-            maxEnrolledSubjects: parseInt(localStorage.getItem('max_enrolled_subjects')) || 10,
+            darkMode: StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.darkMode, false),
+            collapsedPeriods: new Set(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.collapsedPeriods, [])),
+            allowSkipPrerequisites: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.allowSkipPrerequisites) !== 'false', // true by default
+            maxEnrolledSubjects: StudyTrackStorage.getNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, 10),
             gradeScale: (function () {
-                const s = JSON.parse(localStorage.getItem('grade_scale'));
+                const s = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.gradeScale, null);
                 if (s && s.length && s[0].points !== undefined) return s;
                 // Default or migration if missing points
                 const defaults = [
@@ -932,6 +937,9 @@
         let userProgress = {};
         let dependencyGraph = null;
         let currentFilter = 'all'; // 'all', 'enrolled', 'completed', 'pending'
+        const escapeHtml = StudyTrackSanitize.escapeHtml;
+        const escapeJsString = StudyTrackSanitize.escapeJsString;
+        const sanitizeCssClasses = StudyTrackSanitize.sanitizeCssClasses;
 
         // ============================================================
         // INITIALIZATION
@@ -941,11 +949,11 @@
             if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
 
             // Check persistence first
-            const storedCurriculum = localStorage.getItem(APP_CONFIG.storageKeys.curriculum);
+            const storedCurriculum = StudyTrackStorage.getJson(APP_CONFIG.storageKeys.curriculum, null);
 
             if (storedCurriculum) {
                 try {
-                    currentCurriculum = JSON.parse(storedCurriculum);
+                    currentCurriculum = storedCurriculum;
                     loadUserProgress();
                     dependencyGraph = buildDependencyGraph(currentCurriculum);
                     renderUI();
@@ -991,15 +999,15 @@
             // 1. Populate Universities
             const unis = [...new Set(libraryData.map(item => item.institution))].sort();
             uniSelect.innerHTML = '<option value="" disabled selected>Selecciona institución...</option>' +
-                unis.map(uni => `<option value="${uni}">${uni}</option>`).join('');
+                unis.map(uni => `<option value="${escapeHtml(uni)}">${escapeHtml(uni)}</option>`).join('');
 
             // 2. Handle Uni Change
-            uniSelect.addEventListener('change', (e) => {
+            uniSelect.onchange = (e) => {
                 const selectedUni = e.target.value;
                 const careers = libraryData.filter(item => item.institution === selectedUni);
 
                 careerSelect.innerHTML = '<option value="" disabled selected>Selecciona carrera...</option>' +
-                    careers.map(c => `<option value="${c.id}">${c.career_name} (${c.degree_type || 'Grado'})</option>`).join('');
+                    careers.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.career_name)} (${escapeHtml(c.degree_type || 'Grado')})</option>`).join('');
 
                 careerSelect.disabled = false;
                 if (prefix === 'welcome') {
@@ -1008,12 +1016,12 @@
 
                 // Reset button
                 if (btn) { btn.classList.add('opacity-50', 'pointer-events-none'); }
-            });
+            };
 
             // 3. Handle Career Change
-            careerSelect.addEventListener('change', () => {
+            careerSelect.onchange = () => {
                 if (btn) { btn.classList.remove('opacity-50', 'pointer-events-none'); }
-            });
+            };
         }
 
         // Triggered by Welcome Button
@@ -1048,11 +1056,10 @@
         // ============================================================
 
         function loadLibraryCache() {
-            const cached = localStorage.getItem(APP_CONFIG.storageKeys.library_cache);
+            const cached = StudyTrackStorage.getJson(APP_CONFIG.storageKeys.library_cache, null);
             if (cached) {
                 try {
-                    const parsed = JSON.parse(cached);
-                    const remoteItems = parsed.filter(i => i.source === 'remote');
+                    const remoteItems = cached.filter(i => i.source === 'remote');
                     libraryData = [...LOCAL_LIBRARY, ...remoteItems];
                 } catch (e) { }
             }
@@ -1074,7 +1081,7 @@
                     fullUrl: item.path.startsWith('http') ? item.path : `${GITHUB_REPO_BASE}/${item.path}`
                 }));
 
-                localStorage.setItem(APP_CONFIG.storageKeys.library_cache, JSON.stringify(processedRemote));
+                StudyTrackStorage.setJson(APP_CONFIG.storageKeys.library_cache, processedRemote);
                 libraryData = [...LOCAL_LIBRARY, ...processedRemote];
 
                 // Refresh selectors dynamically
@@ -1102,6 +1109,8 @@
                 }
 
                 if (data) {
+                    const validation = StudyTrackCurriculum.validateCurriculum(data);
+                    if (!validation.valid) throw new Error(validation.errors[0] || 'Pensum invalido');
                     currentCurriculum = data;
                     userProgress = {};
                     saveCurriculum();
@@ -1122,15 +1131,16 @@
         // ============================================================
         // CORE HELPER FUNCTIONS (Preserved)
         // ============================================================
-        function loadUserProgress() { const s = localStorage.getItem(APP_CONFIG.storageKeys.progress); if (storedCurriculum = localStorage.getItem(APP_CONFIG.storageKeys.curriculum)) { } if (s) try { userProgress = JSON.parse(s); } catch { userProgress = {}; } } // Helper corrected below
-        function saveCurriculum() { localStorage.setItem(APP_CONFIG.storageKeys.curriculum, JSON.stringify(currentCurriculum)); }
-        function saveUserProgress() { localStorage.setItem(APP_CONFIG.storageKeys.progress, JSON.stringify(userProgress)); }
-        function setupEventListeners() { document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value)); window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); if (window.scrollY > 500) btn.classList.remove('opacity-0', 'pointer-events-none'); else btn.classList.add('opacity-0', 'pointer-events-none'); }); }
+        function loadUserProgress() { userProgress = StudyTrackStorage.getJson(APP_CONFIG.storageKeys.progress, {}); }
+        function saveCurriculum() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.curriculum, currentCurriculum); }
+        function saveUserProgress() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.progress, userProgress); }
+        let appEventListenersReady = false;
+        function setupEventListeners() { if (appEventListenersReady) return; appEventListenersReady = true; document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value)); }
         function handleSearch(text) { renderPeriods(text); }
-        function checkPrerequisites(prereqs) { if (!prereqs || !prereqs.length) return true; if (prereqs.includes('ALL')) return areAllOtherSubjectsCompleted(); return prereqs.every(grp => Array.isArray(grp) ? grp.some(id => userProgress[id]?.status === 'approved') : userProgress[grp]?.status === 'approved'); }
-        function areAllOtherSubjectsCompleted() { if (!currentCurriculum) return false; for (let p of currentCurriculum.periods) for (let s of p.subjects) if (!s.prerequisites?.includes('ALL') && !s.is_optional && userProgress[s.id]?.status !== 'approved') return false; return true; }
-        function formatPrerequisiteString(p) { if (!p?.length) return ""; if (p.includes('ALL')) return "Todas"; return p.map(g => Array.isArray(g) ? `(${g.join(' o ')})` : g).join(' y '); }
-        function buildDependencyGraph(c) { const graph = new Map(), dependents = new Map(), unlocks = new Map(), allPrereqSubjects = []; c.periods.forEach(p => p.subjects.forEach(s => { const raw = s.prerequisites || []; if (raw.includes('ALL')) allPrereqSubjects.push(s.id); raw.flat().forEach(pre => { if (pre !== 'ALL') { unlocks.set(pre, (unlocks.get(pre) || 0) + 1); if (!dependents.has(pre)) dependents.set(pre, []); dependents.get(pre).push(s.id); } }); })); return { dependents, unlocks, allPrereqSubjects }; }
+        function checkPrerequisites(prereqs) { return StudyTrackPrerequisites.checkPrerequisites(prereqs, userProgress, currentCurriculum); }
+        function areAllOtherSubjectsCompleted() { return StudyTrackPrerequisites.areAllOtherSubjectsCompleted(currentCurriculum, userProgress); }
+        function formatPrerequisiteString(p) { return StudyTrackPrerequisites.formatPrerequisiteString(p); }
+        function buildDependencyGraph(c) { return StudyTrackPrerequisites.buildDependencyGraph(c); }
         function calculatePeriodStats(p) { let c = 0; p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'approved') c++; }); return { completed: c, completionPercentage: (c / p.subjects.length) * 100, avgGrade: 0 }; }
         function renderPeriodStatsHTML(s, t) { return `<div class="flex items-center gap-2"><div class="h-1.5 w-20 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${s.completionPercentage}%"></div></div><span class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">${s.completed}/${t}</span></div>`; }
         function renderUI() { document.getElementById('header-career').textContent = currentCurriculum.metadata.career_name; document.getElementById('header-institution').textContent = currentCurriculum.metadata.institution; renderPeriods(); }
@@ -1140,6 +1150,21 @@
             const fo = dependencyGraph?.unlocks.get(s.id) || 0;
             const reqTxt = formatPrerequisiteString(s.prerequisites);
             const gradeLabel = getGradeLabel(st.grade);
+            const subjectIdJs = escapeJsString(s.id);
+            const subjectIdHtml = escapeHtml(s.id);
+            const safeSubjectName = escapeHtml(s.name);
+            const safeSubjectCode = escapeHtml(s.code);
+            const safeCredits = escapeHtml(s.credits);
+            const safeReqTxt = escapeHtml(reqTxt);
+            const safeGrade = escapeHtml(st.grade ?? '');
+            const isApprovedWithoutGrade = st.status === 'approved' && (st.grade === null || st.grade === undefined || st.grade === '');
+            const gradeInputStateClass = isApprovedWithoutGrade
+                ? 'border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 focus:ring-amber-500'
+                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-primary-500';
+            const safeSection = escapeHtml(st.section || '');
+            const safeClassroom = escapeHtml(st.classroom || '');
+            const safeTeacher = escapeHtml(st.teacher || '');
+            const safeCompletionDate = escapeHtml(st.completionDate || '');
 
             const isSkippedPrereq = st.status === 'approved' && !un && s.prerequisites?.length;
             let bc = 'border-l-4 border-slate-200 dark:border-slate-700', op = '';
@@ -1162,11 +1187,11 @@
             const isDisabled = !un && st.status !== 'approved' && !APP_CONFIG.allowSkipPrerequisites;
 
             const checkboxOrLock = isDisabled
-                ? `<div class="w-5 h-5 flex items-center justify-center text-orange-400 dark:text-orange-500 cursor-pointer" onclick="toggleSubjectStatus('${s.id}')" title="Completa los prerrequisitos"><i class="fas fa-lock text-sm"></i></div>`
-                : `<input type="checkbox" class="${checkboxClass}" ${st.status === 'approved' ? 'checked' : ''} onchange="toggleSubjectStatus('${s.id}')">`;
+                ? `<div class="w-5 h-5 flex items-center justify-center text-orange-400 dark:text-orange-500 cursor-pointer" onclick="toggleSubjectStatus('${subjectIdJs}')" title="Completa los prerrequisitos"><i class="fas fa-lock text-sm"></i></div>`
+                : `<input type="checkbox" class="${checkboxClass}" ${st.status === 'approved' ? 'checked' : ''} onchange="toggleSubjectStatus('${subjectIdJs}')">`;
 
             const enrolledButton = st.status !== 'approved' ? `
-                <button onclick="event.stopPropagation(); toggleEnrollment('${s.id}')" 
+                <button onclick="event.stopPropagation(); toggleEnrollment('${subjectIdJs}')" 
                     class="text-[10px] sm:text-xs 
                     ${st.status === 'enrolled' ?
                     'bg-blue-500 text-white' :
@@ -1182,59 +1207,62 @@
             const hasExtraData = st.section || st.classroom || st.teacher || st.attempts?.length || st.completionDate;
 
             return `
-                <div id="subject-card-${s.id}" class="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group">
+                <div id="subject-card-${subjectIdHtml}" class="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group">
                     <div class="flex items-center gap-2 sm:gap-3">
                         <div class="shrink-0">${checkboxOrLock}</div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-1.5 sm:gap-2">
                                 <h4 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-tight truncate">
-                                    ${s.name}${st.status === 'enrolled' ? ' 📚' : ''}
+                                    ${safeSubjectName}${st.status === 'enrolled' ? ' 📚' : ''}
                                 </h4>
                                 <div class="flex items-center gap-1.5 shrink-0">
-                                    <span class="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${s.code}</span>
-                                    <span class="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-1.5 py-0.5 rounded font-bold">${s.credits}CR</span>
+                                    <span class="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${safeSubjectCode}</span>
+                                    <span class="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-1.5 py-0.5 rounded font-bold">${safeCredits}CR</span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between gap-2 mt-1.5">
                                 <div class="flex flex-wrap items-center gap-1">
                                     ${enrolledButton}
                                     ${fo > 0 ? `<span class="text-[10px] bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><i class="fas fa-key text-[8px]"></i>${fo}</span>` : ''}
-                                    ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${s.id}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${reqTxt}</button>` : ''}
+                                    ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${subjectIdJs}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${safeReqTxt}</button>` : ''}
                                 </div>
                                 <div class="flex items-center gap-1.5">
-                                    <input type="number" min="0" max="100" placeholder="--" value="${st.grade || ''}" onchange="updateGrade('${s.id}', this.value)" class="w-12 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-1 text-xs font-bold text-center focus:ring-1 focus:ring-primary-500 outline-none">
+                                    <label class="flex items-center gap-1 px-1.5 py-1 rounded border ${gradeInputStateClass}" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
+                                        <span class="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">Nota</span>
+                                        <input type="number" min="0" max="100" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" onchange="updateGrade('${subjectIdJs}', this.value)" class="w-10 bg-transparent text-xs font-bold text-center outline-none">
+                                    </label>
                                     <div class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
                                         ${gradeLabel ? `<span class="text-sm font-black ${gradeLabel.color}">${gradeLabel.label}</span>` : '<span class="text-slate-300 dark:text-slate-600 text-xs">-</span>'}
                                     </div>
-                                    <button onclick="toggleSubjectDetails('${s.id}')" class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all ${hasExtraData ? 'text-primary-500' : 'text-slate-400 dark:text-slate-500'}">
-                                        <i class="fas fa-chevron-down text-[10px] transition-transform" id="chevron-${s.id}"></i>
+                                    <button onclick="toggleSubjectDetails('${subjectIdJs}')" class="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all ${hasExtraData ? 'text-primary-500' : 'text-slate-400 dark:text-slate-500'}">
+                                        <i class="fas fa-chevron-down text-[10px] transition-transform" id="chevron-${subjectIdHtml}"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <!-- Collapsible Details Section -->
-                    <div id="details-${s.id}" class="hidden mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                    <div id="details-${subjectIdHtml}" class="hidden mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Sección</label>
-                                <input type="text" placeholder="Ej: 01" value="${st.section || ''}" onchange="updateSubjectExtra('${s.id}', 'section', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                                <input type="text" placeholder="Ej: 01" value="${safeSection}" onchange="updateSubjectExtra('${subjectIdJs}', 'section', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Aula</label>
-                                <input type="text" placeholder="Ej: A-101" value="${st.classroom || ''}" onchange="updateSubjectExtra('${s.id}', 'classroom', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                                <input type="text" placeholder="Ej: A-101" value="${safeClassroom}" onchange="updateSubjectExtra('${subjectIdJs}', 'classroom', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Maestro</label>
-                                <input type="text" placeholder="Nombre del profesor" value="${st.teacher || ''}" onchange="updateSubjectExtra('${s.id}', 'teacher', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                                <input type="text" placeholder="Nombre del profesor" value="${safeTeacher}" onchange="updateSubjectExtra('${subjectIdJs}', 'teacher', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Retiros</label>
-                                <input type="number" min="0" max="10" placeholder="0" value="${st.attempts?.length || 0}" onchange="updateAttempts('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium text-center focus:ring-1 focus:ring-primary-500 outline-none">
+                                <input type="number" min="0" max="10" placeholder="0" value="${escapeHtml(st.attempts?.length || 0)}" onchange="updateAttempts('${subjectIdJs}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium text-center focus:ring-1 focus:ring-primary-500 outline-none">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Fecha</label>
-                                <input type="month" value="${st.completionDate || ''}" onchange="updateCompletionDate('${s.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                                <input type="month" value="${safeCompletionDate}" onchange="updateCompletionDate('${subjectIdJs}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
                             </div>
                         </div>
                     </div>
@@ -1242,19 +1270,33 @@
         }
         function toggleSubjectStatus(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const loc = findSubjectLocation(id); const isCurrentlyApproved = userProgress[id].status === 'approved'; if (!isCurrentlyApproved && loc) { const prereqsMet = checkPrerequisites(loc.subject.prerequisites); if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } } userProgress[id].status = isCurrentlyApproved ? 'pending' : 'approved'; saveUserProgress(); const toUpdate = new Set([id]); const pUpdate = new Set(); (dependencyGraph.dependents.get(id) || []).forEach(d => toUpdate.add(d)); dependencyGraph.allPrereqSubjects.forEach(d => toUpdate.add(d)); toUpdate.forEach(subId => { const loc = findSubjectLocation(subId); if (loc) { reRenderSubjectCardDOM(loc.subject, loc.period.period_number); pUpdate.add(loc.periodIndex); } }); pUpdate.forEach(idx => updatePeriodHeaderDOM(idx)); calculateStatistics(); }
         function updateGrade(id, val) {
-            if (!userProgress[id]) userProgress[id] = { status: 'pending' };
-            const g = parseInt(val);
-            userProgress[id].grade = g || null;
+            userProgress[id] = StudyTrackProgress.applyGradeToSubjectProgress(userProgress[id], val);
+            const g = userProgress[id].grade;
 
             const loc = findSubjectLocation(id);
 
-            if (g >= 70 && userProgress[id].status !== 'approved') {
-                userProgress[id].status = 'approved';
-                toggleSubjectStatus(id);
+            if (g >= 70) {
+                saveUserProgress();
+                const toUpdate = new Set([id]);
+                const pUpdate = new Set();
+                (dependencyGraph?.dependents.get(id) || []).forEach(d => toUpdate.add(d));
+                dependencyGraph?.allPrereqSubjects.forEach(d => toUpdate.add(d));
+                toUpdate.forEach(subId => {
+                    const updateLoc = findSubjectLocation(subId);
+                    if (updateLoc) {
+                        reRenderSubjectCardDOM(updateLoc.subject, updateLoc.period.period_number);
+                        pUpdate.add(updateLoc.periodIndex);
+                    }
+                });
+                pUpdate.forEach(idx => updatePeriodHeaderDOM(idx));
+                calculateStatistics();
             } else {
                 saveUserProgress();
                 calculateStatistics();
-                if (loc) updatePeriodHeaderDOM(loc.periodIndex);
+                if (loc) {
+                    reRenderSubjectCardDOM(loc.subject, loc.period.period_number);
+                    updatePeriodHeaderDOM(loc.periodIndex);
+                }
             }
         }
         function updateAttempts(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].attempts = Array(parseInt(val) || 0).fill({}); saveUserProgress(); }
@@ -1298,25 +1340,26 @@
                 }
             }));
 
-            const globalAvg = weightBase > 0 ? weightedSum / weightBase : 0;
-            const globalGPA = weightBase > 0 ? weightedPoints / weightBase : 0;
+            const hasGrades = weightBase > 0;
+            const globalAvg = hasGrades ? weightedSum / weightBase : null;
+            const globalGPA = hasGrades ? weightedPoints / weightBase : null;
 
             const progress = total > 0 ? (completed / total) * 100 : 0;
-            const letterObj = getGradeLabel(globalAvg);
+            const letterObj = hasGrades ? getGradeLabel(globalAvg) : null;
 
             document.getElementById('stat-progress').textContent = Math.round(progress) + '%';
             document.getElementById('progress-bar-mini').style.width = progress + '%';
-            document.getElementById('stat-gpa').textContent = globalAvg.toFixed(1);
+            document.getElementById('stat-gpa').textContent = hasGrades ? globalAvg.toFixed(1) : 'N/A';
 
             // Update new stats card
             const letterEl = document.getElementById('stat-global-letter');
             const gpaEl = document.getElementById('stat-global-gpa-points');
 
             if (letterEl) {
-                letterEl.textContent = letterObj ? letterObj.label : '--';
-                if (letterObj) letterEl.className = `text-4xl sm:text-5xl font-black ${letterObj.color}`;
+                letterEl.textContent = letterObj ? letterObj.label : 'N/A';
+                letterEl.className = letterObj ? `text-4xl sm:text-5xl font-black ${letterObj.color}` : 'text-xl sm:text-3xl font-black text-slate-400 dark:text-slate-500';
             }
-            if (gpaEl) gpaEl.textContent = globalGPA.toFixed(2);
+            if (gpaEl) gpaEl.textContent = hasGrades ? globalGPA.toFixed(2) : 'N/A';
 
             document.getElementById('stat-completed-count').textContent = completed;
             document.getElementById('stat-total-subjects').textContent = total;
@@ -1356,7 +1399,7 @@
                 badge.className = `shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${getPeriodStatusColor(currentCurriculum.periods[i])} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500`;
             }
         }
-        function togglePeriod(i) { if (APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); localStorage.setItem('collapsed_periods', JSON.stringify([...APP_CONFIG.collapsedPeriods])); renderPeriods(document.getElementById('search-input').value); updateToggleAllButton(); }
+        function togglePeriod(i) { if (APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); StudyTrackStorage.setJson(StudyTrackStorage.KEYS.collapsedPeriods, [...APP_CONFIG.collapsedPeriods]); renderPeriods(document.getElementById('search-input').value); updateToggleAllButton(); }
 
         function toggleAllPeriods() {
             const allIndices = currentCurriculum.periods.map((_, i) => i);
@@ -1366,7 +1409,7 @@
             } else {
                 allIndices.forEach(i => APP_CONFIG.collapsedPeriods.add(i)); // Collapse All
             }
-            localStorage.setItem('collapsed_periods', JSON.stringify([...APP_CONFIG.collapsedPeriods]));
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.collapsedPeriods, [...APP_CONFIG.collapsedPeriods]);
             renderPeriods(document.getElementById('search-input').value);
             updateToggleAllButton();
         }
@@ -1405,6 +1448,8 @@
                 const avg = calculatePeriodAverage(p);
                 const gpa4 = calculatePeriodGPA4(p);
                 const statusColor = getPeriodStatusColor(p);
+                const safePeriodNumber = escapeHtml(p.period_number);
+                const safePeriodName = escapeHtml(p.name);
 
                 const div = document.createElement('div');
                 div.className = 'bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm animate-fade-in transition-all duration-300 hover:shadow-md';
@@ -1417,38 +1462,26 @@
                 if (avg) mobileStatsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-2">Prom: ${avg}</span>`;
                 if (gpa4) mobileStatsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-1">• GPA: ${gpa4}</span>`;
 
-                div.innerHTML = `<div onclick="togglePeriod(${idx})" class="px-3 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all select-none flex items-center justify-between group"><div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0"><div class="shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${statusColor} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500">${p.period_number}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-0.5 sm:mb-1"><h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">${p.name}</h3>${badgesHtml}</div><div id="period-header-stats-${idx}" class="flex items-center gap-3">${mobileStatsHtml}</div></div></div><i class="fas fa-chevron-down text-slate-300 dark:text-slate-600 transition-transform duration-300 ${open ? 'rotate-180' : ''} group-hover:text-slate-400 dark:group-hover:text-slate-500"></i></div><div class="collapsible-content ${open ? 'open' : ''}"><div class="px-2 sm:px-3 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">${subs.map(s => renderSubjectCardString(s, p.period_number)).join('')}</div></div>`;
+                div.innerHTML = `<div onclick="togglePeriod(${idx})" class="px-3 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all select-none flex items-center justify-between group"><div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0"><div class="shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${statusColor} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500">${safePeriodNumber}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-0.5 sm:mb-1"><h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">${safePeriodName}</h3>${badgesHtml}</div><div id="period-header-stats-${idx}" class="flex items-center gap-3">${mobileStatsHtml}</div></div></div><i class="fas fa-chevron-down text-slate-300 dark:text-slate-600 transition-transform duration-300 ${open ? 'rotate-180' : ''} group-hover:text-slate-400 dark:group-hover:text-slate-500"></i></div><div class="collapsible-content ${open ? 'open' : ''}"><div class="px-2 sm:px-3 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">${subs.map(s => renderSubjectCardString(s, p.period_number)).join('')}</div></div>`;
                 c.appendChild(div);
             });
         }
         function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
         function updateFilterCounts() { if (!currentCurriculum) return; let all = 0, enrolled = 0, completed = 0, pending = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { all++; const status = userProgress[s.id]?.status || 'pending'; if (status === 'enrolled') enrolled++; else if (status === 'approved') completed++; else pending++; })); document.getElementById('count-all').textContent = all; document.getElementById('count-enrolled').textContent = enrolled; document.getElementById('count-completed').textContent = completed; document.getElementById('count-pending').textContent = pending; }
-        function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; localStorage.setItem('dark-mode', APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); }
+        function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
         function showPrerequisites(id) { const loc = findSubjectLocation(id); if (loc) showToast(`Requisitos: ${formatPrerequisiteString(loc.subject.prerequisites)}`, 'info'); }
 
         function getGradeLabel(score) {
-            if (score === null || score === "" || isNaN(score)) return null;
-            const s = parseFloat(score);
-            const scale = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min);
-            for (let g of scale) {
-                if (s >= g.min) return g;
-            }
-            return { label: 'F', color: 'text-red-500', points: 0 };
+            return StudyTrackGrades.getGradeLabel(score, APP_CONFIG.gradeScale);
         }
 
         function getGradePoints(score) {
-            if (score === null || score === "" || isNaN(score)) return 0;
-            const s = parseFloat(score);
-            const scale = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min);
-            for (let g of scale) {
-                if (s >= g.min) return g.points !== undefined ? g.points : 0;
-            }
-            return 0;
+            return StudyTrackGrades.getGradePoints(score, APP_CONFIG.gradeScale);
         }
 
         function saveGradeScale() {
-            localStorage.setItem('grade_scale', JSON.stringify(APP_CONFIG.gradeScale));
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.gradeScale, APP_CONFIG.gradeScale);
             renderGradeScaleSettings();
             renderUI(); // Refresh Cards to show new labels
             renderPeriods(document.getElementById('search-input').value); // Re-calculate Period GPA
@@ -1472,36 +1505,32 @@
         function renderGradeScaleSettings() {
             const container = document.getElementById('grade-scale-settings-list');
             if (!container) return;
-            container.innerHTML = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min).map((g, i) => `
+            container.innerHTML = APP_CONFIG.gradeScale.sort((a, b) => b.min - a.min).map((g, i) => {
+                const safeMin = escapeHtml(g.min);
+                const safeLabel = escapeHtml(g.label);
+                const safePoints = escapeHtml(g.points);
+                const safeColor = sanitizeCssClasses(g.color);
+                return `
                 <div class="flex items-center gap-2 mb-2">
-                    <input type="number" value="${g.min}" onchange="updateGradeRange(${i}, 'min', this.value)" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
+                    <input type="number" value="${safeMin}" onchange="updateGradeRange(${i}, 'min', this.value)" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
                     <span class="text-xs text-slate-400">→</span>
-                    <input type="text" value="${g.label}" onchange="updateGradeRange(${i}, 'label', this.value)" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${g.color}" placeholder="Letra">
+                    <input type="text" value="${safeLabel}" onchange="updateGradeRange(${i}, 'label', this.value)" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${safeColor}" placeholder="Letra">
                     <span class="text-xs text-slate-400">=</span>
-                    <input type="number" step="0.1" value="${g.points}" onchange="updateGradeRange(${i}, 'points', this.value)" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
+                    <input type="number" step="0.1" value="${safePoints}" onchange="updateGradeRange(${i}, 'points', this.value)" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
                     <button onclick="removeGradeRange(${i})" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
-        function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; localStorage.setItem('allow_skip_prereqs', APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); }
+        function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
         function toggleEnrollment(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); }
-        function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; localStorage.setItem('max_enrolled_subjects', newLimit); document.getElementById('enrollment-limit-input').value = newLimit; showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
+        function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
         function showToast(msg, type = 'info') { const t = document.createElement('div'); const c = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-slate-800' }; t.className = `${c[type]} text-white px-4 py-3 rounded-lg shadow-xl fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
-        // Helper for Grade Points (0-4 scale)
-        function getGradePoints(score) {
-            if (!score) return 0;
-            if (score >= 90) return 4;
-            if (score >= 80) return 3;
-            if (score >= 70) return 2;
-            if (score >= 60) return 1;
-            return 0;
-        }
-
         // Helper for Period Status Color
         function getPeriodStatusColor(p) {
             let total = 0, approved = 0, enrolled = 0;
@@ -1552,11 +1581,11 @@
         }
 
         function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
-        function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); if (!d.metadata || !d.periods) throw new Error(); if (confirm('¿Cargar?')) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON', 'error'); } }
+        function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Cargar?')) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
         function exportProgress() { const b = new Blob([JSON.stringify({ curriculum: currentCurriculum, progress: userProgress }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup.json'; a.click(); }
         function resetProgress() { if (confirm('¿Reiniciar?')) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
-        function deleteAllData() { if (confirm('¿Borrar todo?')) { localStorage.clear(); location.reload(); } }
-        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error(); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = d.progress; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch { showToast('Error', 'error'); } }; r.readAsText(f); }
+        function deleteAllData() { if (confirm('¿Borrar todo?')) { StudyTrackStorage.clearAll(); location.reload(); } }
+        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = d.progress; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
 
         let isRequirementsExpanded = true;
         function toggleRequirementsWidget() {
@@ -1567,102 +1596,95 @@
         function renderRequirementsWidget() {
             const c = document.getElementById('requirements-list-main');
             if (!currentCurriculum) return;
-            const r = currentCurriculum.requirements || [];
-            if (r.length === 0) {
-                c.innerHTML = '<div class="text-xs text-slate-400 text-center italic">Sin requisitos</div>';
-                return;
-            }
-
-            const completedCount = r.filter(q => q.completed).length;
-            const percentage = Math.round((completedCount / r.length) * 100);
-
-            // Header with toggle
-            const header = `
-                <div class="flex items-center justify-between mb-3 cursor-pointer select-none group" onclick="toggleRequirementsWidget()">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">Requisitos de Grado</h3>
-                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">${completedCount}/${r.length}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${percentage}%"></div>
-                        </div>
-                        <i class="fas fa-chevron-down text-slate-400 transition-transform duration-300 ${!isRequirementsExpanded ? '-rotate-90' : ''} group-hover:text-slate-600 dark:group-hover:text-slate-300"></i>
-                    </div>
-                </div>
-            `;
-
-            // Content
-            const content = isRequirementsExpanded ? `
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-fade-in">
-                    ${r.map(q => `
-                        <div class="flex items-center gap-3 p-2 rounded-lg border border-transparent ${q.completed ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800'}">
-                            <div class="shrink-0 text-lg">
-                                ${q.completed ? '<i class="fas fa-check-circle text-emerald-500"></i>' : '<i class="fas fa-circle text-slate-200 dark:text-slate-700"></i>'}
-                            </div>
-                            <span class="text-sm font-medium leading-tight ${q.completed ? 'text-emerald-900 dark:text-emerald-200' : 'text-slate-600 dark:text-slate-400'}">${q.name}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : '';
-
-            c.innerHTML = header + content;
+            c.innerHTML = StudyTrackRequirements.renderRequirementsWidgetHTML(currentCurriculum.requirements, {
+                expanded: isRequirementsExpanded,
+                escapeHtml
+            });
         }
 
-        function renderSettingsRequirements() { const c = document.getElementById('settings-requirements-list'); if (!currentCurriculum) return; c.innerHTML = (currentCurriculum.requirements || []).map((r, i) => `<div class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 group"><input type="checkbox" ${r.completed ? 'checked' : ''} onchange="toggleRequirement(${i})" class="shrink-0 cursor-pointer"><div class="flex-1 font-medium text-sm text-slate-900 dark:text-white">${r.name}</div><button onclick="deleteRequirement(${i})" class="text-slate-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt"></i></button></div>`).join(''); }
-        function toggleRequirement(i) { currentCurriculum.requirements[i].completed = !currentCurriculum.requirements[i].completed; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); }
-        function deleteRequirement(i) { if (confirm('¿Borrar?')) { currentCurriculum.requirements.splice(i, 1); saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
+        function renderSettingsRequirements() { const c = document.getElementById('settings-requirements-list'); if (!currentCurriculum) return; c.innerHTML = StudyTrackRequirements.renderSettingsRequirementsHTML(currentCurriculum.requirements, { escapeHtml }); }
+        function toggleRequirement(i) { const result = StudyTrackRequirements.toggleRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); }
+        function deleteRequirement(i) { if (confirm('¿Borrar?')) { const result = StudyTrackRequirements.deleteRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
         function toggleAddReqForm() { document.getElementById('new-req-form').classList.toggle('hidden'); document.getElementById('add-req-btn').classList.toggle('hidden'); }
-        function confirmAddRequirement() { const v = document.getElementById('new-req-name').value.trim(); if (v) { if (!currentCurriculum.requirements) currentCurriculum.requirements = []; currentCurriculum.requirements.push({ id: `req-${Date.now()}`, name: v, completed: false }); saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); toggleAddReqForm(); document.getElementById('new-req-name').value = ''; } }
+        function confirmAddRequirement() { const input = document.getElementById('new-req-name'); const result = StudyTrackRequirements.addRequirement(currentCurriculum.requirements, input.value, () => `req-${Date.now()}`); if (result.changed) { currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); toggleAddReqForm(); input.value = ''; } }
         let currentView = 'subjects';
-        let scheduleData = JSON.parse(localStorage.getItem('studytrack_schedule_v1') || '{}');
-        let scheduleViewType = localStorage.getItem('schedule_view_type') || 'list';
+        let scheduleData = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.schedule, {});
+        let scheduleViewType = StudyTrackStorage.getItem(StudyTrackStorage.KEYS.scheduleViewType) || 'list';
         let currentEditingBlock = null; // {subjectId, blockId}
-        const SUBJECT_COLORS = ['bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-rose-500'];
-        const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-        const DAY_NAMES = { domingo: 'Dom', lunes: 'Lun', martes: 'Mar', miercoles: 'Mié', jueves: 'Jue', viernes: 'Vie', sabado: 'Sáb' };
+        const DAYS = StudyTrackSchedule.DAYS;
+        const DAY_NAMES = StudyTrackSchedule.DAY_NAMES;
 
-        function saveScheduleData() { localStorage.setItem('studytrack_schedule_v1', JSON.stringify(scheduleData)); }
+        function saveScheduleData() { StudyTrackStorage.setJson(StudyTrackStorage.KEYS.schedule, scheduleData); }
 
         function formatTime12h(time) {
-            if (!time) return '';
-            const [h, m] = time.split(':');
-            let hour = parseInt(h);
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            hour = hour % 12;
-            hour = hour ? hour : 12;
-            return `${hour}:${m} ${ampm}`;
+            return StudyTrackSchedule.formatTime12h(time);
         }
 
-        function getSubjectColor(id, idx) { return SUBJECT_COLORS[idx % SUBJECT_COLORS.length]; }
+        function getSubjectColor(id, idx) { return StudyTrackSchedule.getSubjectColor(id, idx); }
 
         function switchView(view) { currentView = view; const subjectsView = document.querySelector('main:not(#schedule-view)'); const scheduleView = document.getElementById('schedule-view'); const navSubjects = document.getElementById('nav-subjects'); const navSchedule = document.getElementById('nav-schedule'); if (view === 'subjects') { subjectsView.classList.remove('hidden'); scheduleView.classList.add('hidden'); navSubjects.classList.add('active'); navSchedule.classList.remove('active'); } else { subjectsView.classList.add('hidden'); scheduleView.classList.remove('hidden'); navSubjects.classList.remove('active'); navSchedule.classList.add('active'); renderScheduleView(); } }
 
         function getEnrolledSubjects() { const enrolled = []; if (currentCurriculum) { currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') enrolled.push({ ...s, period: p.period_number }); })); } return enrolled; }
 
-        function toggleScheduleView(type) { scheduleViewType = type; localStorage.setItem('schedule_view_type', type); updateScheduleViewButtons(); const listContainer = document.getElementById('weekly-schedule-list'); const gridContainer = document.getElementById('weekly-schedule-table'); if (type === 'list') { listContainer.classList.remove('hidden'); gridContainer.classList.add('hidden'); } else { listContainer.classList.add('hidden'); gridContainer.classList.remove('hidden'); } renderScheduleView(); }
+        function toggleScheduleView(type) { scheduleViewType = type; StudyTrackStorage.setItem(StudyTrackStorage.KEYS.scheduleViewType, type); updateScheduleViewButtons(); const listContainer = document.getElementById('weekly-schedule-list'); const gridContainer = document.getElementById('weekly-schedule-table'); if (type === 'list') { listContainer.classList.remove('hidden'); gridContainer.classList.add('hidden'); } else { listContainer.classList.add('hidden'); gridContainer.classList.remove('hidden'); } renderScheduleView(); }
 
         function updateScheduleViewButtons() { const btnList = document.getElementById('view-btn-list'); const btnGrid = document.getElementById('view-btn-grid'); if (scheduleViewType === 'list') { btnList.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all'; btnGrid.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all'; } else { btnGrid.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all'; btnList.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all'; } }
 
-        function renderScheduleView() { const enrolled = getEnrolledSubjects(); const emptyEl = document.getElementById('schedule-empty'); const unscheduledSection = document.getElementById('unscheduled-section'); const unscheduledList = document.getElementById('unscheduled-list'); document.querySelector('#unscheduled-section h3').innerHTML = '<i class="fas fa-edit text-primary-500"></i> Gestionar Horarios'; document.getElementById('unscheduled-count').classList.add('hidden'); if (enrolled.length === 0) { emptyEl.classList.remove('hidden'); unscheduledSection.classList.add('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.add('hidden'); return; } emptyEl.classList.add('hidden'); unscheduledSection.classList.remove('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.remove('hidden'); unscheduledList.innerHTML = enrolled.map((s, i) => { const blocks = scheduleData[s.id] || []; const blocksHtml = blocks.map(b => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" onclick="showBlockDetails('${s.id}', '${b.id}')">${DAY_NAMES[b.day]} ${formatTime12h(b.startTime)}-${formatTime12h(b.endTime)}</span>`).join(' '); return `<div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700"><div class="flex items-center gap-3 flex-1 min-w-0"><div class="w-8 h-8 ${getSubjectColor(s.id, i)} rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0">${s.code.substring(0, 2)}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-slate-900 dark:text-white text-sm truncate">${s.name}</h4><div class="flex flex-wrap items-center gap-2 mt-1">${blocksHtml || '<span class="text-[10px] text-amber-600 dark:text-amber-400 italic">Sin horario asignado</span>'}</div></div></div><button onclick="openScheduleModal('${s.id}', '${s.name.replace(/'/g, "\\'")}', null)" class="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shrink-0 shadow-sm"><i class="fas fa-plus mr-1"></i>Agregar Bloque</button></div>`; }).join(''); updateScheduleViewButtons(); if (scheduleViewType === 'list') { document.getElementById('weekly-schedule-list').classList.remove('hidden'); document.getElementById('weekly-schedule-table').classList.add('hidden'); renderWeeklySchedule(enrolled); } else { document.getElementById('weekly-schedule-list').classList.add('hidden'); document.getElementById('weekly-schedule-table').classList.remove('hidden'); renderTableSchedule(enrolled); } }
+        function renderScheduleView() { const enrolled = getEnrolledSubjects(); const emptyEl = document.getElementById('schedule-empty'); const unscheduledSection = document.getElementById('unscheduled-section'); const unscheduledList = document.getElementById('unscheduled-list'); document.querySelector('#unscheduled-section h3').innerHTML = '<i class="fas fa-edit text-primary-500"></i> Gestionar Horarios'; document.getElementById('unscheduled-count').classList.add('hidden'); if (enrolled.length === 0) { emptyEl.classList.remove('hidden'); unscheduledSection.classList.add('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.add('hidden'); return; } emptyEl.classList.add('hidden'); unscheduledSection.classList.remove('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.remove('hidden'); unscheduledList.innerHTML = StudyTrackSchedule.renderEnrolledScheduleHTML(enrolled, scheduleData, { escapeHtml, escapeJsString }); updateScheduleViewButtons(); if (scheduleViewType === 'list') { document.getElementById('weekly-schedule-list').classList.remove('hidden'); document.getElementById('weekly-schedule-table').classList.add('hidden'); renderWeeklySchedule(enrolled); } else { document.getElementById('weekly-schedule-list').classList.add('hidden'); document.getElementById('weekly-schedule-table').classList.remove('hidden'); renderTableSchedule(enrolled); } }
 
-        function renderTableSchedule(enrolled) { const container = document.getElementById('visual-schedule-grid'); const noClasses = document.getElementById('schedule-no-classes'); const allBlocks = []; enrolled.forEach((s, idx) => { const blocks = scheduleData[s.id] || []; blocks.forEach(b => allBlocks.push({ ...b, subject: s, color: getSubjectColor(s.id, idx) })); }); if (allBlocks.length === 0) { container.innerHTML = ''; noClasses.classList.remove('hidden'); return; } noClasses.classList.add('hidden'); let minHour = 24, maxHour = 0; const starts = allBlocks.map(b => parseInt(b.startTime.split(':')[0])); const ends = allBlocks.map(b => parseInt(b.endTime.split(':')[0]) + (b.endTime.includes(':30') ? 1 : 0)); minHour = Math.min(minHour, ...starts); maxHour = Math.max(maxHour, ...ends); minHour = Math.max(0, minHour - 1); maxHour = Math.min(24, maxHour + 1); const hourHeight = 60; const headerHeight = 40; const timeColWidth = 65; const totalHours = maxHour - minHour; const days = DAYS; container.style.height = `${headerHeight + (totalHours * hourHeight)}px`; let html = `<div class="sticky top-0 left-0 w-full h-[${headerHeight}px] flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/95 backdrop-blur shadow-sm font-bold text-xs text-slate-500 dark:text-slate-400 z-30"><div class="w-[${timeColWidth}px] shrink-0 border-r border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="far fa-clock"></i></div>${days.map(d => `<div class="flex-1 flex items-center justify-center border-r border-slate-200 dark:border-slate-700 last:border-0">${DAY_NAMES[d]}</div>`).join('')}</div>`; for (let h = minHour; h < maxHour; h++) { const timeLabel = formatTime12h(`${h}:00`); html += `<div class="absolute left-0 w-full flex border-b border-slate-100 dark:border-slate-800/50" style="top:${headerHeight + (h - minHour) * hourHeight}px; height:${hourHeight}px"><div class="w-[${timeColWidth}px] shrink-0 flex items-start justify-center pt-1 text-[10px] text-slate-400 font-mono border-r border-slate-200 dark:border-slate-700">${timeLabel}</div><div class="flex-1"></div></div>`; } allBlocks.forEach(b => { const startParts = b.startTime.split(':'); const endParts = b.endTime.split(':'); const startH = parseInt(startParts[0]) + parseInt(startParts[1]) / 60; const endH = parseInt(endParts[0]) + parseInt(endParts[1]) / 60; const duration = endH - startH; const top = headerHeight + (startH - minHour) * hourHeight; const height = duration * hourHeight; const dayIndex = days.indexOf(b.day); if (dayIndex === -1) return; html += `<div class="absolute px-1 py-0.5 rounded-lg ${b.color} text-white text-[10px] leading-tight overflow-hidden shadow-sm hover:z-20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-center" style="top:${top + 2}px; height:${height - 4}px; left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${dayIndex} / 7); width: calc((100% - ${timeColWidth}px) / 7 - 4px); margin-left: 2px;" onclick="showBlockDetails('${b.subject.id}', '${b.id}')"><div class="font-bold truncate">${b.subject.name}</div><div class="opacity-90 truncate">${formatTime12h(b.startTime)} - ${formatTime12h(b.endTime)}</div>${b.room ? `<div class="opacity-75 truncate text-[9px]">${b.room}</div>` : ''}</div>`; }); container.innerHTML = html; }
 
-        function renderWeeklySchedule(enrolled) { const grid = document.getElementById('schedule-grid'); const noClasses = document.getElementById('schedule-no-classes'); const allBlocks = []; enrolled.forEach((s, idx) => { const blocks = scheduleData[s.id] || []; blocks.forEach(b => allBlocks.push({ ...b, subject: s, color: getSubjectColor(s.id, idx) })); }); if (allBlocks.length === 0) { grid.innerHTML = ''; noClasses.classList.remove('hidden'); return; } noClasses.classList.add('hidden'); const byDay = {}; DAYS.forEach(d => byDay[d] = []); allBlocks.forEach(b => { if (byDay[b.day]) byDay[b.day].push(b); }); DAYS.forEach(d => byDay[d].sort((a, b) => a.startTime.localeCompare(b.startTime))); let html = ''; DAYS.forEach(day => { if (byDay[day].length === 0) return; html += `<div class="mb-4"><div class="flex items-center gap-2 mb-2"><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-12 text-center">${DAY_NAMES[day]}</span><div class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div></div><div class="space-y-2 pl-14">${byDay[day].map(b => `<div class="flex items-center gap-3 p-3 rounded-xl ${b.color} text-white group cursor-pointer hover:scale-[1.01] transition-transform" onclick="showBlockDetails('${b.subject.id}', '${b.id}')"><div class="flex-1"><div class="font-bold text-sm">${b.subject.name}</div><div class="text-xs opacity-80">${formatTime12h(b.startTime)} - ${formatTime12h(b.endTime)}${b.room ? ' • ' + b.room : ''}</div></div><div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-search-plus text-[10px]"></i></div></div>`).join('')}</div></div>`; }); grid.innerHTML = html; }
+
+        function renderTableSchedule(enrolled) {
+            const container = document.getElementById('visual-schedule-grid');
+            const noClasses = document.getElementById('schedule-no-classes');
+            const allBlocks = StudyTrackSchedule.collectScheduleBlocks(enrolled, scheduleData);
+            if (allBlocks.length === 0) { container.innerHTML = ''; noClasses.classList.remove('hidden'); return; }
+            noClasses.classList.add('hidden');
+            const starts = allBlocks.map(b => parseInt(b.startTime.split(':')[0]));
+            const ends = allBlocks.map(b => parseInt(b.endTime.split(':')[0]) + (b.endTime.includes(':30') ? 1 : 0));
+            const minHour = Math.max(0, Math.min(24, ...starts) - 1);
+            const maxHour = Math.min(24, Math.max(0, ...ends) + 1);
+            const hourHeight = 60, headerHeight = 40, timeColWidth = 65, totalHours = maxHour - minHour;
+            container.style.height = `${headerHeight + (totalHours * hourHeight)}px`;
+            let html = `<div class="sticky top-0 left-0 w-full h-[${headerHeight}px] flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/95 backdrop-blur shadow-sm font-bold text-xs text-slate-500 dark:text-slate-400 z-30"><div class="w-[${timeColWidth}px] shrink-0 border-r border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="far fa-clock"></i></div>${DAYS.map(d => `<div class="flex-1 flex items-center justify-center border-r border-slate-200 dark:border-slate-700 last:border-0">${escapeHtml(DAY_NAMES[d])}</div>`).join('')}</div>`;
+            for (let h = minHour; h < maxHour; h++) { const timeLabel = escapeHtml(formatTime12h(`${h}:00`)); html += `<div class="absolute left-0 w-full flex border-b border-slate-100 dark:border-slate-800/50" style="top:${headerHeight + (h - minHour) * hourHeight}px; height:${hourHeight}px"><div class="w-[${timeColWidth}px] shrink-0 flex items-start justify-center pt-1 text-[10px] text-slate-400 font-mono border-r border-slate-200 dark:border-slate-700">${timeLabel}</div><div class="flex-1"></div></div>`; }
+            allBlocks.forEach(b => { const startParts = b.startTime.split(':'), endParts = b.endTime.split(':'); const startH = parseInt(startParts[0]) + parseInt(startParts[1]) / 60; const endH = parseInt(endParts[0]) + parseInt(endParts[1]) / 60; const top = headerHeight + (startH - minHour) * hourHeight; const height = (endH - startH) * hourHeight; const dayIndex = DAYS.indexOf(b.day); if (dayIndex === -1) return; html += `<div class="absolute px-1 py-0.5 rounded-lg ${b.color} text-white text-[10px] leading-tight overflow-hidden shadow-sm hover:z-20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-center" style="top:${top + 2}px; height:${height - 4}px; left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${dayIndex} / 7); width: calc((100% - ${timeColWidth}px) / 7 - 4px); margin-left: 2px;" onclick="showBlockDetails('${escapeJsString(b.subject.id)}', '${escapeJsString(b.id)}')"><div class="font-bold truncate">${escapeHtml(b.subject.name)}</div><div class="opacity-90 truncate">${escapeHtml(formatTime12h(b.startTime))} - ${escapeHtml(formatTime12h(b.endTime))}</div>${b.room ? `<div class="opacity-75 truncate text-[9px]">${escapeHtml(b.room)}</div>` : ''}</div>`; });
+            container.innerHTML = html;
+        }
+
+        function renderWeeklySchedule(enrolled) {
+            const grid = document.getElementById('schedule-grid');
+            const noClasses = document.getElementById('schedule-no-classes');
+            const allBlocks = StudyTrackSchedule.collectScheduleBlocks(enrolled, scheduleData);
+            if (allBlocks.length === 0) { grid.innerHTML = ''; noClasses.classList.remove('hidden'); return; }
+            noClasses.classList.add('hidden');
+            grid.innerHTML = StudyTrackSchedule.renderWeeklyScheduleHTML(allBlocks, { escapeHtml, escapeJsString });
+        }
 
         function openScheduleModal(subjectId, subjectName, blockToEdit = null) { currentEditingBlock = blockToEdit ? { subjectId, blockToEdit } : null; document.getElementById('schedule-subject-id').value = subjectId; document.getElementById('schedule-subject-name').textContent = subjectName; if (blockToEdit) { document.getElementById('schedule-day').value = blockToEdit.day; document.getElementById('schedule-start').value = blockToEdit.startTime; document.getElementById('schedule-end').value = blockToEdit.endTime; document.getElementById('schedule-room').value = blockToEdit.room || ''; document.querySelector('#schedule-modal h2').innerText = 'Editar Horario'; document.querySelector('#schedule-modal button[onclick="saveScheduleBlock()"]').innerHTML = '<i class="fas fa-save mr-2"></i> Guardar Cambios'; } else { document.getElementById('schedule-day').value = 'lunes'; document.getElementById('schedule-start').value = '08:00'; document.getElementById('schedule-end').value = '10:00'; document.getElementById('schedule-room').value = ''; document.querySelector('#schedule-modal h2').innerText = 'Agregar Horario'; document.querySelector('#schedule-modal button[onclick="saveScheduleBlock()"]').innerHTML = '<i class="fas fa-plus mr-2"></i> Agregar al Horario'; } document.getElementById('schedule-conflict-alert').classList.add('hidden'); document.getElementById('schedule-modal').classList.remove('hidden'); }
 
         function closeScheduleModal() { document.getElementById('schedule-modal').classList.add('hidden'); currentEditingBlock = null; }
 
-        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; document.getElementById('details-room').innerHTML = block.room ? `<i class="fas fa-map-marker-alt text-red-500"></i> <span>${block.room}</span>` : '<span class="italic text-slate-400">Sin aula asignada</span>'; const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = () => { if (confirm('¿Eliminar este horario?')) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
+        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; document.getElementById('details-room').innerHTML = block.room ? `<i class="fas fa-map-marker-alt text-red-500"></i> <span>${escapeHtml(block.room)}</span>` : '<span class="italic text-slate-400">Sin aula asignada</span>'; const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = () => { if (confirm('¿Eliminar este horario?')) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
 
         function closeDetailsModal() { const modal = document.getElementById('schedule-details-modal'); modal.classList.add('opacity-0'); document.getElementById('details-modal-content').classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 200); }
 
-        function checkScheduleConflict(day, start, end, excludeSubjectId = null) { const enrolled = getEnrolledSubjects(); for (const s of enrolled) { const blocks = scheduleData[s.id] || []; for (const b of blocks) { if ((currentEditingBlock && currentEditingBlock.blockToEdit.id === b.id)) continue; if (b.day === day) { if ((start >= b.startTime && start < b.endTime) || (end > b.startTime && end <= b.endTime) || (start <= b.startTime && end >= b.endTime)) { return { conflict: true, subject: s.name, time: `${b.startTime} - ${b.endTime}` }; } } } } return { conflict: false }; }
+        function checkScheduleConflict(day, start, end, excludeSubjectId = null) {
+            const excludeBlockId = currentEditingBlock?.blockToEdit?.id || null;
+            return StudyTrackSchedule.findScheduleConflict({
+                day,
+                start,
+                end,
+                enrolledSubjects: getEnrolledSubjects(),
+                scheduleData,
+                excludeSubjectId: excludeSubjectId || currentEditingBlock?.subjectId || null,
+                excludeBlockId
+            });
+        }
 
-        function saveScheduleBlock() { const subjectId = document.getElementById('schedule-subject-id').value; const day = document.getElementById('schedule-day').value; const start = document.getElementById('schedule-start').value; const end = document.getElementById('schedule-end').value; const room = document.getElementById('schedule-room').value.trim(); if (start >= end) { showToast('La hora de fin debe ser mayor a la hora de inicio', 'error'); return; } const conflict = checkScheduleConflict(day, start, end, null); if (conflict.conflict) { document.getElementById('schedule-conflict-alert').classList.remove('hidden'); document.getElementById('conflict-message').textContent = `Conflicto con ${conflict.subject} (${conflict.time})`; return; } if (!scheduleData[subjectId]) scheduleData[subjectId] = []; if (currentEditingBlock) { const index = scheduleData[subjectId].findIndex(b => b.id === currentEditingBlock.blockToEdit.id); if (index !== -1) { scheduleData[subjectId][index] = { ...currentEditingBlock.blockToEdit, day, startTime: start, endTime: end, room }; showToast('Horario actualizado', 'success'); } } else { scheduleData[subjectId].push({ id: `block-${Date.now()}`, day, startTime: start, endTime: end, room }); showToast('Horario agregado', 'success'); } saveScheduleData(); closeScheduleModal(); renderScheduleView(); }
+        function saveScheduleBlock() { const subjectId = document.getElementById('schedule-subject-id').value; const day = document.getElementById('schedule-day').value; const start = document.getElementById('schedule-start').value; const end = document.getElementById('schedule-end').value; const room = document.getElementById('schedule-room').value.trim(); const existingBlockId = currentEditingBlock?.blockToEdit?.id || null; const validation = StudyTrackSchedule.validateScheduleBlockOperation({ day, start, end, enrolledSubjects: getEnrolledSubjects(), scheduleData, excludeSubjectId: currentEditingBlock?.subjectId || null, excludeBlockId: existingBlockId }); if (!validation.valid && validation.reason === 'invalid-range') { showToast('La hora de fin debe ser mayor a la hora de inicio', 'error'); return; } if (!validation.valid && validation.reason === 'conflict') { document.getElementById('schedule-conflict-alert').classList.remove('hidden'); document.getElementById('conflict-message').textContent = `Conflicto con ${validation.conflict.subject} (${validation.conflict.time})`; return; } const result = StudyTrackSchedule.upsertScheduleBlock(scheduleData, subjectId, { id: `block-${Date.now()}`, day, startTime: start, endTime: end, room }, existingBlockId); if (!result.changed) { showToast('No se pudo actualizar el horario', 'error'); return; } scheduleData = result.scheduleData; showToast(existingBlockId ? 'Horario actualizado' : 'Horario agregado', 'success'); saveScheduleData(); closeScheduleModal(); renderScheduleView(); }
 
-        function deleteScheduleBlock(subjectId, blockId) { if (!scheduleData[subjectId]) return; scheduleData[subjectId] = scheduleData[subjectId].filter(b => b.id !== blockId); if (scheduleData[subjectId].length === 0) delete scheduleData[subjectId]; saveScheduleData(); renderScheduleView(); showToast('Bloque eliminado', 'info'); }
+        function deleteScheduleBlock(subjectId, blockId) { const result = StudyTrackSchedule.deleteScheduleBlock(scheduleData, subjectId, blockId); if (!result.changed) return; scheduleData = result.scheduleData; saveScheduleData(); renderScheduleView(); showToast('Bloque eliminado', 'info'); }
 
         window.addEventListener('DOMContentLoaded', initApp);
         document.getElementById('settings-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });

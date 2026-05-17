@@ -1,0 +1,10 @@
+{
+  "name": "StudyTrack Pro",
+  "short_name": "StudyTrack",
+  "description": "Tu copiloto academico inteligente",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "lang": "es"
+}
