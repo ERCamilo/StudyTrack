@@ -92,6 +92,11 @@ assert.ok(html.includes('StudyTrackProgress.toggleSubjectApproval(userProgress[i
 assert.ok(html.includes("const safeGrade = escapeHtml(st.grade ?? '');"), 'Grade input must preserve zero values');
 assert.ok(html.includes('const isApprovedWithoutGrade ='), 'Subject cards must detect approved subjects without grade');
 assert.ok(html.includes('Materia completada sin nota registrada'), 'Grade input must expose the missing-grade warning state');
+assert.ok(html.includes('const cardSurfaceClass = isApprovedWithoutGrade'), 'Missing-grade cards should own their warning surface class');
+assert.ok(html.includes('grade-warning-message'), 'Missing-grade cards should show a visible mobile warning');
+assert.ok(html.includes('Falta registrar nota'), 'Missing-grade cards should explain the pending action');
+assert.ok(html.includes('grid grid-cols-[1fr_auto_auto] sm:flex'), 'Mobile subject actions should keep grade controls scannable');
+assert.ok(html.includes('aria-label="Ver detalles de ${safeSubjectName}"'), 'Subject details button must be accessible');
 assert.ok(html.includes('aria-label="Nota de ${safeSubjectName}"'), 'Grade input must be accessible');
 assert.ok(!html.includes('${q.name}'), 'Requirement names must be escaped before innerHTML');
 assert.ok(!html.includes('${r.name}'), 'Settings requirement names must be escaped before innerHTML');
