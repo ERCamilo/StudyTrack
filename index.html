@@ -21,6 +21,7 @@
     <script src="./src/grades.js"></script>
     <script src="./src/progress.js"></script>
     <script src="./src/prerequisites.js"></script>
+    <script src="./src/periods.js"></script>
     <script src="./src/requirements.js"></script>
     <script src="./src/schedule.js"></script>
     <script>
@@ -407,8 +408,8 @@
                 </div>
             </div>
 
-            <div
-                class="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-3 sm:-mx-4 px-3 sm:px-4">
+            <div id="desktop-summary-cards"
+                class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-3 sm:-mx-4 px-3 sm:px-4">
                 <div
                     class="snap-start shrink-0 w-36 sm:w-56 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-white shadow-xl shadow-primary-500/30 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-0.5 sm:mb-1">
@@ -456,30 +457,68 @@
         </div>
     </header>
 
-    <!-- FILTER BAR -->
-    <div id="filter-bar" class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-        <div class="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
-            <button onclick="setFilter('all')" id="filter-all"
-                class="filter-btn active shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
-                Todas <span id="count-all" class="ml-1 opacity-70">0</span>
-            </button>
-            <button onclick="setFilter('enrolled')" id="filter-enrolled"
-                class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
-                Inscritas <span id="count-enrolled" class="ml-1 opacity-70">0</span>
-            </button>
-            <button onclick="setFilter('completed')" id="filter-completed"
-                class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
-                Cursadas <span id="count-completed" class="ml-1 opacity-70">0</span>
-            </button>
-            <button onclick="setFilter('pending')" id="filter-pending"
-                class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
-                Faltantes <span id="count-pending" class="ml-1 opacity-70">0</span>
-            </button>
-        </div>
-    </div>
-
     <!-- MAIN -->
     <main class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 space-y-4 sm:space-y-6">
+        <section id="mobile-academic-hub" class="sm:hidden space-y-3">
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3">
+                <div class="flex items-center gap-3">
+                    <div id="mobile-progress-ring"
+                        class="w-20 h-20 rounded-full p-1.5"
+                        style="background: conic-gradient(#10b981 0deg, #e2e8f0 0deg);">
+                        <div class="w-full h-full rounded-full bg-white dark:bg-slate-800 flex flex-col items-center justify-center">
+                            <div id="mobile-progress-value" class="text-xl font-black text-emerald-600 dark:text-emerald-400">0%</div>
+                            <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500">avance</div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="mobile-progress-message" class="text-sm font-black text-emerald-700 dark:text-emerald-300">Listo para avanzar</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">Tu resumen académico actualizado.</p>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5 text-center">
+                                <div id="mobile-earned-credits" class="text-sm font-black text-emerald-700 dark:text-emerald-300">0</div>
+                                <div class="text-[9px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
+                            </div>
+                            <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5 text-center">
+                                <div id="mobile-index" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
+                                <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
+                            </div>
+                            <div class="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 text-center">
+                                <div id="mobile-letter" class="text-sm font-black text-indigo-700 dark:text-indigo-300">N/A</div>
+                                <div class="text-[9px] leading-tight text-indigo-700/70 dark:text-indigo-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
+                            </div>
+                            <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 px-2 py-1.5 text-center">
+                                <div id="mobile-remaining-subjects" class="text-sm font-black text-slate-700 dark:text-slate-200">0</div>
+                                <div class="text-[9px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="px-3 py-2.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <i class="fas fa-calendar-check text-primary-500"></i> Hoy en tu carrera
+                    </h3>
+                    <button onclick="setFilter('all')" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Ver todo</button>
+                </div>
+                <button onclick="setFilter('completed')" class="w-full flex items-center gap-3 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                    <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-800 dark:text-white">Agregar nota pendiente</div><div class="text-[11px] text-slate-500 dark:text-slate-400"><span id="mobile-missing-grades-text">0 materias aprobadas sin nota</span></div></div>
+                    <span id="mobile-missing-grades-count" class="min-w-8 text-center rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 text-xs font-black">0</span>
+                </button>
+                <button onclick="setFilter('pending')" class="w-full flex items-center gap-3 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0"><i class="fas fa-calendar-plus"></i></div>
+                    <div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-800 dark:text-white">Inscribir materia disponible</div><div class="text-[11px] text-slate-500 dark:text-slate-400"><span id="mobile-available-text">Puedes inscribir 0 materias</span></div></div>
+                    <span id="mobile-available-count" class="min-w-8 text-center rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-2 py-1 text-xs font-black">0</span>
+                </button>
+                <button onclick="setFilter('pending')" class="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                    <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0"><i class="fas fa-lock"></i></div>
+                    <div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-800 dark:text-white">Revisar requisito</div><div class="text-[11px] text-slate-500 dark:text-slate-400"><span id="mobile-blocked-text">0 bloqueos por requisitos</span></div></div>
+                    <span id="mobile-blocked-count" class="min-w-8 text-center rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 text-xs font-black">0</span>
+                </button>
+            </div>
+        </section>
         <div class="relative">
             <input type="search" id="search-input" placeholder="Buscar materia, código..."
                 class="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none text-xs sm:text-sm font-medium shadow-sm">
@@ -487,8 +526,29 @@
                 class="fas fa-search absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-sm"></i>
         </div>
 
+        <div id="filter-bar" class="py-0 sm:py-1">
+            <div class="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
+                <button onclick="setFilter('all')" id="filter-all"
+                    class="filter-btn active shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
+                    Todas <span id="count-all" class="ml-1 opacity-70">0</span>
+                </button>
+                <button onclick="setFilter('enrolled')" id="filter-enrolled"
+                    class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
+                    Inscritas <span id="count-enrolled" class="ml-1 opacity-70">0</span>
+                </button>
+                <button onclick="setFilter('completed')" id="filter-completed"
+                    class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
+                    Cursadas <span id="count-completed" class="ml-1 opacity-70">0</span>
+                </button>
+                <button onclick="setFilter('pending')" id="filter-pending"
+                    class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
+                    Faltantes <span id="count-pending" class="ml-1 opacity-70">0</span>
+                </button>
+            </div>
+        </div>
+
         <div id="requirements-card"
-            class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-fade-in">
+            class="hidden sm:block bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-fade-in">
             <div
                 class="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 dark:text-white text-xs sm:text-sm flex items-center gap-2"><i
@@ -1142,7 +1202,7 @@
         function formatPrerequisiteString(p) { return StudyTrackPrerequisites.formatPrerequisiteString(p); }
         function buildDependencyGraph(c) { return StudyTrackPrerequisites.buildDependencyGraph(c); }
         function calculatePeriodStats(p) { let c = 0; p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'approved') c++; }); return { completed: c, completionPercentage: (c / p.subjects.length) * 100, avgGrade: 0 }; }
-        function renderPeriodStatsHTML(s, t) { return `<div class="flex items-center gap-2"><div class="h-1.5 w-20 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${s.completionPercentage}%"></div></div><span class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">${s.completed}/${t}</span></div>`; }
+        function renderPeriodStatsHTML(s, t) { return StudyTrackPeriods.renderPeriodStatsHTML(s, t); }
         function renderUI() { document.getElementById('header-career').textContent = currentCurriculum.metadata.career_name; document.getElementById('header-institution').textContent = currentCurriculum.metadata.institution; renderPeriods(); }
         function renderSubjectCardString(s, pn) {
             const st = userProgress[s.id] || { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
@@ -1205,6 +1265,27 @@
 
             // Check if there's any extra data to show a filled indicator
             const hasExtraData = st.section || st.classroom || st.teacher || st.attempts?.length || st.completionDate;
+            const statusLabel = st.status === 'approved'
+                ? (isApprovedWithoutGrade ? 'Aprobada sin nota' : 'Aprobada')
+                : st.status === 'enrolled'
+                    ? 'Inscrita'
+                    : un
+                        ? 'Disponible'
+                        : 'Bloqueada por requisitos';
+            const statusTextClass = st.status === 'approved'
+                ? (isApprovedWithoutGrade ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')
+                : st.status === 'enrolled'
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : un
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-red-600 dark:text-red-400';
+            const statusDotClass = st.status === 'approved'
+                ? (isApprovedWithoutGrade ? 'bg-amber-500' : 'bg-emerald-500')
+                : st.status === 'enrolled'
+                    ? 'bg-blue-500'
+                    : un
+                        ? 'bg-emerald-500'
+                        : 'bg-red-500';
 
             return `
                 <div id="subject-card-${subjectIdHtml}" class="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group">
@@ -1222,6 +1303,9 @@
                             </div>
                             <div class="flex items-center justify-between gap-2 mt-1.5">
                                 <div class="flex flex-wrap items-center gap-1">
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-black ${statusTextClass}">
+                                        <span class="w-1.5 h-1.5 rounded-full ${statusDotClass}"></span>${statusLabel}
+                                    </span>
                                     ${enrolledButton}
                                     ${fo > 0 ? `<span class="text-[10px] bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><i class="fas fa-key text-[8px]"></i>${fo}</span>` : ''}
                                     ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${subjectIdJs}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${safeReqTxt}</button>` : ''}
@@ -1383,7 +1467,46 @@
             document.getElementById('stat-completed-count').textContent = completed;
             document.getElementById('stat-total-subjects').textContent = total;
             document.getElementById('stat-remaining-text').textContent = (total - completed) + ' faltantes';
+            updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining: total - completed });
             updateFilterCounts();
+        }
+
+        function formatCountLabel(count, singular, plural) {
+            return `${count} ${count === 1 ? singular : plural}`;
+        }
+
+        function updateMobileAcademicHub(summary) {
+            if (!currentCurriculum || !document.getElementById('mobile-academic-hub')) return;
+
+            let available = 0, missingGrades = 0, blocked = 0;
+            currentCurriculum.periods.forEach(period => period.subjects.forEach(subject => {
+                const st = userProgress[subject.id] || { status: 'pending', grade: null };
+                const prereqsMet = checkPrerequisites(subject.prerequisites);
+                const isPending = (st.status || 'pending') === 'pending';
+
+                if (isPending && prereqsMet) available++;
+                if (isPending && !prereqsMet && subject.prerequisites?.length) blocked++;
+                if (st.status === 'approved' && (st.grade === null || st.grade === undefined || st.grade === '')) missingGrades++;
+            }));
+
+            const roundedProgress = Math.round(summary.progress);
+            const progressDegrees = Math.round(summary.progress * 3.6);
+            const ring = document.getElementById('mobile-progress-ring');
+            if (ring) ring.style.background = `conic-gradient(#10b981 ${progressDegrees}deg, #e2e8f0 ${progressDegrees}deg)`;
+
+            document.getElementById('mobile-progress-value').textContent = `${roundedProgress}%`;
+            document.getElementById('mobile-progress-message').textContent = roundedProgress >= 70 ? 'Vas muy bien' : roundedProgress >= 35 ? 'Buen avance' : 'Listo para avanzar';
+            document.getElementById('mobile-earned-credits').textContent = summary.earned;
+            document.getElementById('mobile-index').textContent = summary.globalAvg === null ? 'N/A' : summary.globalAvg.toFixed(1);
+            document.getElementById('mobile-letter').textContent = summary.letter;
+            document.getElementById('mobile-gpa-points').textContent = summary.globalGPA === null ? 'N/A' : summary.globalGPA.toFixed(2);
+            document.getElementById('mobile-remaining-subjects').textContent = summary.remaining;
+            document.getElementById('mobile-missing-grades-count').textContent = missingGrades;
+            document.getElementById('mobile-missing-grades-text').textContent = formatCountLabel(missingGrades, 'materia aprobada sin nota', 'materias aprobadas sin nota');
+            document.getElementById('mobile-available-count').textContent = available;
+            document.getElementById('mobile-available-text').textContent = `Puedes inscribir ${formatCountLabel(available, 'materia', 'materias')}`;
+            document.getElementById('mobile-blocked-count').textContent = blocked;
+            document.getElementById('mobile-blocked-text').textContent = formatCountLabel(blocked, 'bloqueo por requisitos', 'bloqueos por requisitos');
         }
         function findSubjectLocation(id) { if (!currentCurriculum) return null; for (let i = 0; i < currentCurriculum.periods.length; i++) { const s = currentCurriculum.periods[i].subjects.find(s => s.id === id); if (s) return { subject: s, period: currentCurriculum.periods[i], periodIndex: i }; } return null; }
         function reRenderSubjectCardDOM(s, pn) { const el = document.getElementById(`subject-card-${s.id}`); if (el) el.outerHTML = renderSubjectCardString(s, pn); }
@@ -1452,36 +1575,23 @@
             c.innerHTML = '';
             if (!currentCurriculum) return;
             currentCurriculum.periods.forEach((p, idx) => {
-                const subs = p.subjects.filter(s => {
-                    const matchesText = !filter || s.name.toLowerCase().includes(filter.toLowerCase()) || s.code.toLowerCase().includes(filter.toLowerCase());
-                    const status = userProgress[s.id]?.status || 'pending';
-                    let matchesFilter = true;
-                    if (currentFilter === 'enrolled') matchesFilter = status === 'enrolled';
-                    else if (currentFilter === 'completed') matchesFilter = status === 'approved';
-                    else if (currentFilter === 'pending') matchesFilter = status === 'pending';
-                    return matchesText && matchesFilter;
-                });
+                const subs = StudyTrackPeriods.getVisibleSubjects(p, userProgress, filter, currentFilter);
                 if (!subs.length) return;
-                const open = !APP_CONFIG.collapsedPeriods.has(idx) || filter || currentFilter !== 'all';
-                const stats = calculatePeriodStats(p);
-                const avg = calculatePeriodAverage(p);
-                const gpa4 = calculatePeriodGPA4(p);
-                const statusColor = getPeriodStatusColor(p);
-                const safePeriodNumber = escapeHtml(p.period_number);
-                const safePeriodName = escapeHtml(p.name);
 
                 const div = document.createElement('div');
                 div.className = 'bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm animate-fade-in transition-all duration-300 hover:shadow-md';
-
-                let badgesHtml = '';
-                if (avg) badgesHtml += `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-2"><i class="fas fa-chart-line mr-1 text-slate-400"></i>${avg}</span>`;
-                if (gpa4) badgesHtml += `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-1"><i class="fas fa-star mr-1 text-slate-400"></i>${gpa4}</span>`;
-
-                let mobileStatsHtml = renderPeriodStatsHTML(stats, p.subjects.length);
-                if (avg) mobileStatsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-2">Prom: ${avg}</span>`;
-                if (gpa4) mobileStatsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-1">• GPA: ${gpa4}</span>`;
-
-                div.innerHTML = `<div onclick="togglePeriod(${idx})" class="px-3 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all select-none flex items-center justify-between group"><div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0"><div class="shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${statusColor} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500">${safePeriodNumber}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-0.5 sm:mb-1"><h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">${safePeriodName}</h3>${badgesHtml}</div><div id="period-header-stats-${idx}" class="flex items-center gap-3">${mobileStatsHtml}</div></div></div><i class="fas fa-chevron-down text-slate-300 dark:text-slate-600 transition-transform duration-300 ${open ? 'rotate-180' : ''} group-hover:text-slate-400 dark:group-hover:text-slate-500"></i></div><div class="collapsible-content ${open ? 'open' : ''}"><div class="px-2 sm:px-3 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800/50">${subs.map(s => renderSubjectCardString(s, p.period_number)).join('')}</div></div>`;
+                div.innerHTML = StudyTrackPeriods.renderPeriodCardHTML({
+                    period: p,
+                    periodIndex: idx,
+                    visibleSubjects: subs,
+                    open: StudyTrackPeriods.isPeriodOpen(idx, APP_CONFIG.collapsedPeriods, filter, currentFilter),
+                    stats: calculatePeriodStats(p),
+                    average: calculatePeriodAverage(p),
+                    gpa4: calculatePeriodGPA4(p),
+                    statusColor: getPeriodStatusColor(p),
+                    escapeHtml,
+                    renderSubject: renderSubjectCardString
+                });
                 c.appendChild(div);
             });
         }

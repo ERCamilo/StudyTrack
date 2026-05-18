@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/requirements.js', 'src/schedule.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackCurriculum, StudyTrackGrades, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements } = context;
+const { StudyTrackCurriculum, StudyTrackGrades, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -149,6 +149,37 @@ assert.equal(StudyTrackPrerequisites.checkPrerequisites(['LET-101'], progress, c
 assert.equal(StudyTrackPrerequisites.checkPrerequisites([['MAT-101', 'LET-101']], progress, curriculum), true);
 assert.equal(StudyTrackPrerequisites.checkPrerequisites(['ALL'], progress, curriculum), false);
 assert.equal(StudyTrackPrerequisites.formatPrerequisiteString([['MAT-101', 'LET-101'], 'SCI-201']), '(MAT-101 o LET-101) y SCI-201');
+
+const periodForFiltering = {
+  period_number: '<1>',
+  name: `<script>Periodo</script>`,
+  subjects: [
+    { id: 'MAT-101', name: 'Matematica I', code: 'MAT-101' },
+    { id: 'LET-101', name: 'Letras I', code: 'LET-101' }
+  ]
+};
+assert.equal(StudyTrackPeriods.getVisibleSubjects(periodForFiltering, progress, 'mat', 'all').length, 1);
+assert.equal(StudyTrackPeriods.getVisibleSubjects(periodForFiltering, progress, '', 'completed').length, 1);
+assert.equal(StudyTrackPeriods.getVisibleSubjects(periodForFiltering, progress, '', 'pending').length, 1);
+assert.equal(StudyTrackPeriods.isPeriodOpen(0, new Set([0]), '', 'all'), false);
+assert.equal(StudyTrackPeriods.isPeriodOpen(0, new Set([0]), 'mat', 'all'), true);
+assert.equal(StudyTrackPeriods.isPeriodOpen(0, new Set([0]), '', 'completed'), true);
+const periodHtml = StudyTrackPeriods.renderPeriodCardHTML({
+  period: periodForFiltering,
+  periodIndex: 0,
+  visibleSubjects: [periodForFiltering.subjects[0]],
+  open: true,
+  stats: { completed: 1, completionPercentage: 50 },
+  average: `<b>90</b>`,
+  gpa4: '4.00',
+  statusColor: 'bg-emerald-500',
+  escapeHtml: StudyTrackSanitize.escapeHtml,
+  renderSubject: (subject) => `<article>${StudyTrackSanitize.escapeHtml(subject.name)}</article>`
+});
+assert.ok(periodHtml.includes('&lt;script&gt;Periodo&lt;/script&gt;'));
+assert.ok(periodHtml.includes('&lt;b&gt;90&lt;/b&gt;'));
+assert.ok(periodHtml.includes('&lt;1&gt;'));
+assert.ok(!periodHtml.includes('<script>Periodo</script>'));
 
 const graph = StudyTrackPrerequisites.buildDependencyGraph(curriculum);
 assert.deepEqual(Array.from(graph.dependents.get('MAT-101')), ['MAT-102', 'SCI-201']);

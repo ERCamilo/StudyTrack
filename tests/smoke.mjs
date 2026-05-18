@@ -38,16 +38,29 @@ assert.equal((html.match(/function\s+renderWeeklySchedule\s*\(/g) || []).length,
 
 JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/requirements.js', 'src/schedule.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
 assert.match(html, /id="stat-gpa">N\/A/);
 assert.match(html, /id="stat-global-letter">N\/A/);
 assert.match(html, /id="stat-global-gpa-points">N\/A/);
+assert.ok(html.includes('id="mobile-academic-hub"'));
+assert.ok(html.includes('Hoy en tu carrera'));
+assert.ok(html.includes('id="mobile-letter"'));
+assert.ok(html.includes('id="mobile-gpa-points"'));
+assert.ok(html.includes('id="desktop-summary-cards"'));
+assert.ok(html.includes('class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto'), 'Desktop summary cards must be hidden on mobile');
+assert.ok(html.includes('id="requirements-card"'));
+assert.ok(html.includes('class="hidden sm:block bg-white'), 'Requirements card must not interrupt mobile subject flow');
+assert.ok(html.includes('updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || \'N/A\', remaining: total - completed });'));
+assert.ok(html.includes('const statusLabel ='));
 assert.ok(html.includes('const escapeHtml = StudyTrackSanitize.escapeHtml;'));
 assert.ok(html.includes('const sanitizeCssClasses = StudyTrackSanitize.sanitizeCssClasses;'));
 assert.ok(html.includes('const safeColor = sanitizeCssClasses(g.color);'));
+assert.ok(html.includes('<script src="./src/periods.js"></script>'));
+assert.ok(html.includes('StudyTrackPeriods.getVisibleSubjects(p, userProgress, filter, currentFilter)'));
+assert.ok(html.includes('StudyTrackPeriods.renderPeriodCardHTML({'));
 assert.ok(html.includes('<script src="./src/requirements.js"></script>'));
 assert.ok(html.includes('StudyTrackRequirements.renderRequirementsWidgetHTML(currentCurriculum.requirements'));
 assert.ok(html.includes('StudyTrackRequirements.renderSettingsRequirementsHTML(currentCurriculum.requirements'));
@@ -77,5 +90,6 @@ assert.ok(!html.includes('<span>${block.room}</span>'), 'Schedule room must be e
 assert.equal((html.match(/window\.addEventListener\('scroll'/g) || []).length, 1, 'Expected one scroll listener');
 assert.equal((html.match(/uniSelect\.addEventListener\('change'/g) || []).length, 0, 'setupSelectors should not stack university listeners');
 assert.equal((html.match(/careerSelect\.addEventListener\('change'/g) || []).length, 0, 'setupSelectors should not stack career listeners');
+assert.ok(html.indexOf('id="search-input"') < html.indexOf('id="filter-bar"'), 'Filter bar should sit after search');
 
 console.log('Smoke checks passed');
