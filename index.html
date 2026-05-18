@@ -756,18 +756,28 @@
     </button>
 
     <!-- BOTTOM NAVIGATION BAR -->
-    <nav
+    <nav aria-label="Navegación principal móvil"
         class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-bottom">
-        <div class="max-w-lg mx-auto flex justify-around items-center py-2 px-4">
+        <div class="max-w-lg mx-auto grid grid-cols-4 items-center gap-1 py-2 px-3">
             <button onclick="switchView('subjects')" id="nav-subjects"
-                class="nav-tab active flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all">
+                class="nav-tab active flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-book text-lg"></i>
                 <span class="text-[10px] font-bold">Materias</span>
             </button>
             <button onclick="switchView('schedule')" id="nav-schedule"
-                class="nav-tab flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all">
+                class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-calendar-alt text-lg"></i>
                 <span class="text-[10px] font-bold">Horario</span>
+            </button>
+            <button onclick="showMobileProgress()" id="nav-progress"
+                class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
+                <i class="fas fa-chart-pie text-lg"></i>
+                <span class="text-[10px] font-bold">Progreso</span>
+            </button>
+            <button onclick="openMobileMore()" id="nav-more"
+                class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
+                <i class="fas fa-ellipsis-h text-lg"></i>
+                <span class="text-[10px] font-bold">Más</span>
             </button>
         </div>
     </nav>
@@ -1652,13 +1662,16 @@
             }).join('');
         }
 
+        function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : 'nav-subjects'; }
+        function setActiveMobileNav(activeId) { document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId)); }
         function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
         function toggleEnrollment(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); }
         function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
-        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
+        function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
         function showToast(msg, type = 'info') { const t = document.createElement('div'); const c = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-slate-800' }; t.className = `${c[type]} text-white px-4 py-3 rounded-lg shadow-xl fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
         // Helper for Period Status Color
         function getPeriodStatusColor(p) {
@@ -1751,7 +1764,15 @@
 
         function getSubjectColor(id, idx) { return StudyTrackSchedule.getSubjectColor(id, idx); }
 
-        function switchView(view) { currentView = view; const subjectsView = document.querySelector('main:not(#schedule-view)'); const scheduleView = document.getElementById('schedule-view'); const navSubjects = document.getElementById('nav-subjects'); const navSchedule = document.getElementById('nav-schedule'); if (view === 'subjects') { subjectsView.classList.remove('hidden'); scheduleView.classList.add('hidden'); navSubjects.classList.add('active'); navSchedule.classList.remove('active'); } else { subjectsView.classList.add('hidden'); scheduleView.classList.remove('hidden'); navSubjects.classList.remove('active'); navSchedule.classList.add('active'); renderScheduleView(); } }
+        function switchView(view) { currentView = view; const subjectsView = document.querySelector('main:not(#schedule-view)'); const scheduleView = document.getElementById('schedule-view'); if (view === 'subjects') { subjectsView.classList.remove('hidden'); scheduleView.classList.add('hidden'); setActiveMobileNav('nav-subjects'); } else { subjectsView.classList.add('hidden'); scheduleView.classList.remove('hidden'); setActiveMobileNav('nav-schedule'); renderScheduleView(); } }
+
+        function showMobileProgress() {
+            switchView('subjects');
+            setActiveMobileNav('nav-progress');
+            const hub = document.getElementById('mobile-academic-hub');
+            if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            else window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
         function getEnrolledSubjects() { const enrolled = []; if (currentCurriculum) { currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') enrolled.push({ ...s, period: p.period_number }); })); } return enrolled; }
 

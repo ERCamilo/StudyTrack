@@ -54,6 +54,12 @@ assert.ok(html.includes('class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto'),
 assert.ok(html.includes('id="requirements-card"'));
 assert.ok(html.includes('class="hidden sm:block bg-white'), 'Requirements card must not interrupt mobile subject flow');
 assert.ok(html.includes('updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || \'N/A\', remaining: total - completed });'));
+assert.ok(html.includes('grid grid-cols-4'), 'Mobile bottom navigation should expose four primary actions');
+assert.ok(html.includes('id="nav-progress"'));
+assert.ok(html.includes('id="nav-more"'));
+assert.ok(html.includes('function setActiveMobileNav(activeId)'));
+assert.ok(html.includes('function showMobileProgress()'));
+assert.ok(html.includes('function openMobileMore()'));
 assert.ok(html.includes('const statusLabel ='));
 assert.ok(html.includes('subject-card-mobile'));
 assert.ok(html.includes('mobile-subject-actions'));
