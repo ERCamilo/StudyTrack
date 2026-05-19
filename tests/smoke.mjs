@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const html = fs.readFileSync('index.html', 'utf8');
+const readme = fs.readFileSync('README.md', 'utf8');
 
 const scripts = [];
 let position = 0;
@@ -53,6 +54,9 @@ assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
 assert.ok(serviceWorker.includes("event.request.mode === 'navigate'"), 'Service worker should handle navigations explicitly');
 assert.ok(serviceWorker.indexOf('fetch(event.request)') < serviceWorker.indexOf("caches.match('./index.html')"), 'Navigations should prefer network before cached index');
+assert.ok(readme.includes('python -m http.server 4173 --bind 127.0.0.1'));
+assert.ok(readme.includes('node tests/smoke.mjs'));
+assert.ok(readme.includes('studytrack.erlin.do'));
 
 for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
