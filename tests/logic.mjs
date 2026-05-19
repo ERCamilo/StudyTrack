@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackCurriculum, StudyTrackGrades, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -135,6 +135,29 @@ assert.equal(normalizedProgress['LET-101'].attempts.length, 3);
 assert.equal(normalizedProgress['LET-101'].completionDate, null);
 assert.equal(normalizedProgress['LET-101'].section, '');
 assert.equal(JSON.stringify([...StudyTrackProgress.getCurriculumSubjectIds(validCurriculum)].sort()), JSON.stringify(['LET-101', 'MAT-101', 'MAT-102', 'SCI-201', 'CAP-400'].sort()));
+
+const academicProgress = {
+  'MAT-101': { status: 'approved', grade: 95 },
+  'LET-101': { status: 'approved', grade: '' },
+  'MAT-102': { status: 'enrolled', grade: 85 },
+  'SCI-201': { status: 'pending', grade: null },
+  'CAP-400': { status: 'pending', grade: null }
+};
+const academicSummary = StudyTrackAcademics.calculateAcademicSummary(validCurriculum, academicProgress, {
+  getGradePoints: (grade) => StudyTrackGrades.getGradePoints(grade, scale),
+  getGradeLabel: (grade) => StudyTrackGrades.getGradeLabel(grade, scale)
+});
+assert.equal(academicSummary.total, 5);
+assert.equal(academicSummary.completed, 2);
+assert.equal(academicSummary.earned, 7);
+assert.equal(academicSummary.remaining, 3);
+assert.equal(academicSummary.hasGrades, true);
+assert.equal(academicSummary.globalAvg.toFixed(1), '90.0');
+assert.equal(academicSummary.letter.label, 'A');
+assert.equal(JSON.stringify(StudyTrackAcademics.calculateFilterCounts(validCurriculum, academicProgress)), JSON.stringify({ all: 5, enrolled: 1, completed: 2, pending: 2 }));
+assert.equal(JSON.stringify(StudyTrackAcademics.calculatePeriodStats(validCurriculum.periods[0], academicProgress)), JSON.stringify({ completed: 2, completionPercentage: 100, avgGrade: 0 }));
+assert.equal(StudyTrackAcademics.calculatePeriodAverage(validCurriculum.periods[0], academicProgress), '95.0');
+assert.equal(StudyTrackAcademics.calculatePeriodGPA4(validCurriculum.periods[0], academicProgress, (grade) => StudyTrackGrades.getGradePoints(grade, scale)), '4.00');
 
 const progress = {
   'MAT-101': { status: 'approved' },

@@ -48,10 +48,13 @@ const serviceWorker = fs.readFileSync('sw.js', 'utf8');
 new Function(serviceWorker);
 assert.ok(serviceWorker.includes('CACHE_NAME'));
 assert.ok(serviceWorker.includes('./index.html'));
+assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
+assert.ok(serviceWorker.includes("event.request.mode === 'navigate'"), 'Service worker should handle navigations explicitly');
+assert.ok(serviceWorker.indexOf('fetch(event.request)') < serviceWorker.indexOf("caches.match('./index.html')"), 'Navigations should prefer network before cached index');
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -71,7 +74,7 @@ assert.ok(html.includes('id="desktop-summary-cards"'));
 assert.ok(html.includes('class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto'), 'Desktop summary cards must be hidden on mobile');
 assert.ok(html.includes('id="requirements-card"'));
 assert.ok(html.includes('class="hidden sm:block bg-white'), 'Requirements card must not interrupt mobile subject flow');
-assert.ok(html.includes('updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || \'N/A\', remaining: total - completed });'));
+assert.ok(html.includes("updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining });"));
 assert.ok(html.includes('grid grid-cols-4'), 'Mobile bottom navigation should expose four primary actions');
 assert.ok(html.includes('id="nav-progress"'));
 assert.ok(html.includes('id="nav-more"'));
@@ -98,6 +101,11 @@ assert.ok(html.includes('StudyTrackRequirements.renderRequirementsWidgetHTML(cur
 assert.ok(html.includes('StudyTrackRequirements.renderSettingsRequirementsHTML(currentCurriculum.requirements'));
 assert.ok(html.includes('StudyTrackRequirements.addRequirement(currentCurriculum.requirements'));
 assert.ok(html.includes('<script src="./src/schedule.js"></script>'));
+assert.ok(html.includes('<script src="./src/academics.js"></script>'));
+assert.ok(html.includes('StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress'));
+assert.ok(html.includes('StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress'));
+assert.ok(html.includes('StudyTrackAcademics.calculatePeriodAverage(p, userProgress'));
+assert.ok(html.includes('StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints'));
 assert.ok(html.includes('id="schedule-summary"'), 'Schedule view should expose a mobile summary');
 assert.ok(html.includes('id="schedule-summary-enrolled"'));
 assert.ok(html.includes('id="schedule-summary-scheduled"'));

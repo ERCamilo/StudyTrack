@@ -22,6 +22,7 @@
     <script src="./src/sanitize.js"></script>
     <script src="./src/curriculum.js"></script>
     <script src="./src/grades.js"></script>
+    <script src="./src/academics.js"></script>
     <script src="./src/progress.js"></script>
     <script src="./src/prerequisites.js"></script>
     <script src="./src/periods.js"></script>
@@ -1240,7 +1241,7 @@
         function areAllOtherSubjectsCompleted() { return StudyTrackPrerequisites.areAllOtherSubjectsCompleted(currentCurriculum, userProgress); }
         function formatPrerequisiteString(p) { return StudyTrackPrerequisites.formatPrerequisiteString(p); }
         function buildDependencyGraph(c) { return StudyTrackPrerequisites.buildDependencyGraph(c); }
-        function calculatePeriodStats(p) { let c = 0; p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'approved') c++; }); return { completed: c, completionPercentage: (c / p.subjects.length) * 100, avgGrade: 0 }; }
+        function calculatePeriodStats(p) { return StudyTrackAcademics.calculatePeriodStats(p, userProgress); }
         function renderPeriodStatsHTML(s, t) { return StudyTrackPeriods.renderPeriodStatsHTML(s, t); }
         function renderUI() { document.getElementById('header-career').textContent = currentCurriculum.metadata.career_name; document.getElementById('header-institution').textContent = currentCurriculum.metadata.institution; renderPeriods(); }
         function renderSubjectCardString(s, pn) {
@@ -1468,36 +1469,9 @@
         }
         function calculateStatistics() {
             if (!currentCurriculum) return;
-            let total = 0, completed = 0, earned = 0, weightedSum = 0, weightBase = 0;
-            let weightedPoints = 0; // For GPA 4.0 scale
-
-            currentCurriculum.periods.forEach(p => p.subjects.forEach(s => {
-                total++;
-                const st = userProgress[s.id];
-
-                // Completed Stats
-                if (st?.status === 'approved') {
-                    completed++;
-                    earned += s.credits;
-                }
-
-                // Academic Index (Average) Calculation - Include ALL numeric grades
-                if (st && st.grade !== null && st.grade !== undefined && st.grade !== "") {
-                    const grade = parseFloat(st.grade);
-                    if (!isNaN(grade)) {
-                        weightedSum += grade * s.credits;
-                        weightedPoints += getGradePoints(grade) * s.credits;
-                        weightBase += s.credits;
-                    }
-                }
-            }));
-
-            const hasGrades = weightBase > 0;
-            const globalAvg = hasGrades ? weightedSum / weightBase : null;
-            const globalGPA = hasGrades ? weightedPoints / weightBase : null;
-
-            const progress = total > 0 ? (completed / total) * 100 : 0;
-            const letterObj = hasGrades ? getGradeLabel(globalAvg) : null;
+            const summary = StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress, { getGradePoints, getGradeLabel });
+            const { total, completed, earned, remaining, progress, hasGrades, globalAvg, globalGPA } = summary;
+            const letterObj = summary.letter;
 
             document.getElementById('stat-progress').textContent = Math.round(progress) + '%';
             document.getElementById('progress-bar-mini').style.width = progress + '%';
@@ -1515,8 +1489,8 @@
 
             document.getElementById('stat-completed-count').textContent = completed;
             document.getElementById('stat-total-subjects').textContent = total;
-            document.getElementById('stat-remaining-text').textContent = (total - completed) + ' faltantes';
-            updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining: total - completed });
+            document.getElementById('stat-remaining-text').textContent = remaining + ' faltantes';
+            updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining });
             updateFilterCounts();
         }
 
@@ -1655,7 +1629,7 @@
             });
         }
         function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
-        function updateFilterCounts() { if (!currentCurriculum) return; let all = 0, enrolled = 0, completed = 0, pending = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { all++; const status = userProgress[s.id]?.status || 'pending'; if (status === 'enrolled') enrolled++; else if (status === 'approved') completed++; else pending++; })); document.getElementById('count-all').textContent = all; document.getElementById('count-enrolled').textContent = enrolled; document.getElementById('count-completed').textContent = completed; document.getElementById('count-pending').textContent = pending; }
+        function updateFilterCounts() { if (!currentCurriculum) return; const counts = StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress); document.getElementById('count-all').textContent = counts.all; document.getElementById('count-enrolled').textContent = counts.enrolled; document.getElementById('count-completed').textContent = counts.completed; document.getElementById('count-pending').textContent = counts.pending; }
         function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
@@ -1743,39 +1717,9 @@
             return 'bg-slate-400 dark:bg-slate-600 shadow-slate-500/30'; // No iniciado/Default
         }
 
-        function calculatePeriodAverage(p) {
-            let weightedSum = 0;
-            let totalCredits = 0;
-            p.subjects.forEach(s => {
-                const st = userProgress[s.id];
-                // Include any subject that has a valid numeric grade, regardless of status (approved/failed)
-                if (st && st.grade !== null && st.grade !== undefined && st.grade !== "") {
-                    const grade = parseFloat(st.grade);
-                    if (!isNaN(grade)) {
-                        weightedSum += grade * s.credits;
-                        totalCredits += s.credits;
-                    }
-                }
-            });
-            return totalCredits > 0 ? (weightedSum / totalCredits).toFixed(1) : null;
-        }
+        function calculatePeriodAverage(p) { return StudyTrackAcademics.calculatePeriodAverage(p, userProgress); }
 
-        function calculatePeriodGPA4(p) {
-            let weightedPoints = 0;
-            let totalCredits = 0;
-            p.subjects.forEach(s => {
-                const st = userProgress[s.id];
-                if (st && st.grade !== null && st.grade !== undefined && st.grade !== "") {
-                    // Use new helper
-                    const grade = parseFloat(st.grade);
-                    if (!isNaN(grade)) {
-                        weightedPoints += getGradePoints(grade) * s.credits;
-                        totalCredits += s.credits;
-                    }
-                }
-            });
-            return totalCredits > 0 ? (weightedPoints / totalCredits).toFixed(2) : null;
-        }
+        function calculatePeriodGPA4(p) { return StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints); }
 
         function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
         function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Cargar?')) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
