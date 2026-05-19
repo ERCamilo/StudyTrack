@@ -179,6 +179,10 @@ const periodHtml = StudyTrackPeriods.renderPeriodCardHTML({
 assert.ok(periodHtml.includes('&lt;script&gt;Periodo&lt;/script&gt;'));
 assert.ok(periodHtml.includes('&lt;b&gt;90&lt;/b&gt;'));
 assert.ok(periodHtml.includes('&lt;1&gt;'));
+assert.ok(periodHtml.includes('period-header-stats'));
+assert.ok(periodHtml.includes('period-progress'));
+assert.ok(periodHtml.includes('period-mobile-metrics'));
+assert.ok(periodHtml.includes('50%'));
 assert.ok(!periodHtml.includes('<script>Periodo</script>'));
 
 const graph = StudyTrackPrerequisites.buildDependencyGraph(curriculum);
