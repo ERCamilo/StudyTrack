@@ -1,0 +1,118 @@
+{
+  "id": "uasd-quim-2011",
+  "metadata": {
+    "institution": "UASD",
+    "career_name": "Licenciatura en Química",
+    "period_type": "Semestre",
+    "total_credits": 181
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Tesis de Grado", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Semestre",
+      "subjects": [
+        { "id": "BIO-0170", "code": "BIO-0170", "name": "Biología Básica", "credits": 2, "prerequisites": [] },
+        { "id": "BIO-0180", "code": "BIO-0180", "name": "Laboratorio de Biología Básica", "credits": 1, "prerequisites": [] },
+        { "id": "DOP-1000", "code": "DOP-1000", "name": "Orientación Institucional", "credits": 1, "prerequisites": [] },
+        { "id": "EFS-0120", "code": "EFS-0120", "name": "Educación Física", "credits": 1, "prerequisites": [] },
+        { "id": "HIS-0110", "code": "HIS-0110", "name": "Fundamentos de Historia Social Dominicana", "credits": 3, "prerequisites": [] },
+        { "id": "LET-0110", "code": "LET-0110", "name": "Lengua Española Básica I", "credits": 3, "prerequisites": [] },
+        { "id": "MAT-0140", "code": "MAT-0140", "name": "Matemática Básica", "credits": 4, "prerequisites": [] },
+        { "id": "QUI-0140", "code": "QUI-0140", "name": "Química Básica", "credits": 3, "prerequisites": [] },
+        { "id": "SOC-0100", "code": "SOC-0100", "name": "Introducción a las Ciencias Sociales", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Semestre",
+      "subjects": [
+        { "id": "BIO-2400", "code": "BIO-2400", "name": "Bioética", "credits": 2, "prerequisites": ["FIL-0110", ["BIO-0140", "BIO-0170"], ["BIO-0180", "BIO-0110"], ["QUI-0140", "QUI-0110"]] },
+        { "id": "FIL-0110", "code": "FIL-0110", "name": "Introducción a la Filosofía", "credits": 3, "prerequisites": [] },
+        { "id": "FIS-0140", "code": "FIS-0140", "name": "Física Básica", "credits": 4, "prerequisites": [] },
+        { "id": "LET-0120", "code": "LET-0120", "name": "Lengua Española Básica II", "credits": 3, "prerequisites": [["LET-0110", "LET-0130", "LET-0150"]] },
+        { "id": "MAT-2300", "code": "MAT-2300", "name": "Álgebra Superior", "credits": 5, "prerequisites": ["MAT-0140"] },
+        { "id": "QUI-1040", "code": "QUI-1040", "name": "Química General", "credits": 5, "prerequisites": [["QUI-0140", "QUI-0110", "QUI-1020"]] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Semestre",
+      "subjects": [
+        { "id": "FIS-2110", "code": "FIS-2110", "name": "Física General I", "credits": 3, "prerequisites": [["FIS-0140", "FIS-0120", "FIS-0180"], "FIS-0200", ["FIS-2210"]] },
+        { "id": "FIS-2210", "code": "FIS-2210", "name": "Lab. de Física General I", "credits": 1, "prerequisites": [["FIS-0120", "FIS-0140", "FIS-0180"], "FIS-0200", ["FIS-2110"]] },
+        { "id": "MAT-2510", "code": "MAT-2510", "name": "Cálculo y Analítica I", "credits": 6, "prerequisites": [["MAT-2300"]] },
+        { "id": "QUI-1150", "code": "QUI-1150", "name": "Química Inorgánica I", "credits": 4, "prerequisites": ["QUI-1040"] },
+        { "id": "QUI-1430", "code": "QUI-1430", "name": "Química Analítica I", "credits": 5, "prerequisites": [["QUI-1040", "QUI-1010", "QUI-1050"]] },
+        { "id": "QUI-2220", "code": "QUI-2220", "name": "Química Orgánica I", "credits": 4, "prerequisites": [["QUI-0140", "QUI-0110"]] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Semestre",
+      "subjects": [
+        { "id": "FIS-2120", "code": "FIS-2120", "name": "Física General II", "credits": 3, "prerequisites": [["FIS-2110", "FIS-1110"], "FIS-2210", ["FIS-2220"]] },
+        { "id": "FIS-2220", "code": "FIS-2220", "name": "Lab. de Física General II", "credits": 1, "prerequisites": [["FIS-2110", "FIS-1110"], "FIS-2210", ["FIS-2120"]] },
+        { "id": "MAT-3500", "code": "MAT-3500", "name": "Cálculo y Geom. Analítica II", "credits": 6, "prerequisites": [["MAT-2510", "MAT-2500", "MAT-2570"]] },
+        { "id": "QUI-1160", "code": "QUI-1160", "name": "Química Inorgánica II", "credits": 4, "prerequisites": ["QUI-1150"] },
+        { "id": "QUI-1440", "code": "QUI-1440", "name": "Química Analítica II", "credits": 5, "prerequisites": ["QUI-1430"] },
+        { "id": "QUI-3260", "code": "QUI-3260", "name": "Química Orgánica II", "credits": 5, "prerequisites": ["QUI-1040", "QUI-2220"] }
+      ]
+    },
+    {
+      "period_number": 5,
+      "name": "Quinto Semestre",
+      "subjects": [
+        { "id": "FIS-2130", "code": "FIS-2130", "name": "Física General III", "credits": 3, "prerequisites": ["FIS-2120", "FIS-2220", ["FIS-2230"]] },
+        { "id": "FIS-2230", "code": "FIS-2230", "name": "Lab. de Física General III", "credits": 1, "prerequisites": ["FIS-2120", "FIS-2220", ["FIS-2130"]] },
+        { "id": "MAT-3600", "code": "MAT-3600", "name": "Ecuaciones Diferenciales", "credits": 5, "prerequisites": [["MAT-2840", "MAT-3500", "MAT-3510", "MAT-3520", "MAT-3570"]] },
+        { "id": "QUI-1450", "code": "QUI-1450", "name": "Química Analítica III", "credits": 5, "prerequisites": ["QUI-1040", "QUI-1440"] },
+        { "id": "QUI-2320", "code": "QUI-2320", "name": "Química Física I", "credits": 4, "prerequisites": ["FIS-2110", "FIS-2210", ["MAT-3500", "MAT-3510"]] },
+        { "id": "QUI-3270", "code": "QUI-3270", "name": "Química Orgánica III", "credits": 5, "prerequisites": ["QUI-3260"] }
+      ]
+    },
+    {
+      "period_number": 6,
+      "name": "Sexto Semestre",
+      "subjects": [
+        { "id": "EST-1210", "code": "EST-1210", "name": "Estadística Industrial", "credits": 3, "prerequisites": ["MAT-2300"] },
+        { "id": "QUI-3360", "code": "QUI-3360", "name": "Química Física II", "credits": 5, "prerequisites": ["QUI-2320", "FIS-2120", "FIS-2220"] },
+        { "id": "QUI-4240", "code": "QUI-4240", "name": "Química Biorgánica", "credits": 4, "prerequisites": ["QUI-2220", "QUI-3270"] },
+        { "id": "QUI-4500", "code": "QUI-4500", "name": "Métodos de Invest. en Química", "credits": 4, "prerequisites": ["SOC-0100", "FIL-0110"] },
+        { "id": "QUI-4540", "code": "QUI-4540", "name": "Procesos Químicos Industriales", "credits": 4, "prerequisites": ["QUI-1450"] },
+        { "id": "OPT-1", "code": "OPT-1", "name": "Asignatura Optativa", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 7,
+      "name": "Séptimo Semestre",
+      "subjects": [
+        { "id": "INQ-2110", "code": "INQ-2110", "name": "Balances de Materia y Energía", "credits": 5, "prerequisites": ["QUI-3360"] },
+        { "id": "QUI-2570", "code": "QUI-2570", "name": "Int. al Aseguramiento Calidad", "credits": 3, "prerequisites": ["EST-1210"] },
+        { "id": "QUI-3370", "code": "QUI-3370", "name": "Química Física III", "credits": 5, "prerequisites": ["QUI-2320", "QUI-3360", "FIS-2130", "FIS-2230"] },
+        { "id": "OPT-2", "code": "OPT-2", "name": "Asignatura Optativa", "credits": 2, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 8,
+      "name": "Octavo Semestre",
+      "subjects": [
+        { "id": "MIP-3150", "code": "MIP-3150", "name": "Microbiología y Fermentación", "credits": 4, "prerequisites": ["BIO-0170", "BIO-0180", "QUI-2220"] },
+        { "id": "QUI-2540", "code": "QUI-2540", "name": "Química Ambiental", "credits": 3, "prerequisites": ["QUI-1450"] },
+        { "id": "QUI-3460", "code": "QUI-3460", "name": "Análisis Químico Industrial", "credits": 3, "prerequisites": ["QUI-4540"] },
+        { "id": "OPT-3", "code": "OPT-3", "name": "Asignatura Optativa", "credits": 4, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 9,
+      "name": "Noveno Semestre",
+      "subjects": [
+        { "id": "QUI-4590", "code": "QUI-4590", "name": "Pasantía Industrial", "credits": 3, "prerequisites": ["QUI-4540"] },
+        { "id": "QUI-7000", "code": "QUI-7000", "name": "Tesis de Grado o Curso Equivalente", "credits": 8, "prerequisites": [] },
+        { "id": "OPT-4", "code": "OPT-4", "name": "Asignatura Optativa", "credits": 4, "prerequisites": [] }
+      ]
+    }
+  ]
+}

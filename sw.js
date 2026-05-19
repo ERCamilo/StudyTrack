@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v2';
+const CACHE_NAME = 'studytrack-shell-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -37,6 +37,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith(

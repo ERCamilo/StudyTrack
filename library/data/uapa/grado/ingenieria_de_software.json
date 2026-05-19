@@ -1,0 +1,170 @@
+{
+  "id": "uapa-isw-2018",
+  "metadata": {
+    "institution": "UAPA",
+    "career_name": "Ingeniería en Software",
+    "degree": "Ingeniero/a en Software",
+    "period_type": "Trimestre",
+    "total_credits": 209,
+    "duration_years": 4,
+    "last_update": "2024-01-15T00:00:00Z"
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Servicio Social (60h)", "completed": false },
+    { "id": "req-2", "name": "Prueba de Inglés", "completed": false },
+    { "id": "req-3", "name": "Pasantía (240h)", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Trimestre",
+      "subjects": [
+        { "id": "CBC-101", "code": "CBC-101", "name": "Taller de Orientación Universitaria", "credits": 0, "prerequisites": [] },
+        { "id": "CBC-102", "code": "CBC-102", "name": "Introducción a la Educación a Distancia", "credits": 3, "prerequisites": [] },
+        { "id": "CBE-103", "code": "CBE-103", "name": "Español I", "credits": 4, "prerequisites": [] },
+        { "id": "CBC-104", "code": "CBC-104", "name": "Infotecnología para el Aprendizaje", "credits": 3, "prerequisites": [] },
+        { "id": "FGI-101", "code": "FGI-101", "name": "Propedéutico de Ingeniería", "credits": 0, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Trimestre",
+      "subjects": [
+        { "id": "CBE-105", "code": "CBE-105", "name": "Español II", "credits": 4, "prerequisites": ["CBE-103"] },
+        { "id": "FGI-102", "code": "FGI-102", "name": "Álgebra y Geometría para Ingenieros", "credits": 4, "prerequisites": [] },
+        { "id": "FGI-103", "code": "FGI-103", "name": "Lógica Computacional", "credits": 4, "prerequisites": [] },
+        { "id": "FGC-104", "code": "FGC-104", "name": "Filosofía General", "credits": 2, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Trimestre",
+      "subjects": [
+        { "id": "FGC-102", "code": "FGC-102", "name": "Sociología", "credits": 3, "prerequisites": [] },
+        { "id": "FGM-102", "code": "FGM-102", "name": "Análisis Matemático I", "credits": 5, "prerequisites": ["FGI-102"] },
+        { "id": "CBC-107", "code": "CBC-107", "name": "Ser Humano y Desarrollo Sostenible", "credits": 3, "prerequisites": [] },
+        { "id": "FGI-104", "code": "FGI-104", "name": "Programación I", "credits": 4, "prerequisites": ["FGI-103"] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Trimestre",
+      "subjects": [
+        { "id": "FGM-103", "code": "FGM-103", "name": "Análisis Matemático II", "credits": 5, "prerequisites": ["FGM-102"] },
+        { "id": "FGI-105", "code": "FGI-105", "name": "Programación II", "credits": 4, "prerequisites": ["FGI-104"] },
+        { "id": "FGI-106", "code": "FGI-106", "name": "Sistema de Base de Datos", "credits": 4, "prerequisites": ["FGI-104"] }
+      ]
+    },
+    {
+      "period_number": 5,
+      "name": "Quinto Trimestre",
+      "subjects": [
+        { "id": "FGF-201", "code": "FGF-201", "name": "Física General", "credits": 4, "prerequisites": ["FGI-102"] },
+        { "id": "LAF-201", "code": "LAF-201", "name": "Práctica de Física General", "credits": 1, "prerequisites": ["FGF-201"] },
+        { "id": "FGI-207", "code": "FGI-207", "name": "Programación III", "credits": 4, "prerequisites": ["FGI-105"] },
+        { "id": "FGI-208", "code": "FGI-208", "name": "Análisis y Diseño de Sistema", "credits": 4, "prerequisites": ["FGI-106"] }
+      ]
+    },
+    {
+      "period_number": 6,
+      "name": "Sexto Trimestre",
+      "subjects": [
+        { "id": "FGC-205", "code": "FGC-205", "name": "Metodología de la Investigación I", "credits": 4, "prerequisites": [] },
+        { "id": "FGI-209", "code": "FGI-209", "name": "Electrónica Básica", "credits": 4, "prerequisites": ["FGF-201"] },
+        { "id": "ISW-201", "code": "ISW-201", "name": "Ingeniería de Software I", "credits": 4, "prerequisites": ["FGI-208"] }
+      ]
+    },
+    {
+      "period_number": 7,
+      "name": "Séptimo Trimestre",
+      "subjects": [
+        { "id": "FGN-204", "code": "FGN-204", "name": "Contabilidad y Finanzas", "credits": 4, "prerequisites": ["FGM-102"] },
+        { "id": "FGI-210", "code": "FGI-210", "name": "Arquitectura de Hardware", "credits": 4, "prerequisites": ["FGI-209"] },
+        { "id": "ISW-202", "code": "ISW-202", "name": "Ingeniería de Software II", "credits": 4, "prerequisites": ["ISW-201"] },
+        { "id": "FGC-206", "code": "FGC-206", "name": "Metodología de la Investigación II", "credits": 4, "prerequisites": ["FGC-205"] }
+      ]
+    },
+    {
+      "period_number": 8,
+      "name": "Octavo Trimestre",
+      "subjects": [
+        { "id": "FGM-205", "code": "FGM-205", "name": "Matemática Discreta", "credits": 3, "prerequisites": ["FGM-103"] },
+        { "id": "FGM-206", "code": "FGM-206", "name": "Álgebra Lineal", "credits": 4, "prerequisites": ["FGI-102"] },
+        { "id": "ISW-203", "code": "ISW-203", "name": "Calidad de Software", "credits": 4, "prerequisites": ["ISW-202"] },
+        { "id": "OPT-1", "code": "OPT-1", "name": "Optativa 1", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 9,
+      "name": "Noveno Trimestre",
+      "subjects": [
+        { "id": "FGM-207", "code": "FGM-207", "name": "Estadística y Probabilidades", "credits": 4, "prerequisites": ["FGM-103"] },
+        { "id": "FGI-311", "code": "FGI-311", "name": "Teleinformática", "credits": 4, "prerequisites": ["FGI-210"] },
+        { "id": "ISW-304", "code": "ISW-304", "name": "Desarrollo de Proyectos con Software Libre", "credits": 4, "prerequisites": ["FGI-208"] }
+      ]
+    },
+    {
+      "period_number": 10,
+      "name": "Décimo Trimestre",
+      "subjects": [
+        { "id": "INF-303", "code": "INF-303", "name": "Seguridad Informática", "credits": 4, "prerequisites": ["FGI-311"] },
+        { "id": "FGM-314", "code": "FGM-314", "name": "Matemática Numérica", "credits": 4, "prerequisites": ["FGM-205"] },
+        { "id": "ISW-305", "code": "ISW-305", "name": "Estructura de Datos y Algoritmos", "credits": 4, "prerequisites": ["FGI-207"] },
+        { "id": "OPT-2", "code": "OPT-2", "name": "Optativa 2", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 11,
+      "name": "Décimo Primer Trimestre",
+      "subjects": [
+        { "id": "INF-304", "code": "INF-304", "name": "Informática Gerencial", "credits": 4, "prerequisites": ["ISW-202"] },
+        { "id": "INF-305", "code": "INF-305", "name": "Sistemas Operativos", "credits": 4, "prerequisites": ["FGI-207"] },
+        { "id": "ISW-306", "code": "ISW-306", "name": "Desarrollo de Aplicaciones Web", "credits": 4, "prerequisites": ["ISW-304"] }
+      ]
+    },
+    {
+      "period_number": 12,
+      "name": "Décimo Segundo Trimestre",
+      "subjects": [
+        { "id": "ISW-307", "code": "ISW-307", "name": "Programación de Dispositivos Móviles", "credits": 4, "prerequisites": ["ISW-306"] },
+        { "id": "ISW-308", "code": "ISW-308", "name": "Gráficos por Computadoras", "credits": 4, "prerequisites": ["FGI-207"] },
+        { "id": "ISW-309", "code": "ISW-309", "name": "Inteligencia Artificial", "credits": 4, "prerequisites": ["FGI-210"] }
+      ]
+    },
+    {
+      "period_number": 13,
+      "name": "Décimo Tercer Trimestre",
+      "subjects": [
+        { "id": "MER-415", "code": "MER-415", "name": "Marketing Digital", "credits": 3, "prerequisites": ["ISW-306"] },
+        { "id": "INF-408", "code": "INF-408", "name": "Investigación de Operaciones", "credits": 4, "prerequisites": ["FGM-207"] },
+        { "id": "INF-409", "code": "INF-409", "name": "Formación de Empresa de Base Tecnológica", "credits": 4, "prerequisites": ["INF-304"] }
+      ]
+    },
+    {
+      "period_number": 14,
+      "name": "Décimo Cuarto Trimestre",
+      "subjects": [
+        { "id": "ISW-410", "code": "ISW-410", "name": "Seminario de Proyecto I", "credits": 4, "prerequisites": ["ISW-306"] },
+        { "id": "FGC-409", "code": "FGC-409", "name": "Ética Profesional", "credits": 3, "prerequisites": [] },
+        { "id": "INF-307", "code": "INF-307", "name": "Gestión del Conocimiento y la Toma de Decisiones", "credits": 4, "prerequisites": ["INF-304"] }
+      ]
+    },
+    {
+      "period_number": 15,
+      "name": "Décimo Quinto Trimestre",
+      "subjects": [
+        { "id": "ISW-411", "code": "ISW-411", "name": "Seminario de Proyecto II", "credits": 4, "prerequisites": ["ISW-410"] },
+        { "id": "ISW-412", "code": "ISW-412", "name": "Minería de Datos", "credits": 4, "prerequisites": ["INF-307"] },
+        { "id": "ISW-413", "code": "ISW-413", "name": "Simulación Digital", "credits": 4, "prerequisites": ["INF-408"] },
+        { "id": "OPT-3", "code": "OPT-3", "name": "Optativa 3", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 16,
+      "name": "Décimo Sexto Trimestre",
+      "subjects": [
+        { "id": "CFI-500", "code": "CFI-500", "name": "Curso Final de Grado", "credits": 6, "prerequisites": ["ALL"] }
+      ]
+    }
+  ]
+}

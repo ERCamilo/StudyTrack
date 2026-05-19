@@ -1,0 +1,96 @@
+{
+  "id": "uasd-civil-000012",
+  "metadata": {
+    "institution": "UASD",
+    "career_name": "Ingeniería Civil",
+    "degree": "Ingeniero/a Civil",
+    "period_type": "Semestre",
+    "total_credits": 239,
+    "duration_years": 5
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Tesis de Grado o Curso de Equivalencia", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Semestre",
+      "subjects": [
+        { "id": "BIO-0140", "code": "BIO-0140", "name": "Biología Básica", "credits": 3, "prerequisites": [] },
+        { "id": "DOP-1000", "code": "DOP-1000", "name": "Orientación Institucional", "credits": 1, "prerequisites": [] },
+        { "id": "EFS-0110", "code": "EFS-0110", "name": "Educación Física", "credits": 1, "prerequisites": [] },
+        { "id": "FIL-0110", "code": "FIL-0110", "name": "Int a la Filosofía", "credits": 3, "prerequisites": [] },
+        { "id": "FIS-0140", "code": "FIS-0140", "name": "Física Básica", "credits": 4, "prerequisites": [] },
+        { "id": "HIS-0110", "code": "HIS-0110", "name": "Fund de Hist Social Dominicana", "credits": 3, "prerequisites": [] },
+        { "id": "LET-0110", "code": "LET-0110", "name": "Lengua Española Básica I", "credits": 3, "prerequisites": [] },
+        { "id": "MAT-0140", "code": "MAT-0140", "name": "Matemática Básica", "credits": 4, "prerequisites": [] },
+        { "id": "SOC-0110", "code": "SOC-0110", "name": "Int A Las Ciencias Sociales", "credits": 2, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Semestre",
+      "subjects": [
+        { "id": "ARQ-1210", "code": "ARQ-1210", "name": "Geometría Descriptiva", "credits": 3, "prerequisites": [] },
+        { "id": "FIS-2110", "code": "FIS-2110", "name": "Física General I", "credits": 3, "prerequisites": [["FIS-0140", "FIS-0120", "FIS-0180"], "FIS-0200"] },
+        { "id": "FIS-2210", "code": "FIS-2210", "name": "Lab De Física General I", "credits": 1, "prerequisites": [["FIS-0120", "FIS-0140", "FIS-0180"], "FIS-0200"] },
+        { "id": "LET-0120", "code": "LET-0120", "name": "Lengua Española Básica II", "credits": 3, "prerequisites": [["LET-0110", "LET-0130", "LET-0150"]] },
+        { "id": "MAT-2300", "code": "MAT-2300", "name": "Álgebra Superior", "credits": 5, "prerequisites": ["MAT-0140"] },
+        { "id": "MAT-2510", "code": "MAT-2510", "name": "Cálculo Y Analítica I", "credits": 6, "prerequisites": ["MAT-2300"] },
+        { "id": "QUI-0140", "code": "QUI-0140", "name": "Química Básica", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Semestre",
+      "subjects": [
+        { "id": "ARQ-1060", "code": "ARQ-1060", "name": "Dibujo Técnico I-G", "credits": 4, "prerequisites": [] },
+        { "id": "FIS-2120", "code": "FIS-2120", "name": "Física General II", "credits": 3, "prerequisites": [["FIS-2110", "FIS-1110"], "FIS-2210"] },
+        { "id": "FIS-2220", "code": "FIS-2220", "name": "Lab De Física General II", "credits": 1, "prerequisites": [["FIS-2110", "FIS-1110"], "FIS-2210"] },
+        { "id": "INF-1010", "code": "INF-1010", "name": "Int Al Procesamiento De Datos", "credits": 4, "prerequisites": [["MAT-0140", "MAT-0120"]] },
+        { "id": "MAT-2390", "code": "MAT-2390", "name": "Álgebra Matricial", "credits": 3, "prerequisites": [["MAT-2300", "MAT-2110", "MAT-2330"]] },
+        { "id": "MAT-3500", "code": "MAT-3500", "name": "Cálculo Y Geom Analítica II", "credits": 6, "prerequisites": ["MAT-2300", ["MAT-2510", "MAT-2500", "MAT-2570"]] },
+        { "id": "MAT-3730", "code": "MAT-3730", "name": "Cálculo Vectorial", "credits": 4, "prerequisites": ["MAT-2510"] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Semestre",
+      "subjects": [
+        { "id": "AGM-1310", "code": "AGM-1310", "name": "Topografía I", "credits": 4, "prerequisites": ["MAT-3500"] },
+        { "id": "CIV-2010", "code": "CIV-2010", "name": "Mecánica Racional I", "credits": 5, "prerequisites": [["FIS-2120", "FIS-2520"], ["MAT-3730", "MAT-2860"]] },
+        { "id": "CIV-2070", "code": "CIV-2070", "name": "Progr De Comp Aplic A Ing Civ", "credits": 3, "prerequisites": ["INF-1010", ["MAT-2390", "MAT-2320"]] },
+        { "id": "ECN-1100", "code": "ECN-1100", "name": "Nociones De Economía", "credits": 3, "prerequisites": [] },
+        { "id": "EST-1210", "code": "EST-1210", "name": "Estadística Industrial", "credits": 3, "prerequisites": ["MAT-3500"] },
+        { "id": "MAT-3600", "code": "MAT-3600", "name": "Ecuaciones Diferenciales", "credits": 5, "prerequisites": [["MAT-2840", "MAT-3500", "MAT-3510", "MAT-3520", "MAT-3570"]] }
+      ]
+    },
+    {
+      "period_number": 6,
+      "name": "Sexto Semestre",
+      "subjects": [
+        { "id": "CIV-3180", "code": "CIV-3180", "name": "Resistencia De Materiales I", "credits": 4, "prerequisites": ["CIV-2020", "CIV-2180", "CIV-2190"] },
+        { "id": "CIV-3300", "code": "CIV-3300", "name": "Ingeniería De Tránsito", "credits": 5, "prerequisites": ["AGM-1320"] },
+        { "id": "CIV-3600", "code": "CIV-3600", "name": "Mecánica De Los Fluidos", "credits": 4, "prerequisites": ["CIV-2020"] },
+        { "id": "CIV-3610", "code": "CIV-3610", "name": "Lab De Mecánica De Los Fluidos", "credits": 1, "prerequisites": ["CIV-2020"] },
+        { "id": "CIV-4010", "code": "CIV-4010", "name": "Análisis Estructural I", "credits": 4, "prerequisites": ["CIV-2020", "CIV-2070"] },
+        { "id": "CIV-4410", "code": "CIV-4410", "name": "Mecánica De Suelos I", "credits": 4, "prerequisites": ["CIV-2440", ["CIV-3600", "CIV-3620"]] },
+        { "id": "CIV-4420", "code": "CIV-4420", "name": "Lab De Mecánica De Suelos I", "credits": 1, "prerequisites": ["CIV-2440"] }
+      ]
+    },
+    {
+      "period_number": 10,
+      "name": "Décimo Semestre",
+      "subjects": [
+        { "id": "CIV-4150", "code": "CIV-4150", "name": "Puentes", "credits": 4, "prerequisites": [["CIV-4140", "CIV-3150"], ["CIV-4600", "CIV-4630"], ["CIV-3650", "CIV-3630"]] },
+        { "id": "CIV-4180", "code": "CIV-4180", "name": "Hormigón Armado III", "credits": 3, "prerequisites": [["CIV-4140", "CIV-3150"]] },
+        { "id": "CIV-4190", "code": "CIV-4190", "name": "Estructuras Metálicas Y De Mad", "credits": 4, "prerequisites": ["CIV-4030"] },
+        { "id": "CIV-4220", "code": "CIV-4220", "name": "Planeación Y Org De Obras", "credits": 3, "prerequisites": ["CIV-4250"] },
+        { "id": "CIV-4240", "code": "CIV-4240", "name": "Análisis De Costos Y Presupues", "credits": 3, "prerequisites": ["CIV-4250"] },
+        { "id": "CIV-4540", "code": "CIV-4540", "name": "Impacto Ambiental Obras Ingen", "credits": 3, "prerequisites": ["CIV-4320", "CIV-4510"] },
+        { "id": "DER-1190", "code": "DER-1190", "name": "Legislación Y Ética Prof", "credits": 2, "prerequisites": [] },
+        { "id": "CIV-7000", "code": "CIV-7000", "name": "Tesis De Grado O Curso Equival", "credits": 8, "prerequisites": ["ALL"] }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "id": "uasd-imag-000014",
+  "metadata": {
+    "institution": "UASD",
+    "career_name": "Licenciatura en Imagenologia",
+    "degree": "Licenciado/a en Imagenologia",
+    "period_type": "Semestre",
+    "total_credits": 166,
+    "duration_years": 4
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Tesis de Grado o Curso Equivalente", "completed": false },
+    { "id": "req-2", "name": "Práctica Hospitalaria Supervisada", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Semestre",
+      "subjects": [
+        { "id": "BIO-0140", "code": "BIO-0140", "name": "Biología Básica", "credits": 3, "prerequisites": [] },
+        { "id": "DOP-1000", "code": "DOP-1000", "name": "Orientación Institucional", "credits": 1, "prerequisites": [] },
+        { "id": "FIL-0110", "code": "FIL-0110", "name": "Int a la Filosofía", "credits": 3, "prerequisites": [] },
+        { "id": "FIS-0140", "code": "FIS-0140", "name": "Física Básica", "credits": 4, "prerequisites": [] },
+        { "id": "LET-0110", "code": "LET-0110", "name": "Lengua Española Básica I", "credits": 3, "prerequisites": [] },
+        { "id": "MAT-0140", "code": "MAT-0140", "name": "Matemática Básica", "credits": 4, "prerequisites": [] },
+        { "id": "QUI-0140", "code": "QUI-0140", "name": "Química Básica", "credits": 3, "prerequisites": [] },
+        { "id": "SOC-0100", "code": "SOC-0100", "name": "Introd A Las Ciencias Sociales", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Semestre",
+      "subjects": [
+        { "id": "CFI-1100", "code": "CFI-1100", "name": "Fisiología Aplicada", "credits": 3, "prerequisites": [["FIS-0140", "FIS-0180"], "FIS-0200"] },
+        { "id": "CMO-2100", "code": "CMO-2100", "name": "Anatomía Aplicada", "credits": 3, "prerequisites": [["BIO-0140", "BIO-0170"], ["BIO-0180", "BIO-0110"], ["QUI-0140", "QUI-0110"]] },
+        { "id": "EFS-0120", "code": "EFS-0120", "name": "Educación Física", "credits": 2, "prerequisites": [] },
+        { "id": "HIS-0110", "code": "HIS-0110", "name": "Fund de Hist Social Dominicana", "credits": 3, "prerequisites": [] },
+        { "id": "LET-0120", "code": "LET-0120", "name": "Lengua Española Básica II", "credits": 3, "prerequisites": [["LET-0110", "LET-0130", "LET-0150"]] },
+        { "id": "MED-1330", "code": "MED-1330", "name": "Salud Y Conducta Humanas", "credits": 3, "prerequisites": [["SOC-0100", "ICS-0110"]] },
+        { "id": "QUI-1220", "code": "QUI-1220", "name": "Química Orgánica", "credits": 3, "prerequisites": [["QUI-0110", "QUI-0140", "QUI-1020"]] },
+        { "id": "SAP-1030", "code": "SAP-1030", "name": "Salud Y Sociedad I", "credits": 3, "prerequisites": [["ICS-0110", "SOC-0100", "SOC-0120"]] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Semestre",
+      "subjects": [
+        { "id": "CFI-1220", "code": "CFI-1220", "name": "Genética", "credits": 3, "prerequisites": [["BIO-0140", "BIO-0170"], "BIO-0180"] },
+        { "id": "CFI-1320", "code": "CFI-1320", "name": "Bioquímica General", "credits": 4, "prerequisites": ["QUI-1220", "CFI-1110"] },
+        { "id": "EST-1350", "code": "EST-1350", "name": "Bioestadística", "credits": 3, "prerequisites": [["MAT-0110", "MAT-0140"]] },
+        { "id": "FIS-4100", "code": "FIS-4100", "name": "Física Radiológica", "credits": 4, "prerequisites": [["FIS-0140", "FIS-0180"], "FIS-0200"] },
+        { "id": "INF-1030", "code": "INF-1030", "name": "Introducción A La Informática", "credits": 4, "prerequisites": [] },
+        { "id": "SAP-1040", "code": "SAP-1040", "name": "Salud Y Sociedad II", "credits": 4, "prerequisites": ["SAP-1030", ["MAT-0140", "MAT-0110"]] },
+        { "id": "SAP-1050", "code": "SAP-1050", "name": "Int A La Metod Invest En Salud", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Semestre",
+      "subjects": [
+        { "id": "BAN-1500", "code": "BAN-1500", "name": "Tecnología Radiológica", "credits": 4, "prerequisites": ["CMO-2100", "CFI-1100"] },
+        { "id": "BAN-1510", "code": "BAN-1510", "name": "Servicios Radiodiagnóstico", "credits": 4, "prerequisites": ["BAN-1500"] },
+        { "id": "BAN-1520", "code": "BAN-1520", "name": "Protección Radiológica", "credits": 3, "prerequisites": ["FIS-4100"] },
+        { "id": "BAN-1530", "code": "BAN-1530", "name": "Bioética y Normas Reg Prof", "credits": 2, "prerequisites": ["FIL-0110"] },
+        { "id": "CMO-3110", "code": "CMO-3110", "name": "Anatomía Especializada", "credits": 3, "prerequisites": ["CMO-2100"] },
+        { "id": "PSI-2390", "code": "PSI-2390", "name": "Psicología De Los Grupos", "credits": 2, "prerequisites": [["SOC-0100", "ICS-0110"]] },
+        { "id": "QUI-4430", "code": "QUI-4430", "name": "Química Fotográfica", "credits": 3, "prerequisites": ["QUI-0140"] }
+      ]
+    },
+    {
+      "period_number": 5,
+      "name": "Quinto Semestre",
+      "subjects": [
+        { "id": "BAN-2500", "code": "BAN-2500", "name": "Tecnología Radiológica II", "credits": 4, "prerequisites": ["BAN-1500"] },
+        { "id": "BAN-2510", "code": "BAN-2510", "name": "Servicio a la Comunidad Radiol", "credits": 3, "prerequisites": ["BAN-1500", "SAP-1040"] },
+        { "id": "BAN-2520", "code": "BAN-2520", "name": "Protección Radiológica II", "credits": 3, "prerequisites": ["BAN-1520"] },
+        { "id": "CFI-1450", "code": "CFI-1450", "name": "Farmacología General", "credits": 3, "prerequisites": ["CFI-1320", "CFI-1100"] },
+        { "id": "CFI-1460", "code": "CFI-1460", "name": "Patología Clínica", "credits": 2, "prerequisites": ["CMO-3110", "CFI-1100"] },
+        { "id": "IDI-1140", "code": "IDI-1140", "name": "Inglés Aplicado", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 6,
+      "name": "Sexto Semestre",
+      "subjects": [
+        { "id": "BAN-3510", "code": "BAN-3510", "name": "Práctica Hospitalaria Super", "credits": 5, "prerequisites": ["BAN-1500", "BAN-2500", "BAN-1510", "BAN-2510", "BAN-1520", "CFI-1460", "QUI-4430"] },
+        { "id": "BAN-3540", "code": "BAN-3540", "name": "Atención en Salud Radiológica", "credits": 4, "prerequisites": ["BAN-2500", "CMO-2100"] },
+        { "id": "BAN-3570", "code": "BAN-3570", "name": "Radiología Bucal", "credits": 2, "prerequisites": ["CMO-2100", "CMO-3110"] },
+        { "id": "BAN-3580", "code": "BAN-3580", "name": "Radioterapia", "credits": 4, "prerequisites": ["BAN-2500", "CMO-2100"] },
+        { "id": "BAN-3590", "code": "BAN-3590", "name": "Anatomía Radiológica", "credits": 3, "prerequisites": ["CFI-1100", "CMO-2100"] },
+        { "id": "SAP-1060", "code": "SAP-1060", "name": "Metod De La Invest En Salud", "credits": 3, "prerequisites": ["SAP-1050"] }
+      ]
+    },
+    {
+      "period_number": 7,
+      "name": "Séptimo Semestre",
+      "subjects": [
+        { "id": "BAN-4500", "code": "BAN-4500", "name": "Equipo Radiológico", "credits": 3, "prerequisites": ["BAN-3510"] },
+        { "id": "BAN-4510", "code": "BAN-4510", "name": "Práctica Avanzada de Imágenes", "credits": 5, "prerequisites": ["BAN-3510"] },
+        { "id": "IDI-0510", "code": "IDI-0510", "name": "Francés Elemental I", "credits": 5, "prerequisites": [] },
+        { "id": "SAP-1130", "code": "SAP-1130", "name": "Epidemiología I", "credits": 4, "prerequisites": ["SAP-1060"] }
+      ]
+    },
+    {
+      "period_number": 8,
+      "name": "Tesis",
+      "subjects": [
+        { "id": "BAN-7020", "code": "BAN-7020", "name": "Tesis de Grado o Curso Equival", "credits": 8, "prerequisites": ["ALL"] }
+      ]
+    }
+  ]
+}

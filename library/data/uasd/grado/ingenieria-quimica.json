@@ -1,0 +1,83 @@
+{
+  "id": "uasd-ing-quim-2014",
+  "metadata": {
+    "institution": "UASD",
+    "career_name": "Ingeniería Química",
+    "degree": "Ingeniero/a Químico/a",
+    "period_type": "Semestre",
+    "total_credits": 244,
+    "duration_years": 5
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Pasantía Profesional", "completed": false },
+    { "id": "req-2", "name": "60 Horas de Servicio Social", "completed": false },
+    { "id": "req-3", "name": "Prueba de Nivel de Inglés", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Semestre",
+      "subjects": [
+        { "id": "OSI-151", "code": "OSI-151", "name": "Orientación Institucional", "credits": 2, "prerequisites": [] },
+        { "id": "EFI-012", "code": "EFI-012", "name": "Educación Física", "credits": 2, "prerequisites": [] },
+        { "id": "LET-011", "code": "LET-011", "name": "Lengua Española I", "credits": 3, "prerequisites": [] },
+        { "id": "MAT-014", "code": "MAT-014", "name": "Matemática Básica", "credits": 4, "prerequisites": [] },
+        { "id": "QUI-014", "code": "QUI-014", "name": "Química Básica", "credits": 3, "prerequisites": [] },
+        { "id": "IQU-101", "code": "IQU-101", "name": "Introducción a la Ingeniería Química", "credits": 2, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Semestre",
+      "subjects": [
+        { "id": "LET-012", "code": "LET-012", "name": "Lengua Española II", "credits": 3, "prerequisites": ["LET-011"] },
+        { "id": "MAT-191", "code": "MAT-191", "name": "Análisis Matemático I", "credits": 5, "prerequisites": ["MAT-014"] },
+        { "id": "FIS-221", "code": "FIS-221", "name": "Física General I", "credits": 3, "prerequisites": ["MAT-014"] },
+        { "id": "FIS-222", "code": "FIS-222", "name": "Lab. de Física General I", "credits": 1, "prerequisites": ["MAT-014"] },
+        { "id": "QUI-122", "code": "QUI-122", "name": "Química General II", "credits": 4, "prerequisites": ["QUI-014"] },
+        { "id": "ING-121", "code": "ING-121", "name": "Dibujo Técnico", "credits": 2, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Semestre",
+      "subjects": [
+        { "id": "MAT-192", "code": "MAT-192", "name": "Análisis Matemático II", "credits": 5, "prerequisites": ["MAT-191"] },
+        { "id": "FIS-223", "code": "FIS-223", "name": "Física General II", "credits": 3, "prerequisites": ["FIS-221", "FIS-222"] },
+        { "id": "QUI-221", "code": "QUI-221", "name": "Química Inorgánica", "credits": 6, "prerequisites": ["QUI-122"] },
+        { "id": "ING-122", "code": "ING-122", "name": "Geometría Descriptiva", "credits": 2, "prerequisites": ["ING-121"] },
+        { "id": "IQU-331", "code": "IQU-331", "name": "Ingeniería y Sociedad", "credits": 2, "prerequisites": ["IQU-101"] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Semestre",
+      "subjects": [
+        { "id": "MAT-391", "code": "MAT-391", "name": "Ecuaciones Diferenciales", "credits": 4, "prerequisites": ["MAT-192"] },
+        { "id": "QUI-241", "code": "QUI-241", "name": "Química Orgánica I", "credits": 6, "prerequisites": ["QUI-122"] },
+        { "id": "QUI-311", "code": "QUI-311", "name": "Química Física I", "credits": 4, "prerequisites": ["QUI-122", "MAT-191"] },
+        { "id": "IQU-211", "code": "IQU-211", "name": "Balances de Materia y Energía", "credits": 4, "prerequisites": ["QUI-122", "MAT-192"] },
+        { "id": "CIV-211", "code": "CIV-211", "name": "Mecánica Racional", "credits": 3, "prerequisites": ["FIS-221", "MAT-191"] }
+      ]
+    },
+    {
+      "period_number": 5,
+      "name": "Quinto Semestre",
+      "subjects": [
+        { "id": "QUI-242", "code": "QUI-242", "name": "Química Orgánica II", "credits": 6, "prerequisites": ["QUI-241"] },
+        { "id": "QUI-312", "code": "QUI-312", "name": "Química Física II", "credits": 4, "prerequisites": ["QUI-311"] },
+        { "id": "IQU-311", "code": "IQU-311", "name": "Operaciones Unitarias I", "credits": 4, "prerequisites": ["IQU-211"] },
+        { "id": "IQU-241", "code": "IQU-241", "name": "Termodinámica para Ing. Químicos", "credits": 4, "prerequisites": ["QUI-311", "IQU-211"] },
+        { "id": "IEM-204", "code": "IEM-204", "name": "Electrotecnia General", "credits": 3, "prerequisites": ["FIS-223", "MAT-391"] }
+      ]
+    },
+    {
+      "period_number": 10,
+      "name": "Décimo Semestre",
+      "subjects": [
+        { "id": "IQU-700", "code": "IQU-700", "name": "Tesis de Grado / Monográfico", "credits": 8, "prerequisites": ["ALL"] },
+        { "id": "IQU-613", "code": "IQU-613", "name": "Diseño de Plantas Químicas", "credits": 4, "prerequisites": ["IQU-512", "IQU-521"] }
+      ]
+    }
+  ]
+}

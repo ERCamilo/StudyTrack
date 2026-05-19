@@ -38,6 +38,7 @@ assert.equal((html.match(/function\s+renderTableSchedule\s*\(/g) || []).length, 
 assert.equal((html.match(/function\s+renderWeeklySchedule\s*\(/g) || []).length, 1, 'Expected one renderWeeklySchedule function');
 
 const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+const libraryIndex = JSON.parse(fs.readFileSync('library/index.json', 'utf8'));
 assert.equal(manifest.display, 'standalone');
 assert.equal(manifest.scope, './');
 assert.equal(manifest.start_url, './');
@@ -54,9 +55,14 @@ assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
 assert.ok(serviceWorker.includes("event.request.mode === 'navigate'"), 'Service worker should handle navigations explicitly');
 assert.ok(serviceWorker.indexOf('fetch(event.request)') < serviceWorker.indexOf("caches.match('./index.html')"), 'Navigations should prefer network before cached index');
+assert.ok(serviceWorker.includes('requestUrl.origin !== self.location.origin'), 'Service worker should not intercept GitHub fetches');
 assert.ok(readme.includes('python -m http.server 4173 --bind 127.0.0.1'));
 assert.ok(readme.includes('node tests/smoke.mjs'));
 assert.ok(readme.includes('studytrack.erlin.do'));
+assert.ok(Array.isArray(libraryIndex) && libraryIndex.length > 0, 'Local library mirror should include careers');
+for (const item of libraryIndex) {
+  assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
+}
 
 for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
@@ -70,6 +76,7 @@ assert.ok(html.includes('http-equiv="Permissions-Policy"'));
 assert.ok(html.includes('http-equiv="Content-Security-Policy"'));
 assert.ok(html.includes("worker-src 'self'"));
 assert.ok(html.includes('https://cdn.tailwindcss.com'));
+assert.ok(html.includes("connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net"), 'CSP must allow remote curriculum fetches');
 assert.ok(html.includes('id="mobile-academic-hub"'));
 assert.ok(html.includes('Hoy en tu carrera'));
 assert.ok(html.includes('id="mobile-letter"'));
@@ -115,6 +122,12 @@ assert.ok(html.includes('StudyTrackAcademics.calculateAcademicSummary(currentCur
 assert.ok(html.includes('StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress'));
 assert.ok(html.includes('StudyTrackAcademics.calculatePeriodAverage(p, userProgress'));
 assert.ok(html.includes('StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints'));
+assert.ok(html.includes('const REMOTE_LIBRARY_SOURCES = ['));
+assert.ok(html.includes('https://cdn.jsdelivr.net/gh/ERCamilo/LIBRERIA_DE_CARRERAS@main/index.json'));
+assert.ok(html.includes("{ baseUrl: './library', indexUrl: './library/index.json' }"));
+assert.ok(html.includes('function fetchRemoteLibraryIndex()'));
+assert.ok(html.includes('new AbortController()'), 'Remote library sources should timeout before falling back');
+assert.ok(html.includes('controller.abort()'));
 assert.ok(html.includes('id="schedule-summary"'), 'Schedule view should expose a mobile summary');
 assert.ok(html.includes('id="schedule-summary-enrolled"'));
 assert.ok(html.includes('id="schedule-summary-scheduled"'));

@@ -7,7 +7,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self';">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net; manifest-src 'self'; worker-src 'self';">
     <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1E1B4B" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
@@ -999,6 +999,11 @@
     <script>
         const GITHUB_REPO_BASE = 'https://raw.githubusercontent.com/ERCamilo/LIBRERIA_DE_CARRERAS/main';
         const GITHUB_INDEX_URL = `${GITHUB_REPO_BASE}/index.json`;
+        const REMOTE_LIBRARY_SOURCES = [
+            { baseUrl: GITHUB_REPO_BASE, indexUrl: GITHUB_INDEX_URL },
+            { baseUrl: 'https://cdn.jsdelivr.net/gh/ERCamilo/LIBRERIA_DE_CARRERAS@main', indexUrl: 'https://cdn.jsdelivr.net/gh/ERCamilo/LIBRERIA_DE_CARRERAS@main/index.json' },
+            { baseUrl: './library', indexUrl: './library/index.json' }
+        ];
 
         const APP_CONFIG = {
             storageKeys: {
@@ -1169,20 +1174,35 @@
             }
         }
 
+        async function fetchRemoteLibraryIndex() {
+            let lastError = null;
+            for (const source of REMOTE_LIBRARY_SOURCES) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 1800);
+                    const response = await fetch(source.indexUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return { baseUrl: source.baseUrl, items: await response.json() };
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`No se pudo leer biblioteca remota desde ${source.indexUrl}:`, error);
+                }
+            }
+            throw lastError || new Error('No se pudo conectar con la biblioteca remota');
+        }
+
         async function updateLibraryFromCloud() {
             const loader = document.getElementById('library-loading');
             if (loader) loader.classList.remove('hidden');
 
             try {
-                const response = await fetch(GITHUB_INDEX_URL);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const remoteLibrary = await fetchRemoteLibraryIndex();
 
-                const remoteList = await response.json();
-
-                const processedRemote = remoteList.map(item => ({
+                const processedRemote = remoteLibrary.items.map(item => ({
                     ...item,
                     source: 'remote',
-                    fullUrl: item.path.startsWith('http') ? item.path : `${GITHUB_REPO_BASE}/${item.path}`
+                    fullUrl: item.path.startsWith('http') ? item.path : `${remoteLibrary.baseUrl}/${item.path}`
                 }));
 
                 StudyTrackStorage.setJson(APP_CONFIG.storageKeys.library_cache, processedRemote);

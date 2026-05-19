@@ -1,0 +1,71 @@
+{
+  "id": "udoym-merc-2023",
+  "metadata": {
+    "institution": "Universidad Dominicana O&M",
+    "career_name": "Licenciatura en Mercadotecnia",
+    "degree": "Licenciado/a en Mercadotecnia",
+    "period_type": "Cuatrimestre",
+    "total_credits": 190,
+    "duration_years": 4
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Trabajo de Grado / Monográfico", "completed": false },
+    { "id": "req-2", "name": "Servicio Social Universitario", "completed": false },
+    { "id": "req-3", "name": "Pasantía Profesional", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Cuatrimestre",
+      "subjects": [
+        { "id": "101101", "code": "101101", "name": "Español I", "credits": 4, "prerequisites": [] },
+        { "id": "105101", "code": "105101", "name": "Matemática I", "credits": 4, "prerequisites": [] },
+        { "id": "501101", "code": "501101", "name": "Orientación Universitaria", "credits": 2, "prerequisites": [] },
+        { "id": "201101", "code": "201101", "name": "Administración I", "credits": 4, "prerequisites": [] },
+        { "id": "102101", "code": "102101", "name": "Inglés I", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Cuatrimestre",
+      "subjects": [
+        { "id": "101102", "code": "101102", "name": "Español II", "credits": 4, "prerequisites": ["101101"] },
+        { "id": "105102", "code": "105102", "name": "Matemática II", "credits": 4, "prerequisites": ["105101"] },
+        { "id": "208101", "code": "208101", "name": "Contabilidad I", "credits": 4, "prerequisites": [] },
+        { "id": "102102", "code": "102102", "name": "Inglés II", "credits": 3, "prerequisites": ["102101"] },
+        { "id": "202101", "code": "202101", "name": "Mercadotecnia I", "credits": 4, "prerequisites": ["201101"] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Cuatrimestre",
+      "subjects": [
+        { "id": "202102", "code": "202102", "name": "Mercadotecnia II", "credits": 4, "prerequisites": ["202101"] },
+        { "id": "208102", "code": "208102", "name": "Contabilidad II", "credits": 4, "prerequisites": ["208101"] },
+        { "id": "104101", "code": "104101", "name": "Sociología", "credits": 3, "prerequisites": [] },
+        { "id": "109101", "code": "109101", "name": "Informática I", "credits": 3, "prerequisites": [] },
+        { "id": "203101", "code": "203101", "name": "Economía I", "credits": 4, "prerequisites": ["105101"] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Cuatrimestre",
+      "subjects": [
+        { "id": "202203", "code": "202203", "name": "Comportamiento del Consumidor", "credits": 4, "prerequisites": ["202102"] },
+        { "id": "202204", "code": "202204", "name": "Ventas I", "credits": 4, "prerequisites": ["202102"] },
+        { "id": "106101", "code": "106101", "name": "Metodología de la Investigación", "credits": 3, "prerequisites": [] },
+        { "id": "203102", "code": "203102", "name": "Economía II", "credits": 4, "prerequisites": ["203101"] },
+        { "id": "103101", "code": "103101", "name": "Psicología General", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 12,
+      "name": "Duodécimo Cuatrimestre",
+      "subjects": [
+        { "id": "700100", "code": "700100", "name": "Seminario de Grado", "credits": 4, "prerequisites": ["ALL"] },
+        { "id": "202415", "code": "202415", "name": "Ética Profesional", "credits": 2, "prerequisites": [] },
+        { "id": "202416", "code": "202416", "name": "Gerencia de Mercadeo", "credits": 4, "prerequisites": ["202413"] }
+      ]
+    }
+  ]
+}

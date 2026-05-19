@@ -1,0 +1,141 @@
+{
+  "id": "unicaribe-soft-2024",
+  "metadata": {
+    "institution": "Universidad del Caribe",
+    "career_name": "Ingeniería de Software",
+    "degree": "Ingeniero/a de Software",
+    "period_type": "Cuatrimestre",
+    "total_credits": 185,
+    "duration_years": 4
+  },
+  "requirements": [
+    { "id": "req-1", "name": "Servicio Social Universitario", "completed": false },
+    { "id": "req-2", "name": "Pasantía - Práctica de Ingeniería de Software", "completed": false },
+    { "id": "req-3", "name": "Proyecto Integrador (Trabajo de Grado)", "completed": false }
+  ],
+  "periods": [
+    {
+      "period_number": 1,
+      "name": "Primer Cuatrimestre",
+      "subjects": [
+        { "id": "FGC-101", "code": "FGC-101", "name": "Orientación Académica Institucional", "credits": 2, "prerequisites": [] },
+        { "id": "FGC-102", "code": "FGC-102", "name": "Método del Trabajo Académico", "credits": 2, "prerequisites": [] },
+        { "id": "FGC-103", "code": "FGC-103", "name": "Metodología de la Investigación", "credits": 3, "prerequisites": [] },
+        { "id": "ADE-101", "code": "ADE-101", "name": "Administración I", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 2,
+      "name": "Segundo Cuatrimestre",
+      "subjects": [
+        { "id": "FGC-104", "code": "FGC-104", "name": "Lengua Española I", "credits": 3, "prerequisites": ["FGC-102"] },
+        { "id": "FGC-105", "code": "FGC-105", "name": "Matemática Básica I", "credits": 3, "prerequisites": ["FGC-102"] },
+        { "id": "FGC-106", "code": "FGC-106", "name": "Tecnología de la Información y Comunicación I", "credits": 3, "prerequisites": ["FGC-102"] },
+        { "id": "ING-101", "code": "ING-101", "name": "Introducción a la Ingeniería", "credits": 3, "prerequisites": [] }
+      ]
+    },
+    {
+      "period_number": 3,
+      "name": "Tercer Cuatrimestre",
+      "subjects": [
+        { "id": "FGC-107", "code": "FGC-107", "name": "Historia Social Dominicana", "credits": 3, "prerequisites": ["FGC-102"] },
+        { "id": "FGC-108", "code": "FGC-108", "name": "Inglés I", "credits": 3, "prerequisites": ["FGC-102"] },
+        { "id": "DMF-209", "code": "DMF-209", "name": "Física I", "credits": 4, "prerequisites": ["FGC-105"] },
+        { "id": "INF-221", "code": "INF-221", "name": "Introducción a la Programación", "credits": 3, "prerequisites": ["FGC-106"] },
+        { "id": "MTI-200", "code": "MTI-200", "name": "Matemática II", "credits": 4, "prerequisites": ["FGC-105"] }
+      ]
+    },
+    {
+      "period_number": 4,
+      "name": "Cuarto Cuatrimestre",
+      "subjects": [
+        { "id": "FGC-109", "code": "FGC-109", "name": "Filosofía", "credits": 2, "prerequisites": ["FGC-102"] },
+        { "id": "FGC-110", "code": "FGC-110", "name": "Desarrollo Sostenible y Gestión de Riesgos", "credits": 2, "prerequisites": ["FGC-102"] },
+        { "id": "MTI-300", "code": "MTI-300", "name": "Matemática III", "credits": 4, "prerequisites": ["MTI-200"] },
+        { "id": "DMF-210", "code": "DMF-210", "name": "Física II", "credits": 4, "prerequisites": ["DMF-209"] }
+      ]
+    },
+    {
+      "period_number": 5,
+      "name": "Quinto Cuatrimestre",
+      "subjects": [
+        { "id": "MAT-241", "code": "MAT-241", "name": "Estadística I", "credits": 3, "prerequisites": ["FGC-105"] },
+        { "id": "QUI-400", "code": "QUI-400", "name": "Química I", "credits": 3, "prerequisites": ["FGC-105"] },
+        { "id": "INF-215", "code": "INF-215", "name": "Ingeniería Económica", "credits": 3, "prerequisites": ["MTI-200"] },
+        { "id": "ING-103", "code": "ING-103", "name": "Cálculo Integral", "credits": 4, "prerequisites": ["MTI-300"] }
+      ]
+    },
+    {
+      "period_number": 6,
+      "name": "Sexto Cuatrimestre",
+      "subjects": [
+        { "id": "MAT-242", "code": "MAT-242", "name": "Estadística II", "credits": 3, "prerequisites": ["MAT-241"] },
+        { "id": "ING-105", "code": "ING-105", "name": "Taller de Mecánica de Hardware", "credits": 3, "prerequisites": ["FGC-106"] },
+        { "id": "ING-104", "code": "ING-104", "name": "Cálculo Vectorial", "credits": 4, "prerequisites": ["ING-103"] },
+        { "id": "INF-222", "code": "INF-222", "name": "Sistema Operativo I", "credits": 3, "prerequisites": ["FGC-106"] },
+        { "id": "ING-102", "code": "ING-102", "name": "Ciencia e Ingeniería de Materiales", "credits": 4, "prerequisites": ["QUI-400"] }
+      ]
+    },
+    {
+      "period_number": 7,
+      "name": "Séptimo Cuatrimestre",
+      "subjects": [
+        { "id": "TIC-408", "code": "TIC-408", "name": "Seguridad de la Información", "credits": 3, "prerequisites": ["FGC-106"] },
+        { "id": "ISW-301", "code": "ISW-301", "name": "Taller de Programación I", "credits": 5, "prerequisites": ["INF-221"] },
+        { "id": "INF-437", "code": "INF-437", "name": "Redes Informáticas", "credits": 3, "prerequisites": ["INF-222"] },
+        { "id": "ISW-311", "code": "ISW-311", "name": "Análisis y Diseño de Sistemas", "credits": 4, "prerequisites": ["INF-221"] }
+      ]
+    },
+    {
+      "period_number": 8,
+      "name": "Octavo Cuatrimestre",
+      "subjects": [
+        { "id": "ISW-221", "code": "ISW-221", "name": "Estructura de Datos", "credits": 4, "prerequisites": ["ISW-301"] },
+        { "id": "TIC-402", "code": "TIC-402", "name": "Ética en Tecnología", "credits": 2, "prerequisites": ["FGC-110"] },
+        { "id": "ISW-404", "code": "ISW-404", "name": "Electiva I", "credits": 3, "prerequisites": ["7MO. CUAT."] },
+        { "id": "ISW-321", "code": "ISW-321", "name": "Taller de Bases de Datos I", "credits": 4, "prerequisites": ["ISW-311"] }
+      ]
+    },
+    {
+      "period_number": 9,
+      "name": "Noveno Cuatrimestre",
+      "subjects": [
+        { "id": "ISW-302", "code": "ISW-302", "name": "Taller de Programación II", "credits": 5, "prerequisites": ["ISW-301"] },
+        { "id": "ISW-312", "code": "ISW-312", "name": "Ingeniería de Software I", "credits": 4, "prerequisites": ["ISW-301"] },
+        { "id": "ISW-314", "code": "ISW-314", "name": "Ingeniería de Requisitos y Modelado", "credits": 4, "prerequisites": ["ISW-311"] },
+        { "id": "ISW-322", "code": "ISW-322", "name": "Taller de Bases de Datos II", "credits": 4, "prerequisites": ["ISW-321"] },
+        { "id": "ISW-324", "code": "ISW-324", "name": "Sistemas de Información Geográfica", "credits": 3, "prerequisites": ["ISW-321"] }
+      ]
+    },
+    {
+      "period_number": 10,
+      "name": "Décimo Cuatrimestre",
+      "subjects": [
+        { "id": "ISW-313", "code": "ISW-313", "name": "Ingeniería de Software II", "credits": 4, "prerequisites": ["ISW-312"] },
+        { "id": "ISW-303", "code": "ISW-303", "name": "Taller de Programación III", "credits": 5, "prerequisites": ["ISW-302"] },
+        { "id": "ISW-405", "code": "ISW-405", "name": "Electiva II", "credits": 3, "prerequisites": ["9NO. CUAT."] },
+        { "id": "ISW-401", "code": "ISW-401", "name": "Proyecto de Software I", "credits": 5, "prerequisites": ["ISW-312"] },
+        { "id": "ISW-403", "code": "ISW-403", "name": "Pasantía - Práctica de Ingeniería de Software", "credits": 8, "prerequisites": ["ISW-302"] }
+      ]
+    },
+    {
+      "period_number": 11,
+      "name": "Undécimo Cuatrimestre",
+      "subjects": [
+        { "id": "ISW-304", "code": "ISW-304", "name": "Taller de Programación IV", "credits": 5, "prerequisites": ["ISW-303"] },
+        { "id": "ISW-305", "code": "ISW-305", "name": "Diseño y Construcción de Interfaces", "credits": 4, "prerequisites": ["ISW-302"] },
+        { "id": "ISW-402", "code": "ISW-402", "name": "Proyecto de Software II", "credits": 5, "prerequisites": ["ISW-401"] },
+        { "id": "FGC-111", "code": "FGC-111", "name": "Seminario de Grado", "credits": 3, "prerequisites": ["FGC-103"] }
+      ]
+    },
+    {
+      "period_number": 12,
+      "name": "Duodécimo Cuatrimestre",
+      "subjects": [
+        { "id": "ISW-323", "code": "ISW-323", "name": "Taller de Base de Datos III", "credits": 4, "prerequisites": ["ISW-322"] },
+        { "id": "ISW-400", "code": "ISW-400", "name": "Inteligencia Artificial", "credits": 4, "prerequisites": ["ISW-303"] },
+        { "id": "ISW-600", "code": "ISW-600", "name": "Proyecto Integrador de Software: Trabajo de Grado", "credits": 6, "prerequisites": ["ALL"] }
+      ]
+    }
+  ]
+}

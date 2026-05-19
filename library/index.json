@@ -1,0 +1,81 @@
+[
+  {
+    "id": "uapa-soft-2018",
+    "institution": "UAPA",
+    "degree_type": "Grado",
+    "career_name": "Ingeniería en Software",
+    "path": "data/uapa/grado/ingenieria_de_software.json", 
+    "last_update": "2024-01-20"
+  },
+  {
+    "id": "uasd-quim-2011",
+    "institution": "UASD",
+    "degree_type": "Grado",
+    "career_name": "Licenciatura en Química",
+    "path": "data/uasd/grado/licenciatura_en_quimica.json",
+    "last_update": "2023-11-15"
+  },
+  {
+    "id": "uasd-ing-quim-2014",
+    "institution": "UASD",
+    "degree_type": "Grado",
+    "career_name": "Ingeniería Química",
+    "path": "data/uasd/grado/ingenieria-quimica.json",
+    "last_update": "2024-05-22"
+  },
+  {
+  "id": "uasd-imag-000014",
+  "institution": "UASD",
+  "degree_type": "Grado",
+  "career_name": "Licenciatura en Imagenologia",
+  "path": "data/uasd/grado/imagenologia.json",
+  "last_update": "2026-02-05"
+},
+{
+  "id": "udoym-merc-2023",
+  "institution": "O&M",
+  "degree_type": "Grado",
+  "career_name": "Licenciatura en Mercadotecnia",
+  "path": "data/udoym/grado/mercadotecnia.json",
+  "last_update": "2024-05-22"
+},
+{
+  "id": "uasd-civil-000012",
+  "institution": "UASD",
+  "degree_type": "Grado",
+  "career_name": "Ingeniería Civil",
+  "path": "data/uasd/grado/ingenieria-civil.json",
+  "last_update": "2026-02-05"
+},
+{
+  "id": "itla-tds-2019",
+  "institution": "ITLA",
+  "degree_type": "Técnico Superior",
+  "career_name": "Tecnólogo en Desarrollo de Software",
+  "path": "data/itla/tecnico/desarrollo-software.json",
+  "last_update": "2026-02-06"
+},
+{
+  "id": "unicaribe-ciber-2024",
+  "institution": "UNICARIBE",
+  "degree_type": "Grado",
+  "career_name": "Ingeniería en Ciberseguridad",
+  "path": "data/unicaribe/grado/ciberseguridad.json",
+  "last_update": "2024-11-20"
+},
+{
+  "id": "unicaribe-soft-2024",
+  "institution": "UNICARIBE",
+  "degree_type": "Grado",
+  "career_name": "Ingeniería de Software",
+  "path": "data/unicaribe/grado/software.json",
+  "last_update": "2024-11-20"
+}
+  
+]
+
+
+
+
+
+
