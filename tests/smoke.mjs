@@ -61,6 +61,11 @@ for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 's
 assert.match(html, /id="stat-gpa">N\/A/);
 assert.match(html, /id="stat-global-letter">N\/A/);
 assert.match(html, /id="stat-global-gpa-points">N\/A/);
+assert.ok(html.includes('<meta name="referrer" content="no-referrer">'));
+assert.ok(html.includes('http-equiv="Permissions-Policy"'));
+assert.ok(html.includes('http-equiv="Content-Security-Policy"'));
+assert.ok(html.includes("worker-src 'self'"));
+assert.ok(html.includes('https://cdn.tailwindcss.com'));
 assert.ok(html.includes('id="mobile-academic-hub"'));
 assert.ok(html.includes('Hoy en tu carrera'));
 assert.ok(html.includes('id="mobile-letter"'));
