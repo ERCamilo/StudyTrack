@@ -704,7 +704,7 @@
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     <span id="conflict-message"></span>
                 </div>
-                <button onclick="saveScheduleBlock()"
+                <button id="schedule-save-btn" onclick="saveScheduleBlock()"
                     class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl transition-all">
                     <i class="fas fa-plus mr-2"></i> Agregar al Horario
                 </button>
@@ -1560,6 +1560,16 @@
         function findSubjectLocation(id) { if (!currentCurriculum) return null; for (let i = 0; i < currentCurriculum.periods.length; i++) { const s = currentCurriculum.periods[i].subjects.find(s => s.id === id); if (s) return { subject: s, period: currentCurriculum.periods[i], periodIndex: i }; } return null; }
         function reRenderSubjectCardDOM(s, pn) { const el = document.getElementById(`subject-card-${s.id}`); if (el) el.outerHTML = renderSubjectCardString(s, pn); }
 
+        function createPeriodBadge(icon, text, marginClass) {
+            const badge = document.createElement('span');
+            badge.className = `badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ${marginClass}`;
+            const badgeIcon = document.createElement('i');
+            badgeIcon.className = `fas fa-${icon} mr-1 text-slate-400`;
+            badge.appendChild(badgeIcon);
+            badge.appendChild(document.createTextNode(text));
+            return badge;
+        }
+
         function updatePeriodHeaderDOM(i) {
             const el = document.getElementById(`period-header-stats-${i}`);
             if (el) {
@@ -1581,8 +1591,8 @@
                 const avg = calculatePeriodAverage(p);
                 const gpa4 = calculatePeriodGPA4(p);
 
-                if (avg) titleContainer.insertAdjacentHTML('beforeend', `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-2"><i class="fas fa-chart-line mr-1 text-slate-400"></i>${avg}</span>`);
-                if (gpa4) titleContainer.insertAdjacentHTML('beforeend', `<span class="badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ml-1"><i class="fas fa-star mr-1 text-slate-400"></i>${gpa4}</span>`);
+                if (avg) titleContainer.appendChild(createPeriodBadge('chart-line', avg, 'ml-2'));
+                if (gpa4) titleContainer.appendChild(createPeriodBadge('star', gpa4, 'ml-1'));
             }
             // Update Badge Color
             const badge = document.querySelector(`div[onclick="togglePeriod(${i})"] .shadow-lg`);
@@ -1809,6 +1819,30 @@
 
         function getSubjectColor(id, idx) { return StudyTrackSchedule.getSubjectColor(id, idx); }
 
+        function setIconButtonContent(button, iconClass, text) {
+            button.replaceChildren();
+            const icon = document.createElement('i');
+            icon.className = `${iconClass} mr-2`;
+            button.append(icon, document.createTextNode(text));
+        }
+
+        function setScheduleRoomDetails(room) {
+            const roomEl = document.getElementById('details-room');
+            roomEl.replaceChildren();
+            if (!room) {
+                const empty = document.createElement('span');
+                empty.className = 'italic text-slate-400';
+                empty.textContent = 'Sin aula asignada';
+                roomEl.appendChild(empty);
+                return;
+            }
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-map-marker-alt text-red-500';
+            const text = document.createElement('span');
+            text.textContent = room;
+            roomEl.append(icon, document.createTextNode(' '), text);
+        }
+
         function switchView(view) { currentView = view; const subjectsView = document.querySelector('main:not(#schedule-view)'); const scheduleView = document.getElementById('schedule-view'); if (view === 'subjects') { subjectsView.classList.remove('hidden'); scheduleView.classList.add('hidden'); setActiveMobileNav('nav-subjects'); } else { subjectsView.classList.add('hidden'); scheduleView.classList.remove('hidden'); setActiveMobileNav('nav-schedule'); renderScheduleView(); } }
 
         function showMobileProgress() {
@@ -1859,11 +1893,11 @@
             grid.innerHTML = StudyTrackSchedule.renderWeeklyScheduleHTML(allBlocks, { escapeHtml, escapeJsString });
         }
 
-        function openScheduleModal(subjectId, subjectName, blockToEdit = null) { currentEditingBlock = blockToEdit ? { subjectId, blockToEdit } : null; document.getElementById('schedule-subject-id').value = subjectId; document.getElementById('schedule-subject-name').textContent = subjectName; if (blockToEdit) { document.getElementById('schedule-day').value = blockToEdit.day; document.getElementById('schedule-start').value = blockToEdit.startTime; document.getElementById('schedule-end').value = blockToEdit.endTime; document.getElementById('schedule-room').value = blockToEdit.room || ''; document.querySelector('#schedule-modal h2').innerText = 'Editar Horario'; document.querySelector('#schedule-modal button[onclick="saveScheduleBlock()"]').innerHTML = '<i class="fas fa-save mr-2"></i> Guardar Cambios'; } else { document.getElementById('schedule-day').value = 'lunes'; document.getElementById('schedule-start').value = '08:00'; document.getElementById('schedule-end').value = '10:00'; document.getElementById('schedule-room').value = ''; document.querySelector('#schedule-modal h2').innerText = 'Agregar Horario'; document.querySelector('#schedule-modal button[onclick="saveScheduleBlock()"]').innerHTML = '<i class="fas fa-plus mr-2"></i> Agregar al Horario'; } document.getElementById('schedule-conflict-alert').classList.add('hidden'); document.getElementById('schedule-modal').classList.remove('hidden'); }
+        function openScheduleModal(subjectId, subjectName, blockToEdit = null) { currentEditingBlock = blockToEdit ? { subjectId, blockToEdit } : null; const saveButton = document.getElementById('schedule-save-btn'); document.getElementById('schedule-subject-id').value = subjectId; document.getElementById('schedule-subject-name').textContent = subjectName; if (blockToEdit) { document.getElementById('schedule-day').value = blockToEdit.day; document.getElementById('schedule-start').value = blockToEdit.startTime; document.getElementById('schedule-end').value = blockToEdit.endTime; document.getElementById('schedule-room').value = blockToEdit.room || ''; document.querySelector('#schedule-modal h2').innerText = 'Editar Horario'; setIconButtonContent(saveButton, 'fas fa-save', 'Guardar Cambios'); } else { document.getElementById('schedule-day').value = 'lunes'; document.getElementById('schedule-start').value = '08:00'; document.getElementById('schedule-end').value = '10:00'; document.getElementById('schedule-room').value = ''; document.querySelector('#schedule-modal h2').innerText = 'Agregar Horario'; setIconButtonContent(saveButton, 'fas fa-plus', 'Agregar al Horario'); } document.getElementById('schedule-conflict-alert').classList.add('hidden'); document.getElementById('schedule-modal').classList.remove('hidden'); }
 
         function closeScheduleModal() { document.getElementById('schedule-modal').classList.add('hidden'); currentEditingBlock = null; }
 
-        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; document.getElementById('details-room').innerHTML = block.room ? `<i class="fas fa-map-marker-alt text-red-500"></i> <span>${escapeHtml(block.room)}</span>` : '<span class="italic text-slate-400">Sin aula asignada</span>'; const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = () => { if (confirm('¿Eliminar este horario?')) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
+        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; setScheduleRoomDetails(block.room); const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = () => { if (confirm('¿Eliminar este horario?')) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
 
         function closeDetailsModal() { const modal = document.getElementById('schedule-details-modal'); modal.classList.add('opacity-0'); document.getElementById('details-modal-content').classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 200); }
 
