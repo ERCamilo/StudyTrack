@@ -8,8 +8,11 @@
     <meta name="theme-color" content="#1E1B4B" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">
+    <link rel="apple-touch-icon" href="icons/studytrack-icon.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="StudyTrack">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>StudyTrack Pro - Tu Copiloto Académico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
@@ -1645,6 +1648,11 @@
         function updateFilterCounts() { if (!currentCurriculum) return; let all = 0, enrolled = 0, completed = 0, pending = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { all++; const status = userProgress[s.id]?.status || 'pending'; if (status === 'enrolled') enrolled++; else if (status === 'approved') completed++; else pending++; })); document.getElementById('count-all').textContent = all; document.getElementById('count-enrolled').textContent = enrolled; document.getElementById('count-completed').textContent = completed; document.getElementById('count-pending').textContent = pending; }
         function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+        function registerServiceWorker() {
+            if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;
+            navigator.serviceWorker.register('./sw.js').catch(() => { });
+        }
         function showPrerequisites(id) { const loc = findSubjectLocation(id); if (loc) showToast(`Requisitos: ${formatPrerequisiteString(loc.subject.prerequisites)}`, 'info'); }
 
         function getGradeLabel(score) {
@@ -1932,6 +1940,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', initApp);
+        window.addEventListener('load', registerServiceWorker);
         document.getElementById('settings-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });
         window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); if (window.scrollY > 300) { btn.classList.remove('opacity-0', 'pointer-events-none'); btn.classList.add('opacity-100'); } else { btn.classList.add('opacity-0', 'pointer-events-none'); btn.classList.remove('opacity-100'); } });
     </script>

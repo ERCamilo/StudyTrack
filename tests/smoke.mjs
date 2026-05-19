@@ -36,7 +36,20 @@ assert.equal(gradePointFunctions.length, 1, 'Expected exactly one getGradePoints
 assert.equal((html.match(/function\s+renderTableSchedule\s*\(/g) || []).length, 1, 'Expected one renderTableSchedule function');
 assert.equal((html.match(/function\s+renderWeeklySchedule\s*\(/g) || []).length, 1, 'Expected one renderWeeklySchedule function');
 
-JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+assert.equal(manifest.display, 'standalone');
+assert.equal(manifest.scope, './');
+assert.equal(manifest.start_url, './');
+assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 2, 'Manifest should declare installable icons');
+for (const icon of manifest.icons) {
+  assert.ok(fs.existsSync(icon.src), `Missing manifest icon: ${icon.src}`);
+}
+const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+new Function(serviceWorker);
+assert.ok(serviceWorker.includes('CACHE_NAME'));
+assert.ok(serviceWorker.includes('./index.html'));
+assert.ok(serviceWorker.includes('./src/progress.js'));
+assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
 
 for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
@@ -49,6 +62,11 @@ assert.ok(html.includes('id="mobile-academic-hub"'));
 assert.ok(html.includes('Hoy en tu carrera'));
 assert.ok(html.includes('id="mobile-letter"'));
 assert.ok(html.includes('id="mobile-gpa-points"'));
+assert.ok(html.includes('<link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">'));
+assert.ok(html.includes('<link rel="apple-touch-icon" href="icons/studytrack-icon.svg">'));
+assert.ok(html.includes('function registerServiceWorker()'));
+assert.ok(html.includes("window.addEventListener('load', registerServiceWorker);"));
+assert.ok(html.includes("navigator.serviceWorker.register('./sw.js')"));
 assert.ok(html.includes('id="desktop-summary-cards"'));
 assert.ok(html.includes('class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto'), 'Desktop summary cards must be hidden on mobile');
 assert.ok(html.includes('id="requirements-card"'));
