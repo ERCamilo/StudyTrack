@@ -60,6 +60,11 @@ assert.ok(html.includes('id="nav-more"'));
 assert.ok(html.includes('function setActiveMobileNav(activeId)'));
 assert.ok(html.includes('function showMobileProgress()'));
 assert.ok(html.includes('function openMobileMore()'));
+assert.ok(html.includes('id="settings-quick-nav"'), 'Settings modal should expose quick navigation on mobile');
+for (const id of ['settings-section-career', 'settings-section-preferences', 'settings-section-requirements', 'settings-section-grades', 'settings-section-data']) {
+  assert.ok(html.includes(`id="${id}"`), `Missing settings section ${id}`);
+}
+assert.ok(html.includes('function scrollSettingsSection(sectionId)'));
 assert.ok(html.includes('const statusLabel ='));
 assert.ok(html.includes('subject-card-mobile'));
 assert.ok(html.includes('mobile-subject-actions'));

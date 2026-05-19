@@ -812,9 +812,19 @@
                         class="fas fa-times"></i></button>
             </div>
 
-            <div class="p-6 space-y-8 overflow-y-auto flex-1">
+            <div class="px-4 sm:px-6 pt-3 pb-0 border-b border-slate-100 dark:border-slate-800 overflow-x-auto shrink-0">
+                <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
+                    <button onclick="scrollSettingsSection('settings-section-career')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Carrera</button>
+                    <button onclick="scrollSettingsSection('settings-section-preferences')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Preferencias</button>
+                    <button onclick="scrollSettingsSection('settings-section-requirements')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Requisitos</button>
+                    <button onclick="scrollSettingsSection('settings-section-grades')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Escala</button>
+                    <button onclick="scrollSettingsSection('settings-section-data')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Datos</button>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-6 space-y-6 sm:space-y-8 overflow-y-auto flex-1 scroll-smooth">
                 <!-- LIBRARY SECTION (DROPDOWNS) -->
-                <div>
+                <section id="settings-section-career" class="settings-section scroll-mt-4">
                     <div class="flex items-center justify-between mb-3">
                         <h3
                             class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 flex items-center gap-2">
@@ -874,10 +884,10 @@
                                 class="mt-2 w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold text-xs">Cargar</button>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- REQUIREMENTS & DATA SECTIONS (Same as before) -->
-                <div>
+                <section id="settings-section-requirements" class="settings-section scroll-mt-4">
                     <h3
                         class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
                         <i class="fas fa-list-check"></i> Requisitos
@@ -896,8 +906,8 @@
                             class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary-500 hover:border-primary-200 font-bold text-sm flex items-center justify-center gap-2"><i
                                 class="fas fa-plus"></i> Agregar Requisito</button>
                     </div>
-                </div>
-                <div>
+                </section>
+                <section id="settings-section-data" class="settings-section scroll-mt-4">
                     <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
                             class="fas fa-shield-halved"></i> Datos</h3>
                     <div class="space-y-2">
@@ -911,10 +921,10 @@
                             class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600"><i
                                 class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
                     </div>
-                </div>
+                </section>
 
                 <!-- PREFERENCES SECTION -->
-                <div>
+                <section id="settings-section-preferences" class="settings-section scroll-mt-4">
                     <h3
                         class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
                         <i class="fas fa-sliders"></i> Preferencias
@@ -945,10 +955,10 @@
                                 class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- GRADE SCALE SECTION -->
-                <div class="mt-6">
+                <section id="settings-section-grades" class="settings-section scroll-mt-4">
                     <h3
                         class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
                         <i class="fas fa-medal"></i> Escala de Calificaciones
@@ -963,7 +973,7 @@
                             <i class="fas fa-plus mr-1"></i> Agregar Rango
                         </button>
                     </div>
-                </div>
+                </section>
 
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
@@ -1691,6 +1701,7 @@
         function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : 'nav-subjects'; }
         function setActiveMobileNav(activeId) { document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId)); }
         function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
+        function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
