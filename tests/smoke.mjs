@@ -128,6 +128,10 @@ assert.ok(html.includes("{ baseUrl: './library', indexUrl: './library/index.json
 assert.ok(html.includes('function fetchRemoteLibraryIndex()'));
 assert.ok(html.includes('new AbortController()'), 'Remote library sources should timeout before falling back');
 assert.ok(html.includes('controller.abort()'));
+assert.ok(!html.includes('const LOCAL_LIBRARY'), 'Careers should come from the library, not hardcoded local entries');
+assert.ok(!html.includes("source: 'local'"), 'Hardcoded local career source should not exist');
+assert.ok(!html.includes('getUAPAData'));
+assert.ok(!html.includes('getUASDQuimicaData'));
 assert.ok(html.includes('id="schedule-summary"'), 'Schedule view should expose a mobile summary');
 assert.ok(html.includes('id="schedule-summary-enrolled"'));
 assert.ok(html.includes('id="schedule-summary-scheduled"'));

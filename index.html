@@ -1036,12 +1036,7 @@
             })()
         };
 
-        const LOCAL_LIBRARY = [
-            { id: 'uapa-soft', institution: "UAPA", degree_type: "Grado", career_name: "Ingeniería en Software", source: 'local', path: null },
-            { id: 'uasd-quim', institution: "UASD", degree_type: "Grado", career_name: "Licenciatura en Química", source: 'local', path: null }
-        ];
-
-        let libraryData = [...LOCAL_LIBRARY];
+        let libraryData = [];
         let currentCurriculum = null;
         let userProgress = {};
         let dependencyGraph = null;
@@ -1168,8 +1163,7 @@
             const cached = StudyTrackStorage.getJson(APP_CONFIG.storageKeys.library_cache, null);
             if (cached) {
                 try {
-                    const remoteItems = cached.filter(i => i.source === 'remote');
-                    libraryData = [...LOCAL_LIBRARY, ...remoteItems];
+                    libraryData = cached.filter(item => item.source === 'remote' && item.fullUrl);
                 } catch (e) { }
             }
         }
@@ -1206,7 +1200,7 @@
                 }));
 
                 StudyTrackStorage.setJson(APP_CONFIG.storageKeys.library_cache, processedRemote);
-                libraryData = [...LOCAL_LIBRARY, ...processedRemote];
+                libraryData = processedRemote;
 
                 // Refresh selectors dynamically
                 setupSelectors('welcome');
@@ -1222,10 +1216,7 @@
         async function loadCareer(id, source, url) {
             let data = null;
             try {
-                if (source === 'local') {
-                    if (id === 'uapa-soft') data = getUAPAData();
-                    else if (id === 'uasd-quim') data = getUASDQuimicaData();
-                } else if (source === 'remote' && url) {
+                if (source === 'remote' && url) {
                     showToast('Descargando carrera...', 'info');
                     const res = await fetch(url);
                     if (!res.ok) throw new Error('Error descarga');
