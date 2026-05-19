@@ -398,6 +398,8 @@ assert.ok(enrolledScheduleHtml.includes('&lt;img src=x onerror=&#39;bad&#39;&gt;
 assert.ok(enrolledScheduleHtml.includes('&lt;M'));
 assert.ok(enrolledScheduleHtml.includes("MAT\\&#39;101"));
 assert.ok(enrolledScheduleHtml.includes("b\\&#39;1"));
+assert.ok(enrolledScheduleHtml.includes('schedule-subject-row'));
+assert.ok(enrolledScheduleHtml.includes('w-full sm:w-auto'));
 assert.ok(!enrolledScheduleHtml.includes(`<img src=x onerror='bad'>`));
 
 const unscheduledSubjectHtml = StudyTrackSchedule.renderEnrolledScheduleHTML(

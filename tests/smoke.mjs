@@ -75,6 +75,11 @@ assert.ok(html.includes('StudyTrackRequirements.renderRequirementsWidgetHTML(cur
 assert.ok(html.includes('StudyTrackRequirements.renderSettingsRequirementsHTML(currentCurriculum.requirements'));
 assert.ok(html.includes('StudyTrackRequirements.addRequirement(currentCurriculum.requirements'));
 assert.ok(html.includes('<script src="./src/schedule.js"></script>'));
+assert.ok(html.includes('id="schedule-summary"'), 'Schedule view should expose a mobile summary');
+assert.ok(html.includes('id="schedule-summary-enrolled"'));
+assert.ok(html.includes('id="schedule-summary-scheduled"'));
+assert.ok(html.includes('id="schedule-summary-pending"'));
+assert.ok(html.includes('function updateScheduleSummary(enrolled)'));
 assert.ok(html.includes('StudyTrackSchedule.collectScheduleBlocks(enrolled, scheduleData);'));
 assert.ok(html.includes('StudyTrackSchedule.renderEnrolledScheduleHTML(enrolled, scheduleData'));
 assert.ok(html.includes('StudyTrackSchedule.renderWeeklyScheduleHTML(allBlocks'));
