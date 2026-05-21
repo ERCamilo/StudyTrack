@@ -52,19 +52,21 @@ assert.ok(serviceWorker.includes('CACHE_NAME'));
 assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));
+assert.ok(serviceWorker.includes('./src/firebase-sync.js'));
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
 assert.ok(serviceWorker.includes("event.request.mode === 'navigate'"), 'Service worker should handle navigations explicitly');
 assert.ok(serviceWorker.indexOf('fetch(event.request)') < serviceWorker.indexOf("caches.match('./index.html')"), 'Navigations should prefer network before cached index');
 assert.ok(serviceWorker.includes('requestUrl.origin !== self.location.origin'), 'Service worker should not intercept GitHub fetches');
 assert.ok(readme.includes('python -m http.server 4173 --bind 127.0.0.1'));
 assert.ok(readme.includes('node tests/smoke.mjs'));
+assert.ok(readme.includes('node tests/firebase-sync.mjs'));
 assert.ok(readme.includes('studytrack.erlin.do'));
 assert.ok(Array.isArray(libraryIndex) && libraryIndex.length > 0, 'Local library mirror should include careers');
 for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/firebase-sync.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -77,6 +79,10 @@ assert.ok(html.includes('http-equiv="Content-Security-Policy"'));
 assert.ok(html.includes("worker-src 'self'"));
 assert.ok(html.includes('https://cdn.tailwindcss.com'));
 assert.ok(html.includes("connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net"), 'CSP must allow remote curriculum fetches');
+assert.ok(html.includes('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js'));
+assert.ok(html.includes('<script src="./src/firebase-sync.js"></script>'));
+assert.ok(html.includes('id="settings-section-cloud"'));
+assert.ok(html.includes('id="auth-header-btn"'));
 assert.ok(html.includes('id="mobile-academic-hub"'));
 assert.ok(html.includes('Hoy en tu carrera'));
 assert.ok(html.includes('id="mobile-letter"'));
@@ -151,6 +157,9 @@ assert.ok(html.includes('function setIconButtonContent(button, iconClass, text)'
 assert.ok(html.includes('function setScheduleRoomDetails(room)'));
 assert.ok(html.includes('setScheduleRoomDetails(block.room)'));
 assert.ok(!html.includes('insertAdjacentHTML'), 'Dynamic badges should be created with DOM APIs');
+assert.ok(!html.includes('text-slate-750'));
+assert.ok(!html.includes('text-slate-550'));
+assert.ok(!html.includes('text-red-650'));
 assert.ok(!/details-room[^;\n]*innerHTML|innerHTML[^;\n]*details-room/.test(html), 'Schedule room details should not use innerHTML');
 assert.ok(html.includes('StudyTrackProgress.normalizeUserProgress(StudyTrackStorage.getJson'));
 assert.ok(html.includes('userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum);'));

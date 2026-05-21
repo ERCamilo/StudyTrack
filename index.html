@@ -7,7 +7,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net; manifest-src 'self'; worker-src 'self';">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
     <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1E1B4B" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
@@ -22,6 +22,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="./src/storage.js"></script>
     <script src="./src/sanitize.js"></script>
     <script src="./src/curriculum.js"></script>
@@ -32,6 +36,8 @@
     <script src="./src/periods.js"></script>
     <script src="./src/requirements.js"></script>
     <script src="./src/schedule.js"></script>
+    <!-- Sync module must load after other modules but before app initialization logic -->
+    <script src="./src/firebase-sync.js"></script>
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }, colors: { primary: { 50: '#EEF2FF', 100: '#E0E7FF', 500: '#6366F1', 600: '#4F46E5', 700: '#4338CA', 900: '#312E81' } } } } }
     </script>
@@ -410,6 +416,12 @@
                     <button onclick="toggleDarkMode()"
                         class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><i
                             id="theme-icon" class="fas fa-moon text-xs sm:text-sm"></i></button>
+                    <!-- Google Account / Sync Button -->
+                    <button id="auth-header-btn" onclick="openGoogleSyncSettings()"
+                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700"
+                        title="Cuenta de Google y Sincronización">
+                        <i id="auth-header-icon" class="fas fa-user text-xs sm:text-sm text-slate-500 dark:text-slate-400"></i>
+                    </button>
                     <button onclick="openSettings()"
                         class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><i
                             class="fas fa-cog text-xs sm:text-sm"></i></button>
@@ -827,6 +839,7 @@
                     <button onclick="scrollSettingsSection('settings-section-requirements')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Requisitos</button>
                     <button onclick="scrollSettingsSection('settings-section-grades')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Escala</button>
                     <button onclick="scrollSettingsSection('settings-section-data')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Datos</button>
+                    <button onclick="scrollSettingsSection('settings-section-cloud')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Nube</button>
                 </div>
             </div>
 
@@ -980,6 +993,91 @@
                             class="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                             <i class="fas fa-plus mr-1"></i> Agregar Rango
                         </button>
+                    </div>
+                </section>
+
+                <!-- CLOUD SYNC SECTION (FIREBASE) -->
+                <section id="settings-section-cloud" class="settings-section scroll-mt-4">
+                    <h3
+                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        <i class="fas fa-cloud"></i> Sincronización en la Nube
+                    </h3>
+                    <div
+                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Resguarda tu progreso académico en la nube de Google. Al iniciar sesión, tus datos se guardarán y sincronizarán automáticamente.
+                        </p>
+
+                        <!-- Firebase Configuration State -->
+                        <div id="firebase-config-setup-box" class="space-y-3 hidden">
+                            <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-400 text-xs">
+                                <i class="fas fa-exclamation-triangle mr-1"></i> Requiere configuración de Firebase. Pega las credenciales del SDK Web de tu proyecto.
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Configuración del SDK de Firebase (JSON/Objeto)</label>
+                                <textarea id="firebase-config-input" rows="5"
+                                    placeholder='{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'
+                                    class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary-500"></textarea>
+                            </div>
+                            <button onclick="saveFirebaseConfig()"
+                                class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs shadow transition-all">
+                                Guardar y Conectar
+                            </button>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500 leading-normal">
+                                <a href="https://console.firebase.google.com/" target="_blank" class="text-primary-500 hover:underline font-bold">1. Crea un proyecto en Firebase Console</a><br>
+                                2. Habilita <strong>Google Sign-In</strong> en Authentication.<br>
+                                3. Habilita <strong>Cloud Firestore</strong> en modo de prueba o producción.<br>
+                                4. Crea una App Web y copia el objeto <code>firebaseConfig</code>.
+                            </div>
+                        </div>
+
+                        <!-- Firebase Active Session State -->
+                        <div id="firebase-session-box" class="space-y-3 hidden">
+                            <!-- User info card -->
+                            <div class="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-105 dark:border-slate-800">
+                                <div id="firebase-user-avatar" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                    <i class="fas fa-user text-slate-400 text-lg"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p id="firebase-user-name" class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">Usuario No Identificado</p>
+                                    <p id="firebase-user-email" class="text-[11px] text-slate-400 dark:text-slate-500 truncate font-medium">correo@gmail.com</p>
+                                </div>
+                            </div>
+
+                            <!-- Sync Status Indicators -->
+                            <div class="flex items-center justify-between text-xs py-1 px-1">
+                                <span class="text-slate-400 font-medium">Estado:</span>
+                                <span id="firebase-sync-status" class="font-bold text-slate-500">No autenticado</span>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button id="firebase-login-btn" onclick="loginWithGoogle()"
+                                    class="flex-1 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.72 5.72 0 0 1-2.48 3.76v3.12h3.99c2.33-2.14 3.54-5.3 3.54-8.73Z"/>
+                                        <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.99-3.12c-1.1.74-2.52 1.18-3.97 1.18-3.05 0-5.63-2.06-6.55-4.83H1.31v3.23A12 12 0 0 0 12 24Z"/>
+                                        <path fill="#FBBC05" d="M5.45 14.32a7.22 7.22 0 0 1 0-4.64V6.45H1.31a12 12 0 0 0 0 11.1l4.14-3.23Z"/>
+                                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43A11.96 11.96 0 0 0 12 0 12 12 0 0 0 1.31 6.45l4.14 3.23c.92-2.77 3.5-4.83 6.55-4.83Z"/>
+                                    </svg>
+                                    Iniciar sesión con Google
+                                </button>
+                                <button id="firebase-sync-now-btn" onclick="forceSyncCloud()"
+                                    class="hidden px-3 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all">
+                                    <i class="fas fa-sync-alt"></i> Sincronizar
+                                </button>
+                                <button id="firebase-logout-btn" onclick="logoutFirebase()"
+                                    class="hidden px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg font-bold text-xs transition-all">
+                                    Cerrar Sesión
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Reset Firebase credentials option -->
+                        <div id="firebase-reset-box" class="hidden text-right border-t border-slate-100 dark:border-slate-800 pt-2">
+                            <button onclick="clearFirebaseConfig()" class="text-[10px] text-red-500 hover:underline font-bold">
+                                <i class="fas fa-trash-alt mr-1"></i> Borrar credenciales de Firebase
+                            </button>
+                        </div>
                     </div>
                 </section>
 

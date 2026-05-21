@@ -23,6 +23,7 @@ Abrir el archivo con `file://` funciona para uso basico, pero las pruebas PWA y 
 ```bash
 node tests/smoke.mjs
 node tests/logic.mjs
+node tests/firebase-sync.mjs
 ```
 
 Las pruebas cubren:
