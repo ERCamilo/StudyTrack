@@ -52,6 +52,7 @@ assert.ok(serviceWorker.includes('CACHE_NAME'));
 assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));
+assert.ok(serviceWorker.includes('./src/insights.js'));
 assert.ok(serviceWorker.includes('./src/firebase-sync.js'));
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
 assert.ok(serviceWorker.includes("event.request.mode === 'navigate'"), 'Service worker should handle navigations explicitly');
@@ -66,7 +67,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/firebase-sync.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/firebase-sync.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -97,7 +98,8 @@ assert.ok(html.includes('class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto'),
 assert.ok(html.includes('id="requirements-card"'));
 assert.ok(html.includes('class="hidden sm:block bg-white'), 'Requirements card must not interrupt mobile subject flow');
 assert.ok(html.includes("updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining });"));
-assert.ok(html.includes('grid grid-cols-4'), 'Mobile bottom navigation should expose four primary actions');
+assert.ok(html.includes('grid grid-cols-5'), 'Mobile bottom navigation should expose five primary actions');
+assert.ok(html.includes('id="nav-home"'));
 assert.ok(html.includes('id="nav-progress"'));
 assert.ok(html.includes('id="nav-more"'));
 assert.ok(html.includes('function setActiveMobileNav(activeId)'));
@@ -124,6 +126,12 @@ assert.ok(html.includes('StudyTrackRequirements.renderSettingsRequirementsHTML(c
 assert.ok(html.includes('StudyTrackRequirements.addRequirement(currentCurriculum.requirements'));
 assert.ok(html.includes('<script src="./src/schedule.js"></script>'));
 assert.ok(html.includes('<script src="./src/academics.js"></script>'));
+assert.ok(html.includes('<script src="./src/insights.js"></script>'));
+assert.ok(html.includes('id="home-view"'));
+assert.ok(html.includes('id="subjects-view"'));
+assert.ok(html.includes('StudyTrackInsights.buildHomeInsights'));
+assert.ok(html.includes('function renderHomeView'));
+assert.ok(html.includes('function handleHomeAction'));
 assert.ok(html.includes('StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress'));
 assert.ok(html.includes('StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress'));
 assert.ok(html.includes('StudyTrackAcademics.calculatePeriodAverage(p, userProgress'));

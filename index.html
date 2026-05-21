@@ -36,6 +36,7 @@
     <script src="./src/periods.js"></script>
     <script src="./src/requirements.js"></script>
     <script src="./src/schedule.js"></script>
+    <script src="./src/insights.js"></script>
     <!-- Sync module must load after other modules but before app initialization logic -->
     <script src="./src/firebase-sync.js"></script>
     <script>
@@ -477,8 +478,100 @@
         </div>
     </header>
 
-    <!-- MAIN -->
-    <main class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 space-y-4 sm:space-y-6">
+    <!-- HOME VIEW -->
+    <main id="home-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 space-y-4 sm:space-y-6">
+        <section class="grid gap-3 sm:grid-cols-[1.15fr_0.85fr] sm:gap-4">
+            <div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-5">
+                <div class="flex items-center gap-4">
+                    <div id="home-progress-ring" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-2 shrink-0"
+                        style="background: conic-gradient(#10b981 0deg, #e2e8f0 0deg);">
+                        <div class="w-full h-full rounded-full bg-white dark:bg-slate-800 flex flex-col items-center justify-center">
+                            <div id="home-progress-value" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">0%</div>
+                            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">avance</div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="home-greeting" class="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300">Listo para avanzar</p>
+                        <p id="home-context" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Tu ruta académica actualizada.</p>
+                        <div class="grid grid-cols-3 gap-2 mt-4">
+                            <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-2 text-center">
+                                <div id="home-earned-credits" class="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-300">0</div>
+                                <div class="text-[10px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
+                            </div>
+                            <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-2 text-center">
+                                <div id="home-index" class="text-base sm:text-lg font-black text-blue-700 dark:text-blue-300">N/A</div>
+                                <div class="text-[10px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
+                            </div>
+                            <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 px-2 py-2 text-center">
+                                <div id="home-remaining" class="text-base sm:text-lg font-black text-slate-700 dark:text-slate-200">0</div>
+                                <div class="text-[10px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="home-next-action" onclick="handleHomeAction('subjects')"
+                class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-5 text-left hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                <div class="flex items-center gap-3">
+                    <div id="home-action-icon" class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500">Próximo paso</div>
+                        <div id="home-action-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white">Tu ruta está al día</div>
+                        <div id="home-action-detail" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">No hay acciones urgentes.</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-300 dark:text-slate-600"></i>
+                </div>
+            </button>
+        </section>
+
+        <section class="grid gap-3 sm:grid-cols-3 sm:gap-4">
+            <button onclick="handleHomeAction('enrolled')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="text-xs font-black text-slate-500 dark:text-slate-400">Materias inscritas</div>
+                    <i class="fas fa-book-open text-emerald-500"></i>
+                </div>
+                <div id="home-enrolled-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0</div>
+            </button>
+            <button onclick="switchView('schedule')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="text-xs font-black text-slate-500 dark:text-slate-400">Horario semanal</div>
+                    <i class="fas fa-calendar-week text-blue-500"></i>
+                </div>
+                <div id="home-schedule-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0/0</div>
+            </button>
+            <button onclick="handleHomeAction('pending')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="text-xs font-black text-slate-500 dark:text-slate-400">Disponibles</div>
+                    <i class="fas fa-route text-amber-500"></i>
+                </div>
+                <div id="home-available-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0</div>
+            </button>
+        </section>
+
+        <section class="grid gap-3 lg:grid-cols-[1fr_1fr] lg:gap-4">
+            <div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
+                    <button onclick="handleHomeAction('pending')" class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver materias</button>
+                </div>
+                <div id="home-recommended-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-calendar-check text-blue-500"></i> En curso y pendientes</h3>
+                    <button onclick="switchView('schedule')" class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Horario</button>
+                </div>
+                <div id="home-enrolled-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- SUBJECTS VIEW -->
+    <main id="subjects-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 space-y-4 sm:space-y-6 hidden">
         <section id="mobile-academic-hub" class="sm:hidden space-y-3">
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3">
                 <div class="flex items-center gap-3">
@@ -794,9 +887,14 @@
     <!-- BOTTOM NAVIGATION BAR -->
     <nav aria-label="Navegación principal móvil"
         class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-bottom">
-        <div class="max-w-lg mx-auto grid grid-cols-4 items-center gap-1 py-2 px-3">
-            <button onclick="switchView('subjects')" id="nav-subjects"
+        <div class="max-w-lg mx-auto grid grid-cols-5 items-center gap-1 py-2 px-3">
+            <button onclick="switchView('home')" id="nav-home"
                 class="nav-tab active flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
+                <i class="fas fa-house text-lg"></i>
+                <span class="text-[10px] font-bold">Inicio</span>
+            </button>
+            <button onclick="switchView('subjects')" id="nav-subjects"
+                class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-book text-lg"></i>
                 <span class="text-[10px] font-bold">Materias</span>
             </button>
@@ -1604,6 +1702,7 @@
             document.getElementById('stat-total-subjects').textContent = total;
             document.getElementById('stat-remaining-text').textContent = remaining + ' faltantes';
             updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining });
+            renderHomeView(summary);
             updateFilterCounts();
         }
 
@@ -1643,6 +1742,92 @@
             document.getElementById('mobile-available-text').textContent = `Puedes inscribir ${formatCountLabel(available, 'materia', 'materias')}`;
             document.getElementById('mobile-blocked-count').textContent = blocked;
             document.getElementById('mobile-blocked-text').textContent = formatCountLabel(blocked, 'bloqueo por requisitos', 'bloqueos por requisitos');
+        }
+
+        function getHomeToneClasses(tone) {
+            const tones = {
+                amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300',
+                blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300',
+                emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300',
+                slate: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+            };
+            return tones[tone] || tones.emerald;
+        }
+
+        function renderHomeSubjectRow(subject, meta = '') {
+            const safeName = escapeHtml(subject.name || 'Materia');
+            const safeCode = escapeHtml(subject.code || subject.id || '');
+            const safeMeta = escapeHtml(meta || `${subject.credits || 0} créditos`);
+            return `<button onclick="switchView('subjects')" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div><div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeMeta}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
+        }
+
+        function renderHomeEmpty(icon, title, detail) {
+            return `<div class="px-4 py-6 text-center text-slate-400 dark:text-slate-500"><i class="${icon} text-2xl mb-2 opacity-60"></i><div class="text-sm font-bold text-slate-500 dark:text-slate-400">${escapeHtml(title)}</div><div class="text-xs mt-1">${escapeHtml(detail)}</div></div>`;
+        }
+
+        function renderHomeView(summary = null) {
+            if (!currentCurriculum || !document.getElementById('home-view')) return;
+            const academic = summary || StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress, { getGradePoints, getGradeLabel });
+            const insights = StudyTrackInsights.buildHomeInsights({
+                curriculum: currentCurriculum,
+                progress: userProgress,
+                dependencyGraph,
+                scheduleData,
+                canTakeSubject: (subject) => checkPrerequisites(subject.prerequisites)
+            });
+
+            const roundedProgress = Math.round(academic.progress);
+            const progressDegrees = Math.round(academic.progress * 3.6);
+            const ring = document.getElementById('home-progress-ring');
+            if (ring) ring.style.background = `conic-gradient(#10b981 ${progressDegrees}deg, #e2e8f0 ${progressDegrees}deg)`;
+
+            document.getElementById('home-progress-value').textContent = `${roundedProgress}%`;
+            document.getElementById('home-greeting').textContent = roundedProgress >= 70 ? 'Vas muy bien' : roundedProgress >= 35 ? 'Buen avance' : 'Listo para avanzar';
+            document.getElementById('home-context').textContent = academic.remaining > 0 ? `Te quedan ${formatCountLabel(academic.remaining, 'materia', 'materias')} para completar la ruta.` : 'Tu plan académico está completo.';
+            document.getElementById('home-earned-credits').textContent = academic.earned;
+            document.getElementById('home-index').textContent = academic.hasGrades ? academic.globalAvg.toFixed(1) : 'N/A';
+            document.getElementById('home-remaining').textContent = academic.remaining;
+            document.getElementById('home-enrolled-count').textContent = insights.enrolled.length;
+            document.getElementById('home-schedule-count').textContent = `${insights.scheduleSummary.scheduled}/${insights.scheduleSummary.enrolled}`;
+            document.getElementById('home-available-count').textContent = insights.available.length;
+
+            const action = insights.nextAction;
+            const actionButton = document.getElementById('home-next-action');
+            actionButton.onclick = () => handleHomeAction(action.target);
+            const actionIcon = document.getElementById('home-action-icon');
+            actionIcon.className = `w-11 h-11 rounded-xl ${getHomeToneClasses(action.tone)} flex items-center justify-center shrink-0`;
+            actionIcon.replaceChildren();
+            const actionIconGlyph = document.createElement('i');
+            actionIconGlyph.className = action.icon;
+            actionIcon.appendChild(actionIconGlyph);
+            document.getElementById('home-action-title').textContent = action.title;
+            document.getElementById('home-action-detail').textContent = action.detail;
+
+            const recommended = insights.recommended.slice(0, 4);
+            document.getElementById('home-recommended-list').innerHTML = recommended.length
+                ? recommended.map((subject) => renderHomeSubjectRow(subject, `${subject.credits || 0} créditos · desbloquea ${subject.unlocks || 0}`)).join('')
+                : renderHomeEmpty('fas fa-check-circle', 'Sin recomendaciones pendientes', 'Cuando haya materias disponibles aparecerán aquí.');
+
+            const enrolled = insights.enrolled.slice(0, 4);
+            const missing = insights.missingGrades.slice(0, 2);
+            const enrolledHtml = enrolled.map((subject) => {
+                const blocks = scheduleData?.[subject.id] || [];
+                const meta = blocks.length ? `${blocks.length} bloque${blocks.length === 1 ? '' : 's'} de horario` : 'Falta agregar horario';
+                return renderHomeSubjectRow(subject, meta);
+            }).join('');
+            const missingHtml = missing.map((subject) => renderHomeSubjectRow(subject, 'Falta registrar nota')).join('');
+            document.getElementById('home-enrolled-list').innerHTML = enrolledHtml || missingHtml
+                ? enrolledHtml + missingHtml
+                : renderHomeEmpty('fas fa-calendar-plus', 'Nada en curso todavía', 'Inscribe materias para construir tu semana.');
+        }
+
+        function handleHomeAction(target) {
+            if (target === 'schedule') {
+                switchView('schedule');
+                return;
+            }
+            switchView('subjects');
+            if (['all', 'enrolled', 'completed', 'pending'].includes(target)) setFilter(target);
         }
         function findSubjectLocation(id) { if (!currentCurriculum) return null; for (let i = 0; i < currentCurriculum.periods.length; i++) { const s = currentCurriculum.periods[i].subjects.find(s => s.id === id); if (s) return { subject: s, period: currentCurriculum.periods[i], periodIndex: i }; } return null; }
         function reRenderSubjectCardDOM(s, pn) { const el = document.getElementById(`subject-card-${s.id}`); if (el) el.outerHTML = renderSubjectCardString(s, pn); }
@@ -1803,7 +1988,7 @@
             }).join('');
         }
 
-        function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : 'nav-subjects'; }
+        function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : currentView === 'subjects' ? 'nav-subjects' : 'nav-home'; }
         function setActiveMobileNav(activeId) { document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId)); }
         function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
@@ -1861,7 +2046,7 @@
         function deleteRequirement(i) { if (confirm('¿Borrar?')) { const result = StudyTrackRequirements.deleteRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
         function toggleAddReqForm() { document.getElementById('new-req-form').classList.toggle('hidden'); document.getElementById('add-req-btn').classList.toggle('hidden'); }
         function confirmAddRequirement() { const input = document.getElementById('new-req-name'); const result = StudyTrackRequirements.addRequirement(currentCurriculum.requirements, input.value, () => `req-${Date.now()}`); if (result.changed) { currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); toggleAddReqForm(); input.value = ''; } }
-        let currentView = 'subjects';
+        let currentView = 'home';
         let scheduleData = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.schedule, {});
         let scheduleViewType = StudyTrackStorage.getItem(StudyTrackStorage.KEYS.scheduleViewType) || 'list';
         let currentEditingBlock = null; // {subjectId, blockId}
@@ -1900,12 +2085,23 @@
             roomEl.append(icon, document.createTextNode(' '), text);
         }
 
-        function switchView(view) { currentView = view; const subjectsView = document.querySelector('main:not(#schedule-view)'); const scheduleView = document.getElementById('schedule-view'); if (view === 'subjects') { subjectsView.classList.remove('hidden'); scheduleView.classList.add('hidden'); setActiveMobileNav('nav-subjects'); } else { subjectsView.classList.add('hidden'); scheduleView.classList.remove('hidden'); setActiveMobileNav('nav-schedule'); renderScheduleView(); } }
+        function switchView(view) {
+            currentView = view;
+            const homeView = document.getElementById('home-view');
+            const subjectsView = document.getElementById('subjects-view');
+            const scheduleView = document.getElementById('schedule-view');
+            homeView.classList.toggle('hidden', view !== 'home');
+            subjectsView.classList.toggle('hidden', view !== 'subjects');
+            scheduleView.classList.toggle('hidden', view !== 'schedule');
+            setActiveMobileNav(view === 'schedule' ? 'nav-schedule' : view === 'subjects' ? 'nav-subjects' : 'nav-home');
+            if (view === 'home') renderHomeView();
+            if (view === 'schedule') renderScheduleView();
+        }
 
         function showMobileProgress() {
-            switchView('subjects');
+            switchView('home');
             setActiveMobileNav('nav-progress');
-            const hub = document.getElementById('mobile-academic-hub');
+            const hub = document.getElementById('home-view');
             if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' });
             else window.scrollTo({ top: 0, behavior: 'smooth' });
         }

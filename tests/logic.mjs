@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -455,5 +455,20 @@ assert.ok(visualSchedule.html.includes('&lt;img src=x onerror=&#39;bad&#39;&gt;'
 assert.ok(visualSchedule.html.includes('&lt;script&gt;room&lt;/script&gt;'));
 assert.ok(visualSchedule.html.includes("showBlockDetails('MAT\\&#39;101', 'b\\&#39;1')"));
 assert.ok(!visualSchedule.html.includes('<script>room</script>'));
+
+const insights = StudyTrackInsights.buildHomeInsights({
+  curriculum: validCurriculum,
+  progress: academicProgress,
+  dependencyGraph: StudyTrackPrerequisites.buildDependencyGraph(validCurriculum),
+  scheduleData: { 'MAT-102': [{ id: 'h1', day: 'lunes', startTime: '08:00', endTime: '10:00' }] },
+  canTakeSubject: (subject) => StudyTrackPrerequisites.checkPrerequisites(subject.prerequisites, academicProgress, validCurriculum)
+});
+assert.equal(insights.enrolled.length, 1);
+assert.equal(insights.missingGrades.length, 1);
+assert.equal(insights.available.length, 1);
+assert.equal(insights.blocked.length, 1);
+assert.equal(insights.scheduleSummary.scheduled, 1);
+assert.equal(insights.nextAction.type, 'missing-grade');
+assert.equal(insights.recommended[0].id, 'SCI-201');
 
 console.log('Logic checks passed');
