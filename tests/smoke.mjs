@@ -181,6 +181,11 @@ assert.ok(html.includes('StudyTrackProgress.getAffectedSubjectIds(subjectId, dep
 assert.ok(html.includes('StudyTrackProgress.toggleSubjectApproval(userProgress[id])'));
 assert.ok(html.includes("const safeGrade = escapeHtml(st.grade ?? '');"), 'Grade input must preserve zero values');
 assert.ok(html.includes('const isApprovedWithoutGrade ='), 'Subject cards must detect approved subjects without grade');
+assert.ok(html.includes('function showPrerequisitePopover(event, subjectId)'));
+assert.ok(html.includes('function navigateToSubject(subjectId)'));
+assert.ok(html.includes('id = \'prerequisite-popover\'') || html.includes('id="prerequisite-popover"') || html.includes("popover.id = 'prerequisite-popover'"));
+assert.ok(html.includes("showPrerequisitePopover(event, '${subjectIdJs}')"), 'Prerequisite chips should open a contextual popover');
+assert.ok(!html.includes('showToast(`Requisitos:'), 'Prerequisites should not use toast-only feedback');
 assert.ok(html.includes('Materia completada sin nota registrada'), 'Grade input must expose the missing-grade warning state');
 assert.ok(html.includes('const cardSurfaceClass = isApprovedWithoutGrade'), 'Missing-grade cards should own their warning surface class');
 assert.ok(html.includes('grade-warning-message'), 'Missing-grade cards should show a visible mobile warning');

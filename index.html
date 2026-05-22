@@ -1568,7 +1568,7 @@
                                     </span>
                                     ${enrolledButton}
                                     ${fo > 0 ? `<span class="text-[10px] bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><i class="fas fa-key text-[8px]"></i>${fo}</span>` : ''}
-                                    ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisites('${subjectIdJs}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${safeReqTxt}</button>` : ''}
+                                    ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisitePopover(event, '${subjectIdJs}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${safeReqTxt}</button>` : ''}
                                 </div>
                                 <div class="mobile-subject-actions grid grid-cols-[1fr_auto_auto] sm:flex items-center gap-1.5 w-full sm:w-auto">
                                     <label class="flex items-center justify-between gap-2 px-2 py-1.5 sm:px-1.5 sm:py-1 rounded border ${gradeInputStateClass}" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
@@ -1948,7 +1948,105 @@
             if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;
             navigator.serviceWorker.register('./sw.js').catch(() => { });
         }
-        function showPrerequisites(id) { const loc = findSubjectLocation(id); if (loc) showToast(`Requisitos: ${formatPrerequisiteString(loc.subject.prerequisites)}`, 'info'); }
+        function getSubjectStatusLabel(subjectId) {
+            const status = userProgress[subjectId]?.status || 'pending';
+            if (status === 'approved') return 'Aprobada';
+            if (status === 'enrolled') return 'Inscrita';
+            return 'Pendiente';
+        }
+
+        function findSubjectByCodeOrId(codeOrId) {
+            if (!currentCurriculum || !codeOrId) return null;
+            const wanted = String(codeOrId).trim().toLowerCase();
+            for (let periodIndex = 0; periodIndex < currentCurriculum.periods.length; periodIndex++) {
+                const period = currentCurriculum.periods[periodIndex];
+                const subject = period.subjects.find(candidate =>
+                    String(candidate.id || '').toLowerCase() === wanted ||
+                    String(candidate.code || '').toLowerCase() === wanted
+                );
+                if (subject) return { subject, period, periodIndex };
+            }
+            return null;
+        }
+
+        function getPrimaryPrerequisiteTarget(prerequisites) {
+            if (!prerequisites?.length) return null;
+            const flattened = prerequisites.flat().filter(item => item !== 'ALL');
+            return flattened.find(item => !userProgress[item] || userProgress[item]?.status !== 'approved') || flattened[0] || null;
+        }
+
+        function closePrerequisitePopover() {
+            document.getElementById('prerequisite-popover')?.remove();
+        }
+
+        function showPrerequisitePopover(event, subjectId) {
+            event?.stopPropagation();
+            closePrerequisitePopover();
+            const loc = findSubjectLocation(subjectId);
+            if (!loc) return;
+
+            const targetCode = getPrimaryPrerequisiteTarget(loc.subject.prerequisites);
+            const target = findSubjectByCodeOrId(targetCode);
+            const rawRequirement = formatPrerequisiteString(loc.subject.prerequisites);
+            const popover = document.createElement('div');
+            popover.id = 'prerequisite-popover';
+            popover.className = 'fixed z-[130] w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-3 animate-scale-up';
+
+            const anchorRect = event?.currentTarget?.getBoundingClientRect();
+            const top = Math.min(window.innerHeight - 170, Math.max(12, (anchorRect?.bottom || 80) + 8));
+            const left = Math.min(window.innerWidth - 300, Math.max(12, anchorRect?.left || 12));
+            popover.style.top = `${top}px`;
+            popover.style.left = `${left}px`;
+
+            const title = document.createElement('div');
+            title.className = 'text-xs font-black uppercase text-orange-500 dark:text-orange-400 mb-1';
+            title.textContent = 'Prerrequisito';
+            const body = document.createElement('div');
+            body.className = 'text-sm font-black text-slate-900 dark:text-white';
+            body.textContent = target ? `${target.subject.code} · ${target.subject.name}` : rawRequirement;
+            const detail = document.createElement('div');
+            detail.className = 'text-xs text-slate-500 dark:text-slate-400 mt-1';
+            detail.textContent = target ? getSubjectStatusLabel(target.subject.id) : 'Requisito general del plan';
+
+            const actions = document.createElement('div');
+            actions.className = 'flex items-center gap-2 mt-3';
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold';
+            closeBtn.textContent = 'Cerrar';
+            closeBtn.onclick = closePrerequisitePopover;
+            actions.appendChild(closeBtn);
+
+            if (target) {
+                const goBtn = document.createElement('button');
+                goBtn.type = 'button';
+                goBtn.className = 'flex-1 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold';
+                goBtn.textContent = 'Ir';
+                goBtn.onclick = () => navigateToSubject(target.subject.id);
+                actions.appendChild(goBtn);
+            }
+
+            popover.append(title, body, detail, actions);
+            document.body.appendChild(popover);
+        }
+
+        function navigateToSubject(subjectId) {
+            const loc = findSubjectLocation(subjectId);
+            if (!loc) return;
+            closePrerequisitePopover();
+            switchView('subjects');
+            APP_CONFIG.collapsedPeriods.delete(loc.periodIndex);
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.collapsedPeriods, [...APP_CONFIG.collapsedPeriods]);
+            currentFilter = 'all';
+            setFilter('all');
+            requestAnimationFrame(() => {
+                const card = document.getElementById(`subject-card-${subjectId}`);
+                if (!card) return;
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('ring-4', 'ring-primary-400', 'ring-offset-2', 'ring-offset-white', 'dark:ring-offset-slate-950');
+                setTimeout(() => card.classList.remove('ring-4', 'ring-primary-400', 'ring-offset-2', 'ring-offset-white', 'dark:ring-offset-slate-950'), 1800);
+            });
+        }
 
         function getGradeLabel(score) {
             return StudyTrackGrades.getGradeLabel(score, APP_CONFIG.gradeScale);
