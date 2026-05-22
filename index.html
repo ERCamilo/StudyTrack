@@ -2099,9 +2099,9 @@
         }
 
         function showMobileProgress() {
-            switchView('home');
+            switchView('subjects');
             setActiveMobileNav('nav-progress');
-            const hub = document.getElementById('home-view');
+            const hub = document.getElementById('mobile-academic-hub');
             if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' });
             else window.scrollTo({ top: 0, behavior: 'smooth' });
         }

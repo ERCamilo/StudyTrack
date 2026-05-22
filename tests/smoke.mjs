@@ -104,6 +104,8 @@ assert.ok(html.includes('id="nav-progress"'));
 assert.ok(html.includes('id="nav-more"'));
 assert.ok(html.includes('function setActiveMobileNav(activeId)'));
 assert.ok(html.includes('function showMobileProgress()'));
+assert.ok(html.includes("switchView('subjects');\r\n            setActiveMobileNav('nav-progress');") || html.includes("switchView('subjects');\n            setActiveMobileNav('nav-progress');"), 'Progress tab should not duplicate the home view');
+assert.ok(html.includes("document.getElementById('mobile-academic-hub')"), 'Progress tab should target the academic progress hub');
 assert.ok(html.includes('function openMobileMore()'));
 assert.ok(html.includes('id="settings-quick-nav"'), 'Settings modal should expose quick navigation on mobile');
 for (const id of ['settings-section-career', 'settings-section-preferences', 'settings-section-requirements', 'settings-section-grades', 'settings-section-data']) {
