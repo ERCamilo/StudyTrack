@@ -30,6 +30,69 @@
     });
   }
 
+  function getPeriodProgress(curriculum, progress, periodNumber) {
+    const period = (curriculum?.periods || []).find((item) => String(item.period_number) === String(periodNumber));
+    const subjects = period?.subjects || [];
+    if (!subjects.length) return { total: 0, completed: 0, remaining: 0, completionRatio: 0 };
+
+    const completed = subjects.filter((subject) => getSubjectStatus(progress, subject.id) === 'approved').length;
+    return {
+      total: subjects.length,
+      completed,
+      remaining: subjects.length - completed,
+      completionRatio: completed / subjects.length
+    };
+  }
+
+  function getSubjectRecommendationProfile(subject, curriculum, progress, dependencyGraph) {
+    const unlocks = dependencyGraph?.unlocks?.get(subject.id) || 0;
+    const creditsValue = Number(subject.credits) || 0;
+    const periodProgress = getPeriodProgress(curriculum, progress, subject.period_number);
+    const isLightLoad = creditsValue > 0 && creditsValue <= 3;
+    const helpsClosePeriod = periodProgress.remaining > 0 && periodProgress.remaining <= 3;
+    const earlyPeriodBonus = Math.max(0, 12 - (Number.parseInt(subject.period_number, 10) || 0));
+
+    const score = (unlocks * 18)
+      + (helpsClosePeriod ? 16 : 0)
+      + (isLightLoad ? 8 : 0)
+      + (creditsValue * 2)
+      + earlyPeriodBonus;
+
+    let category = 'advance';
+    let reason = `${creditsValue || 0} créditos disponibles`;
+    let badge = 'Avance';
+
+    if (unlocks >= 2) {
+      category = 'unlock';
+      reason = `Desbloquea ${unlocks} materias`;
+      badge = 'Alto impacto';
+    } else if (helpsClosePeriod) {
+      category = 'close-period';
+      reason = `Ayuda a cerrar el periodo ${subject.period_number}`;
+      badge = 'Cierre de periodo';
+    } else if (isLightLoad) {
+      category = 'light-load';
+      reason = 'Buena opción de carga ligera';
+      badge = 'Carga ligera';
+    } else if (unlocks === 1) {
+      category = 'unlock';
+      reason = 'Desbloquea 1 materia';
+      badge = 'Desbloquea';
+    }
+
+    return {
+      unlocks,
+      creditsValue,
+      periodProgress,
+      isLightLoad,
+      helpsClosePeriod,
+      score,
+      category,
+      reason,
+      badge
+    };
+  }
+
   function getBlockedSubjects(curriculum, progress, canTakeSubject = () => true) {
     return getAllSubjects(curriculum).filter((subject) => {
       const status = getSubjectStatus(progress, subject.id);
@@ -39,14 +102,11 @@
 
   function rankRecommendedSubjects(curriculum, progress, dependencyGraph, canTakeSubject = () => true) {
     return getAvailableSubjects(curriculum, progress, canTakeSubject)
-      .map((subject) => ({
-        ...subject,
-        unlocks: dependencyGraph?.unlocks?.get(subject.id) || 0,
-        creditsValue: Number(subject.credits) || 0
-      }))
+      .map((subject) => ({ ...subject, recommendation: getSubjectRecommendationProfile(subject, curriculum, progress, dependencyGraph) }))
       .sort((a, b) => {
-        if (b.unlocks !== a.unlocks) return b.unlocks - a.unlocks;
-        if (b.creditsValue !== a.creditsValue) return b.creditsValue - a.creditsValue;
+        if (b.recommendation.score !== a.recommendation.score) return b.recommendation.score - a.recommendation.score;
+        if (b.recommendation.unlocks !== a.recommendation.unlocks) return b.recommendation.unlocks - a.recommendation.unlocks;
+        if (b.recommendation.creditsValue !== a.recommendation.creditsValue) return b.recommendation.creditsValue - a.recommendation.creditsValue;
         return String(a.period_number || '').localeCompare(String(b.period_number || ''));
       });
   }
@@ -146,8 +206,10 @@
     getEnrolledSubjects,
     getMissingGradeSubjects,
     getNextBestAction,
+    getPeriodProgress,
     getScheduleSummary,
     getSubjectStatus,
+    getSubjectRecommendationProfile,
     rankRecommendedSubjects
   };
 })(typeof window !== 'undefined' ? window : globalThis);

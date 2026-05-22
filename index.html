@@ -1761,6 +1761,19 @@
             return `<button onclick="switchView('subjects')" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div><div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeMeta}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
         }
 
+        function renderHomeRecommendationRow(subject) {
+            const recommendation = subject.recommendation || {};
+            const safeName = escapeHtml(subject.name || 'Materia');
+            const safeCode = escapeHtml(subject.code || subject.id || '');
+            const safeReason = escapeHtml(recommendation.reason || `${subject.credits || 0} créditos disponibles`);
+            const safeBadge = escapeHtml(recommendation.badge || 'Recomendada');
+            const categoryClass = recommendation.category === 'unlock' ? 'bg-emerald-500'
+                : recommendation.category === 'close-period' ? 'bg-blue-500'
+                    : recommendation.category === 'light-load' ? 'bg-amber-500'
+                        : 'bg-slate-500';
+            return `<button onclick="handleHomeAction('pending')" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
+        }
+
         function renderHomeEmpty(icon, title, detail) {
             return `<div class="px-4 py-6 text-center text-slate-400 dark:text-slate-500"><i class="${icon} text-2xl mb-2 opacity-60"></i><div class="text-sm font-bold text-slate-500 dark:text-slate-400">${escapeHtml(title)}</div><div class="text-xs mt-1">${escapeHtml(detail)}</div></div>`;
         }
@@ -1805,7 +1818,7 @@
 
             const recommended = insights.recommended.slice(0, 4);
             document.getElementById('home-recommended-list').innerHTML = recommended.length
-                ? recommended.map((subject) => renderHomeSubjectRow(subject, `${subject.credits || 0} créditos · desbloquea ${subject.unlocks || 0}`)).join('')
+                ? recommended.map((subject) => renderHomeRecommendationRow(subject)).join('')
                 : renderHomeEmpty('fas fa-check-circle', 'Sin recomendaciones pendientes', 'Cuando haya materias disponibles aparecerán aquí.');
 
             const enrolled = insights.enrolled.slice(0, 4);

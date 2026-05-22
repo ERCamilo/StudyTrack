@@ -470,5 +470,49 @@ assert.equal(insights.blocked.length, 1);
 assert.equal(insights.scheduleSummary.scheduled, 1);
 assert.equal(insights.nextAction.type, 'missing-grade');
 assert.equal(insights.recommended[0].id, 'SCI-201');
+assert.equal(insights.recommended[0].recommendation.category, 'light-load');
+assert.equal(insights.recommended[0].recommendation.reason, 'Buena opción de carga ligera');
+
+const recommendationCurriculum = {
+  metadata: { career_name: 'Recomendaciones', institution: 'Demo U' },
+  periods: [
+    {
+      period_number: 1,
+      subjects: [
+        { id: 'BASE-1', name: 'Base 1', code: 'BASE-1', credits: 4, prerequisites: [] },
+        { id: 'BASE-2', name: 'Base 2', code: 'BASE-2', credits: 2, prerequisites: [] }
+      ]
+    },
+    {
+      period_number: 2,
+      subjects: [
+        { id: 'IMPACT', name: 'Impacto', code: 'IMP-201', credits: 4, prerequisites: [] },
+        { id: 'LIGHT', name: 'Ligera', code: 'LIG-201', credits: 2, prerequisites: [] },
+        { id: 'NEXT-1', name: 'Siguiente 1', code: 'NXT-301', credits: 3, prerequisites: ['IMPACT'] },
+        { id: 'NEXT-2', name: 'Siguiente 2', code: 'NXT-302', credits: 3, prerequisites: ['IMPACT'] }
+      ]
+    }
+  ]
+};
+const recommendationProgress = {
+  'BASE-1': { status: 'approved', grade: 90 },
+  'BASE-2': { status: 'approved', grade: 90 },
+  IMPACT: { status: 'pending' },
+  LIGHT: { status: 'pending' },
+  'NEXT-1': { status: 'pending' },
+  'NEXT-2': { status: 'pending' }
+};
+const recommendationGraph = StudyTrackPrerequisites.buildDependencyGraph(recommendationCurriculum);
+const rankedRecommendations = StudyTrackInsights.rankRecommendedSubjects(
+  recommendationCurriculum,
+  recommendationProgress,
+  recommendationGraph,
+  (subject) => StudyTrackPrerequisites.checkPrerequisites(subject.prerequisites, recommendationProgress, recommendationCurriculum)
+);
+assert.equal(rankedRecommendations[0].id, 'IMPACT');
+assert.equal(rankedRecommendations[0].recommendation.category, 'unlock');
+assert.equal(rankedRecommendations[0].recommendation.badge, 'Alto impacto');
+assert.equal(rankedRecommendations[1].id, 'LIGHT');
+assert.equal(rankedRecommendations[1].recommendation.category, 'light-load');
 
 console.log('Logic checks passed');
