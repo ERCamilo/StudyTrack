@@ -32,6 +32,14 @@ assert.equal(StudyTrackGrades.getGradePoints('', scale), 0);
 
 assert.equal(StudyTrackProgress.parseGradeInput('0'), 0);
 assert.equal(StudyTrackProgress.parseGradeInput(''), null);
+assert.equal(StudyTrackProgress.parseGradeInput('85.5'), 85.5);
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' }, '69.5').grade, 69.5);
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' }, '69.5').status, 'pending');
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' }, '70.0').status, 'approved');
+// Configurable passing grade: the threshold is supplied by the caller, not hardcoded.
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' }, '65', 60).status, 'approved');
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' }, '75', 80).status, 'pending');
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved', grade: 90 }, '75', 80).status, 'pending');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'pending' }, '85').status, 'approved');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved' }, '65').status, 'pending');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'enrolled' }, '65').status, 'enrolled');
@@ -55,6 +63,10 @@ StudyTrackStorage.setBoolean('bool-value', false);
 assert.equal(StudyTrackStorage.getBoolean('bool-value', true), false);
 StudyTrackStorage.setNumber('number-value', 12);
 assert.equal(StudyTrackStorage.getNumber('number-value', 0), 12);
+StudyTrackStorage.setItem('float-value', '69.5');
+assert.equal(StudyTrackStorage.getFloat('float-value', 0), 69.5);
+assert.equal(StudyTrackStorage.getNumber('float-value', 0), 69);
+assert.equal(StudyTrackStorage.getFloat('missing-float', 70), 70);
 StudyTrackStorage.clearAll();
 assert.equal(StudyTrackStorage.getItem('number-value'), null);
 
@@ -135,6 +147,11 @@ assert.equal(normalizedProgress['LET-101'].attempts.length, 3);
 assert.equal(normalizedProgress['LET-101'].completionDate, null);
 assert.equal(normalizedProgress['LET-101'].section, '');
 assert.equal(JSON.stringify([...StudyTrackProgress.getCurriculumSubjectIds(validCurriculum)].sort()), JSON.stringify(['LET-101', 'MAT-101', 'MAT-102', 'SCI-201', 'CAP-400'].sort()));
+
+// normalizeSubjectProgress preserves real attempt objects instead of discarding their data.
+const attemptDetail = StudyTrackProgress.normalizeSubjectProgress({ status: 'approved', grade: 90, attempts: [{ date: '2026-01' }, { date: '2026-03' }] });
+assert.equal(attemptDetail.attempts.length, 2);
+assert.equal(attemptDetail.attempts[0].date, '2026-01');
 
 const academicProgress = {
   'MAT-101': { status: 'approved', grade: 95 },
@@ -300,6 +317,7 @@ assert.equal(byDay.domingo.length, 1);
 
 assert.equal(StudyTrackSchedule.rangesOverlap('08:00', '10:00', '09:00', '11:00'), true);
 assert.equal(StudyTrackSchedule.rangesOverlap('08:00', '10:00', '10:00', '12:00'), false);
+assert.equal(StudyTrackSchedule.rangesOverlap('8:00', '10:00', '9:00', '11:00'), true, 'Overlap must work with non-zero-padded times');
 assert.equal(
   StudyTrackSchedule.findScheduleConflict({
     day: 'lunes',

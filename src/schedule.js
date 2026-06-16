@@ -46,7 +46,8 @@
   }
 
   function rangesOverlap(startA, endA, startB, endB) {
-    return startA < endB && endA > startB;
+    // Compare numerically (not as strings) so non-zero-padded times like "8:00" work too.
+    return timeToDecimal(startA) < timeToDecimal(endB) && timeToDecimal(endA) > timeToDecimal(startB);
   }
 
   function findScheduleConflict({ day, start, end, enrolledSubjects, scheduleData, excludeSubjectId = null, excludeBlockId = null }) {
@@ -144,7 +145,7 @@
       const safeSubjectCodePrefix = escapeHtml(String(subject.code ?? '').substring(0, 2));
       const blocksHtml = blocks.map((block) => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" onclick="showBlockDetails('${subjectIdJs}', '${escapeJsString(block.id)}')">${escapeHtml(DAY_NAMES[block.day])} ${escapeHtml(formatTime12h(block.startTime))}-${escapeHtml(formatTime12h(block.endTime))}</span>`).join(' ');
 
-      return `<div class="schedule-subject-row flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700"><div class="flex items-center gap-3 flex-1 min-w-0"><div class="w-8 h-8 ${getSubjectColor(subject.id, index)} rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0">${safeSubjectCodePrefix}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-slate-900 dark:text-white text-sm truncate">${safeSubjectName}</h4><div class="flex flex-wrap items-center gap-2 mt-1">${blocksHtml || '<span class="text-[10px] text-amber-600 dark:text-amber-400 italic">Sin horario asignado</span>'}</div></div></div><button onclick="openScheduleModal('${subjectIdJs}', '${escapeJsString(subject.name)}', null)" class="w-full sm:w-auto text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 sm:py-1.5 rounded-lg font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shrink-0 shadow-sm"><i class="fas fa-plus mr-1"></i>Agregar Bloque</button></div>`;
+      return `<div class="schedule-subject-row stk-surface-card flex flex-col sm:flex-row sm:items-center gap-3 p-3"><div class="flex items-center gap-3 flex-1 min-w-0"><div class="w-8 h-8 ${getSubjectColor(subject.id, index)} rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0">${safeSubjectCodePrefix}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-slate-900 dark:text-white text-sm truncate">${safeSubjectName}</h4><div class="flex flex-wrap items-center gap-2 mt-1">${blocksHtml || '<span class="text-[10px] text-amber-600 dark:text-amber-400 italic">Sin horario asignado</span>'}</div></div></div><button onclick="openScheduleModal('${subjectIdJs}', '${escapeJsString(subject.name)}', null)" class="stk-press w-full sm:w-auto text-xs px-3 py-2 sm:py-1.5 font-bold shrink-0" style="background:var(--stk-surface-2);color:var(--stk-text-1);border:none;border-radius:var(--stk-radius-sm)"><i class="fas fa-plus mr-1"></i>Agregar Bloque</button></div>`;
     }).join('');
   }
 

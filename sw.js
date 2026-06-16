@@ -1,8 +1,9 @@
-const CACHE_NAME = 'studytrack-shell-v5';
+const CACHE_NAME = 'studytrack-shell-v8';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
+  './dist/tailwind.css',
   './src/storage.js',
   './src/sanitize.js',
   './src/curriculum.js',
