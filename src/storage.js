@@ -8,6 +8,7 @@
     allowSkipPrerequisites: 'allow_skip_prereqs',
     maxEnrolledSubjects: 'max_enrolled_subjects',
     gradeScale: 'grade_scale',
+    passingGrade: 'passing_grade',
     schedule: 'studytrack_schedule_v1',
     scheduleViewType: 'schedule_view_type'
   };
@@ -74,6 +75,12 @@
     return Number.isFinite(value) ? value : fallback;
   }
 
+  function getFloat(key, fallback = 0) {
+    const raw = getItem(key);
+    const value = Number.parseFloat(raw);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
   function setNumber(key, value) {
     return setItem(key, value);
   }
@@ -94,6 +101,7 @@
     KEYS,
     clearAll,
     getBoolean,
+    getFloat,
     getItem,
     getJson,
     getNumber,
