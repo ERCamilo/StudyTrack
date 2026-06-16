@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v8';
+const CACHE_NAME = 'studytrack-shell-v9';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ const APP_SHELL = [
   './src/schedule.js',
   './src/insights.js',
   './src/firebase-sync.js',
+  './src/app.js',
   './icons/studytrack-icon.svg',
   './icons/studytrack-maskable.svg'
 ];
