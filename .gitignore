@@ -1,0 +1,38 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+pubsub-debug.log
+ui-debug.log
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Tailwind standalone binary (download per-machine; do NOT commit ~38MB exe)
+tailwindcss.exe
+tailwindcss
+# Note: dist/tailwind.css IS committed — the static deploy needs the built stylesheet.
+
+# Tooling output (regenerable, not part of the app)
+graphify-out/
+.atl/
+
+# Stray diff dumps
+stk_diff.txt
