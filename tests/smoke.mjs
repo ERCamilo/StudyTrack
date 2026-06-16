@@ -193,7 +193,7 @@ assert.ok(code.includes('const isApprovedWithoutGrade ='), 'Subject cards must d
 assert.ok(code.includes('function showPrerequisitePopover(event, subjectId)'));
 assert.ok(code.includes('function navigateToSubject(subjectId)'));
 assert.ok(code.includes('id = \'prerequisite-popover\'') || code.includes('id="prerequisite-popover"') || code.includes("popover.id = 'prerequisite-popover'"));
-assert.ok(code.includes("showPrerequisitePopover(event, '${subjectIdJs}')"), 'Prerequisite chips should open a contextual popover');
+assert.ok(code.includes('data-action="showPrerequisitePopover"'), 'Prerequisite chips should open a contextual popover via delegated action');
 assert.ok(!code.includes('showToast(`Requisitos:'), 'Prerequisites should not use toast-only feedback');
 assert.ok(code.includes('Materia completada sin nota registrada'), 'Grade input must expose the missing-grade warning state');
 assert.ok(code.includes('stk-card--warning'), 'Missing-grade cards should own their warning accent via state class');
@@ -212,5 +212,49 @@ assert.equal((code.match(/window\.addEventListener\('scroll'/g) || []).length, 1
 assert.equal((code.match(/uniSelect\.addEventListener\('change'/g) || []).length, 0, 'setupSelectors should not stack university listeners');
 assert.equal((code.match(/careerSelect\.addEventListener\('change'/g) || []).length, 0, 'setupSelectors should not stack career listeners');
 assert.ok(html.indexOf('id="search-input"') < html.indexOf('id="filter-bar"'), 'Filter bar should sit after search');
+
+// ── CSP hardening: no inline event handlers; everything is delegated ───────
+const delegationFiles = ['index.html', 'src/app.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js'];
+const inlineHandlerPattern = /on(?:click|change|input|submit|keyup|keydown|keypress|focus|blur|mousedown|mouseup|mouseover|mouseout|touchstart|touchend|load|error|scroll|wheel|contextmenu|dblclick)="/g;
+for (const file of delegationFiles) {
+  const src = fs.readFileSync(file, 'utf8');
+  const inline = src.match(inlineHandlerPattern) || [];
+  assert.equal(inline.length, 0, `${file} must not contain inline event handlers (found: ${inline.join(', ')})`);
+}
+
+// The delegated dispatcher must be registered for both events.
+assert.ok(appJs.includes("document.addEventListener('click'"), 'A delegated click dispatcher must be registered');
+assert.ok(appJs.includes("document.addEventListener('change'"), 'A delegated change dispatcher must be registered');
+
+// Every declared data-action / data-change / data-action-self must resolve to a
+// defined function (catches typos and orphaned actions). "stop" is a reserved no-op.
+const allJs = [
+  'src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js',
+  'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js',
+  'src/insights.js', 'src/firebase-sync.js', 'src/app.js'
+].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+const declaredActions = new Set();
+for (const file of delegationFiles) {
+  const src = fs.readFileSync(file, 'utf8');
+  for (const m of src.matchAll(/data-(?:action|change|action-self)="([A-Za-z_$][\w$]*)"/g)) {
+    declaredActions.add(m[1]);
+  }
+}
+assert.ok(declaredActions.size > 20, `Expected the delegated actions to be discovered (found ${declaredActions.size})`);
+// "stop" is a reserved no-op shield. saveFirebaseConfig is a vestigial handler in
+// the hidden firebase-config-setup-box (the old manual-config flow, superseded by
+// the default config + Google sign-in); the dispatcher safely no-ops it. Remove it
+// when that box is cleaned up.
+const reservedActions = new Set(['stop', 'saveFirebaseConfig']);
+for (const action of declaredActions) {
+  if (reservedActions.has(action)) continue;
+  const defined = new RegExp(`function\\s+${action}\\b|\\b${action}\\s*=\\s*function|(?:global|window)\\.${action}\\s*=`).test(allJs);
+  assert.ok(defined, `data-action "${action}" must map to a defined function`);
+}
+
+// Static data-args in index.html must be valid JSON (dynamic ones live in template literals).
+for (const m of html.matchAll(/data-args='([^']*)'/g)) {
+  assert.doesNotThrow(() => JSON.parse(m[1]), `data-args must be valid JSON: ${m[1]}`);
+}
 
 console.log('Smoke checks passed');

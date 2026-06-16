@@ -61,6 +61,8 @@
         const escapeHtml = StudyTrackSanitize.escapeHtml;
         const escapeJsString = StudyTrackSanitize.escapeJsString;
         const sanitizeCssClasses = StudyTrackSanitize.sanitizeCssClasses;
+        const actionArgs = StudyTrackSanitize.actionArgs;
+        function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
         // ============================================================
         // INITIALIZATION
@@ -319,13 +321,13 @@
                 enrolled: 'Inscrita', available: 'Disponible', locked: 'Bloqueada'
             }[statusKey];
             const prereqChip = (s.prerequisites?.length && (!un || isSkippedPrereq))
-                ? `<button class="stk-chip stk-chip--lock" title="${safeReqTxt}" onclick="event.stopPropagation(); showPrerequisitePopover(event, '${subjectIdJs}')"><i class="fas fa-${isSkippedPrereq ? 'triangle-exclamation' : 'lock'}" style="font-size:9px"></i>${safeReqTxt}</button>`
+                ? `<button class="stk-chip stk-chip--lock" title="${safeReqTxt}" data-action="showPrerequisitePopover" data-args="${actionArgs('$event', s.id)}"><i class="fas fa-${isSkippedPrereq ? 'triangle-exclamation' : 'lock'}" style="font-size:9px"></i>${safeReqTxt}</button>`
                 : '';
             const unlockChip = fo > 0
                 ? `<span class="stk-chip" title="Desbloquea ${fo} materia(s)"><i class="fas fa-key" style="font-size:9px"></i>${fo}</span>`
                 : '';
             const enrollBtn = st.status !== 'approved'
-                ? `<button class="stk-enroll ${st.status === 'enrolled' ? 'stk-enroll--on' : 'stk-enroll--off'}" ${isDisabled ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''} onclick="event.stopPropagation(); toggleEnrollment('${subjectIdJs}')"><i class="fas fa-${st.status === 'enrolled' ? 'check' : 'plus'}" style="font-size:11px"></i>${st.status === 'enrolled' ? 'En curso' : 'Inscribir'}</button>`
+                ? `<button class="stk-enroll ${st.status === 'enrolled' ? 'stk-enroll--on' : 'stk-enroll--off'}" ${isDisabled ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''} data-action="toggleEnrollment" data-args="${actionArgs(s.id)}"><i class="fas fa-${st.status === 'enrolled' ? 'check' : 'plus'}" style="font-size:11px"></i>${st.status === 'enrolled' ? 'En curso' : 'Inscribir'}</button>`
                 : '';
             const warnText = isApprovedWithoutGrade
                 ? `<div class="stk-warn-text"><i class="fas fa-triangle-exclamation" style="font-size:10px"></i>Falta registrar la nota</div>`
@@ -333,8 +335,8 @@
 
             return `
                 <div id="subject-card-${subjectIdHtml}" class="subject-card-mobile stk-card stk-card--${statusKey} ${op} group">
-                    <div class="stk-head" onclick="toggleSubjectDetails('${subjectIdJs}')">
-                        <button class="stk-orb" aria-label="Cambiar estado de ${safeSubjectName}" onclick="event.stopPropagation(); toggleSubjectStatus('${subjectIdJs}')">
+                    <div class="stk-head" data-action="toggleSubjectDetails" data-args="${actionArgs(s.id)}">
+                        <button class="stk-orb" aria-label="Cambiar estado de ${safeSubjectName}" data-action="toggleSubjectStatus" data-args="${actionArgs(s.id)}">
                             <i class="fas ${orbIcon}"></i>
                         </button>
                         <div class="stk-main">
@@ -345,13 +347,13 @@
                             </div>
                         </div>
                         <div class="stk-credits"><b>${safeCredits}</b><span>CR</span></div>
-                        <button class="stk-expand-btn" aria-label="Ver detalles de ${safeSubjectName}" onclick="event.stopPropagation(); toggleSubjectDetails('${subjectIdJs}')"><i class="fas fa-chevron-down stk-chev" id="chevron-${subjectIdHtml}"></i></button>
+                        <button class="stk-expand-btn" aria-label="Ver detalles de ${safeSubjectName}" data-action="toggleSubjectDetails" data-args="${actionArgs(s.id)}"><i class="fas fa-chevron-down stk-chev" id="chevron-${subjectIdHtml}"></i></button>
                     </div>
                     <div class="stk-actions">
                         ${enrollBtn}
-                        <label class="stk-note ${isApprovedWithoutGrade ? 'stk-note--warn' : ''}" onclick="event.stopPropagation()" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
+                        <label class="stk-note ${isApprovedWithoutGrade ? 'stk-note--warn' : ''}" data-action="stop" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
                             <span class="stk-note-cap">Nota</span>
-                            <input type="number" min="0" max="100" step="any" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" onchange="updateGrade('${subjectIdJs}', this.value)">
+                            <input type="number" min="0" max="100" step="any" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" data-change="updateGrade" data-args="${actionArgs(s.id, '$value')}">
                         </label>
                         <div class="stk-grade ${gradeLabel ? '' : 'stk-grade--empty'}" title="Calificación literal">${gradeLabel ? gradeLabel.label : '–'}</div>
                     </div>
@@ -360,11 +362,11 @@
                     <div class="stk-details" id="details-${subjectIdHtml}">
                         <div class="stk-details-inner">
                             <div class="stk-details-grid">
-                                <div class="stk-field"><label>Sección</label><input type="text" placeholder="Ej: 01" value="${safeSection}" onchange="updateSubjectExtra('${subjectIdJs}', 'section', this.value)"></div>
-                                <div class="stk-field"><label>Aula</label><input type="text" placeholder="Ej: A-101" value="${safeClassroom}" onchange="updateSubjectExtra('${subjectIdJs}', 'classroom', this.value)"></div>
-                                <div class="stk-field stk-field--wide"><label>Maestro</label><input type="text" placeholder="Nombre del profesor" value="${safeTeacher}" onchange="updateSubjectExtra('${subjectIdJs}', 'teacher', this.value)"></div>
-                                <div class="stk-field"><label>Retiros</label><input type="number" min="0" max="10" placeholder="0" value="${escapeHtml(st.attempts?.length || 0)}" onchange="updateAttempts('${subjectIdJs}', this.value)"></div>
-                                <div class="stk-field"><label>Fecha</label><input type="month" value="${safeCompletionDate}" onchange="updateCompletionDate('${subjectIdJs}', this.value)"></div>
+                                <div class="stk-field"><label>Sección</label><input type="text" placeholder="Ej: 01" value="${safeSection}" data-change="updateSubjectExtra" data-args="${actionArgs(s.id, 'section', '$value')}"></div>
+                                <div class="stk-field"><label>Aula</label><input type="text" placeholder="Ej: A-101" value="${safeClassroom}" data-change="updateSubjectExtra" data-args="${actionArgs(s.id, 'classroom', '$value')}"></div>
+                                <div class="stk-field stk-field--wide"><label>Maestro</label><input type="text" placeholder="Nombre del profesor" value="${safeTeacher}" data-change="updateSubjectExtra" data-args="${actionArgs(s.id, 'teacher', '$value')}"></div>
+                                <div class="stk-field"><label>Retiros</label><input type="number" min="0" max="10" placeholder="0" value="${escapeHtml(st.attempts?.length || 0)}" data-change="updateAttempts" data-args="${actionArgs(s.id, '$value')}"></div>
+                                <div class="stk-field"><label>Fecha</label><input type="month" value="${safeCompletionDate}" data-change="updateCompletionDate" data-args="${actionArgs(s.id, '$value')}"></div>
                             </div>
                         </div>
                     </div>
@@ -508,7 +510,7 @@
             const safeName = escapeHtml(subject.name || 'Materia');
             const safeCode = escapeHtml(subject.code || subject.id || '');
             const safeMeta = escapeHtml(meta || `${subject.credits || 0} créditos`);
-            return `<button onclick="switchView('subjects')" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div><div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeMeta}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
+            return `<button data-action="switchView" data-args='["subjects"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div><div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeMeta}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
         }
 
         function renderHomeRecommendationRow(subject) {
@@ -521,7 +523,7 @@
                 : recommendation.category === 'close-period' ? 'bg-blue-500'
                     : recommendation.category === 'light-load' ? 'bg-amber-500'
                         : 'bg-slate-500';
-            return `<button onclick="handleHomeAction('pending')" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
+            return `<button data-action="handleHomeAction" data-args='["pending"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
         }
 
         function renderHomeEmpty(icon, title, detail) {
@@ -630,7 +632,7 @@
                 if (gpa4) titleContainer.appendChild(createPeriodBadge('star', gpa4, 'ml-1'));
             }
             // Update Badge Color
-            const badge = document.querySelector(`div[onclick="togglePeriod(${i})"] .shadow-lg`);
+            const badge = document.querySelector(`div[data-action="togglePeriod" data-args="${actionArgs(i)}"] .shadow-lg`);
             if (badge) {
                 badge.className = `shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${getPeriodStatusColor(currentCurriculum.periods[i])} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500`;
             }
@@ -653,7 +655,7 @@
         function updateToggleAllButton() {
             if (!currentCurriculum) return;
             const btnText = document.getElementById('toggle-all-text');
-            const btnIcon = document.querySelector('button[onclick="toggleAllPeriods()"] i');
+            const btnIcon = document.querySelector('button[data-action="toggleAllPeriods"] i');
             const allCollapsed = APP_CONFIG.collapsedPeriods.size === currentCurriculum.periods.length;
 
             if (allCollapsed) {
@@ -855,12 +857,12 @@
                 const safeColor = sanitizeCssClasses(g.color);
                 return `
                 <div class="flex items-center gap-2 mb-2">
-                    <input type="number" step="any" value="${safeMin}" onchange="updateGradeRange(${i}, 'min', this.value)" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
+                    <input type="number" step="any" value="${safeMin}" data-change="updateGradeRange" data-args="${actionArgs(i, 'min', '$value')}" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
                     <span class="text-xs text-slate-400">→</span>
-                    <input type="text" value="${safeLabel}" onchange="updateGradeRange(${i}, 'label', this.value)" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${safeColor}" placeholder="Letra">
+                    <input type="text" value="${safeLabel}" data-change="updateGradeRange" data-args="${actionArgs(i, 'label', '$value')}" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${safeColor}" placeholder="Letra">
                     <span class="text-xs text-slate-400">=</span>
-                    <input type="number" step="0.1" value="${safePoints}" onchange="updateGradeRange(${i}, 'points', this.value)" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
-                    <button onclick="removeGradeRange(${i})" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
+                    <input type="number" step="0.1" value="${safePoints}" data-change="updateGradeRange" data-args="${actionArgs(i, 'points', '$value')}" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
+                    <button data-action="removeGradeRange" data-args="${actionArgs(i)}" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
                 </div>
             `;
             }).join('');
@@ -1132,6 +1134,43 @@
             renderScheduleView();
             showToast('Bloque eliminado', 'info');
         }
+
+        // ── CSP-safe event delegation ──────────────────────────────────────
+        // Inline on* handlers require script-src 'unsafe-inline'. Instead, elements
+        // declare data-action / data-change (+ optional data-args JSON) and a single
+        // delegated listener dispatches here. Arg tokens resolved at runtime:
+        //   "$value" -> element value, "$this" -> element, "$event" -> the event.
+        // data-action-self fires only when the event originated on the element
+        // itself (modal backdrops). The action "stop" is a no-op shield: because
+        // closest() picks the nearest [data-action], it stops an ancestor action
+        // from firing without needing stopPropagation.
+        function resolveActionArgs(el, event) {
+            const raw = el.getAttribute('data-args');
+            if (!raw) return [];
+            let parsed;
+            try { parsed = JSON.parse(raw); } catch { return []; }
+            if (!Array.isArray(parsed)) return [];
+            return parsed.map((arg) => arg === '$value' ? el.value : arg === '$this' ? el : arg === '$event' ? event : arg);
+        }
+        function runAction(name, el, event) {
+            if (!name || name === 'stop') return;
+            const fn = window[name];
+            if (typeof fn === 'function') fn(...resolveActionArgs(el, event));
+        }
+        document.addEventListener('click', (event) => {
+            const el = event.target.closest('[data-action], [data-action-self]');
+            if (!el) return;
+            if (el.hasAttribute('data-action-self')) {
+                if (event.target === el) runAction(el.getAttribute('data-action-self'), el, event);
+                return;
+            }
+            runAction(el.getAttribute('data-action'), el, event);
+        });
+        document.addEventListener('change', (event) => {
+            const el = event.target.closest('[data-change]');
+            if (!el || el !== event.target) return;
+            runAction(el.getAttribute('data-change'), el, event);
+        });
 
         window.addEventListener('DOMContentLoaded', initApp);
         window.addEventListener('load', registerServiceWorker);

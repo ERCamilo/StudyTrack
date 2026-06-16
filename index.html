@@ -638,7 +638,7 @@
                     </select>
                 </div>
 
-                <button id="welcome-start-btn" onclick="startAppFromWelcome()"
+                <button id="welcome-start-btn" data-action="startAppFromWelcome"
                     class="stk-btn-primary w-full py-4 text-lg opacity-50 pointer-events-none">
                     Comenzar <i class="fas fa-arrow-right ml-2"></i>
                 </button>
@@ -661,14 +661,14 @@
             </div>
         </div>
         <nav class="flex flex-col gap-1" aria-label="Navegación principal">
-            <button onclick="switchView('home')" id="side-home" class="side-tab active"><i class="fas fa-house"></i><span>Inicio</span></button>
-            <button onclick="switchView('subjects')" id="side-subjects" class="side-tab"><i class="fas fa-book"></i><span>Materias</span></button>
-            <button onclick="switchView('schedule')" id="side-schedule" class="side-tab"><i class="fas fa-calendar-alt"></i><span>Horario</span></button>
-            <button onclick="showMobileProgress()" id="side-progress" class="side-tab"><i class="fas fa-chart-pie"></i><span>Progreso</span></button>
-            <button onclick="openMobileMore()" id="side-more" class="side-tab"><i class="fas fa-ellipsis-h"></i><span>Más</span></button>
+            <button data-action="switchView" data-args='["home"]' id="side-home" class="side-tab active"><i class="fas fa-house"></i><span>Inicio</span></button>
+            <button data-action="switchView" data-args='["subjects"]' id="side-subjects" class="side-tab"><i class="fas fa-book"></i><span>Materias</span></button>
+            <button data-action="switchView" data-args='["schedule"]' id="side-schedule" class="side-tab"><i class="fas fa-calendar-alt"></i><span>Horario</span></button>
+            <button data-action="showMobileProgress" id="side-progress" class="side-tab"><i class="fas fa-chart-pie"></i><span>Progreso</span></button>
+            <button data-action="openMobileMore" id="side-more" class="side-tab"><i class="fas fa-ellipsis-h"></i><span>Más</span></button>
         </nav>
         <div class="mt-auto">
-            <button onclick="openSettings()" class="side-tab"><i class="fas fa-cog"></i><span>Configuración</span></button>
+            <button data-action="openSettings" class="side-tab"><i class="fas fa-cog"></i><span>Configuración</span></button>
         </div>
     </aside>
 
@@ -692,15 +692,15 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2">
-                    <button onclick="toggleDarkMode()" class="stk-icon-btn" aria-label="Cambiar tema"><i
+                    <button data-action="toggleDarkMode" class="stk-icon-btn" aria-label="Cambiar tema"><i
                             id="theme-icon" class="fas fa-moon text-sm"></i></button>
                     <!-- Google Account / Sync Button -->
-                    <button id="auth-header-btn" onclick="openGoogleSyncSettings()"
+                    <button id="auth-header-btn" data-action="openGoogleSyncSettings"
                         class="stk-icon-btn overflow-hidden" style="border-radius:50%"
                         title="Cuenta de Google y Sincronización">
                         <i id="auth-header-icon" class="fas fa-user text-sm"></i>
                     </button>
-                    <button onclick="openSettings()" class="stk-icon-btn" aria-label="Configuración"><i
+                    <button data-action="openSettings" class="stk-icon-btn" aria-label="Configuración"><i
                             class="fas fa-cog text-sm"></i></button>
                 </div>
             </div>
@@ -782,7 +782,7 @@
                     Sin conexion &mdash; tus datos se guardan localmente
                 </div>
             </div>
-            <button id="home-next-action" onclick="handleHomeAction('subjects')"
+            <button id="home-next-action" data-action="handleHomeAction" data-args='["subjects"]'
                 class="stk-surface-card stk-press p-4 sm:p-5 text-left">
                 <div class="flex items-center gap-3">
                     <div id="home-action-icon" class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
@@ -799,21 +799,21 @@
         </section>
 
         <section class="grid gap-3 sm:grid-cols-3 sm:gap-4">
-            <button onclick="handleHomeAction('enrolled')" class="stk-surface-card stk-press p-4 text-left">
+            <button data-action="handleHomeAction" data-args='["enrolled"]' class="stk-surface-card stk-press p-4 text-left">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-slate-500 dark:text-slate-400">Materias inscritas</div>
                     <i class="fas fa-book-open text-emerald-500"></i>
                 </div>
                 <div id="home-enrolled-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0</div>
             </button>
-            <button onclick="switchView('schedule')" class="stk-surface-card stk-press p-4 text-left">
+            <button data-action="switchView" data-args='["schedule"]' class="stk-surface-card stk-press p-4 text-left">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-slate-500 dark:text-slate-400">Horario semanal</div>
                     <i class="fas fa-calendar-week text-blue-500"></i>
                 </div>
                 <div id="home-schedule-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0/0</div>
             </button>
-            <button onclick="handleHomeAction('pending')" class="stk-surface-card stk-press p-4 text-left">
+            <button data-action="handleHomeAction" data-args='["pending"]' class="stk-surface-card stk-press p-4 text-left">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-slate-500 dark:text-slate-400">Disponibles</div>
                     <i class="fas fa-route text-amber-500"></i>
@@ -826,7 +826,7 @@
             <div class="stk-surface-card overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                     <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
-                    <button onclick="handleHomeAction('pending')" class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver materias</button>
+                    <button data-action="handleHomeAction" data-args='["pending"]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver materias</button>
                 </div>
                 <div id="home-recommended-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
             </div>
@@ -834,7 +834,7 @@
             <div class="stk-surface-card overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                     <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-calendar-check text-blue-500"></i> En curso y pendientes</h3>
-                    <button onclick="switchView('schedule')" class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Horario</button>
+                    <button data-action="switchView" data-args='["schedule"]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Horario</button>
                 </div>
                 <div id="home-enrolled-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
             </div>
@@ -884,19 +884,19 @@
                     <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
                         <i class="fas fa-calendar-check text-primary-500"></i> Hoy en tu carrera
                     </h3>
-                    <button onclick="setFilter('all')" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Ver todo</button>
+                    <button data-action="setFilter" data-args='["all"]' class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Ver todo</button>
                 </div>
-                <button onclick="setFilter('completed')" class="w-full flex items-center gap-3 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                <button data-action="setFilter" data-args='["completed"]' class="w-full flex items-center gap-3 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
                     <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-800 dark:text-white">Agregar nota pendiente</div><div class="text-[11px] text-slate-500 dark:text-slate-400"><span id="mobile-missing-grades-text">0 materias aprobadas sin nota</span></div></div>
                     <span id="mobile-missing-grades-count" class="min-w-8 text-center rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 text-xs font-black">0</span>
                 </button>
-                <button onclick="setFilter('pending')" class="w-full flex items-center gap-3 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                <button data-action="setFilter" data-args='["pending"]' class="w-full flex items-center gap-3 px-3 py-3 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
                     <div class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0"><i class="fas fa-calendar-plus"></i></div>
                     <div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-800 dark:text-white">Inscribir materia disponible</div><div class="text-[11px] text-slate-500 dark:text-slate-400"><span id="mobile-available-text">Puedes inscribir 0 materias</span></div></div>
                     <span id="mobile-available-count" class="min-w-8 text-center rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-2 py-1 text-xs font-black">0</span>
                 </button>
-                <button onclick="setFilter('pending')" class="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                <button data-action="setFilter" data-args='["pending"]' class="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
                     <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0"><i class="fas fa-lock"></i></div>
                     <div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-800 dark:text-white">Revisar requisito</div><div class="text-[11px] text-slate-500 dark:text-slate-400"><span id="mobile-blocked-text">0 bloqueos por requisitos</span></div></div>
                     <span id="mobile-blocked-count" class="min-w-8 text-center rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 text-xs font-black">0</span>
@@ -912,19 +912,19 @@
 
         <div id="filter-bar" class="py-0 sm:py-1">
             <div class="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
-                <button onclick="setFilter('all')" id="filter-all"
+                <button data-action="setFilter" data-args='["all"]' id="filter-all"
                     class="filter-btn active shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Todas <span id="count-all" class="ml-1 opacity-70">0</span>
                 </button>
-                <button onclick="setFilter('enrolled')" id="filter-enrolled"
+                <button data-action="setFilter" data-args='["enrolled"]' id="filter-enrolled"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Inscritas <span id="count-enrolled" class="ml-1 opacity-70">0</span>
                 </button>
-                <button onclick="setFilter('completed')" id="filter-completed"
+                <button data-action="setFilter" data-args='["completed"]' id="filter-completed"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Cursadas <span id="count-completed" class="ml-1 opacity-70">0</span>
                 </button>
-                <button onclick="setFilter('pending')" id="filter-pending"
+                <button data-action="setFilter" data-args='["pending"]' id="filter-pending"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Faltantes <span id="count-pending" class="ml-1 opacity-70">0</span>
                 </button>
@@ -937,7 +937,7 @@
                 class="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 dark:text-white text-xs sm:text-sm flex items-center gap-2"><i
                         class="fas fa-award text-amber-500"></i> Requisitos de Grado</h3>
-                <button onclick="openSettings()"
+                <button data-action="openSettings"
                     class="text-[10px] sm:text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline">Editar</button>
             </div>
             <div class="p-3 sm:p-4" id="requirements-list-main"></div>
@@ -946,7 +946,7 @@
         <div class="flex items-center justify-between px-1 sm:px-2">
             <h3 class="text-xs sm:text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                 Periodos Académicos</h3>
-            <button onclick="toggleAllPeriods()"
+            <button data-action="toggleAllPeriods"
                 class="text-[10px] sm:text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                 <i class="fas fa-expand-alt"></i> <span id="toggle-all-text">Contraer Todo</span>
             </button>
@@ -995,10 +995,10 @@
                         <i class="fas fa-calendar-week text-primary-500"></i> Horario Semanal
                     </h3>
                     <div class="flex p-1 gap-1" style="background:var(--stk-surface-2);border-radius:var(--stk-radius-sm)">
-                        <button onclick="toggleScheduleView('list')" id="view-btn-list"
+                        <button data-action="toggleScheduleView" data-args='["list"]' id="view-btn-list"
                             class="px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all"><i
                                 class="fas fa-list mr-1"></i> Lista</button>
-                        <button onclick="toggleScheduleView('grid')" id="view-btn-grid"
+                        <button data-action="toggleScheduleView" data-args='["grid"]' id="view-btn-grid"
                             class="px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all"><i
                                 class="fas fa-th mr-1"></i> Tabla</button>
                     </div>
@@ -1034,12 +1034,12 @@
     <!-- SCHEDULE MODAL -->
     <div id="schedule-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center"
-        onclick="if(event.target === this) closeScheduleModal()">
+        data-action-self="closeScheduleModal">
         <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover)"
             class="w-full sm:w-[400px] rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up">
             <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid var(--stk-hairline)">
                 <h2 class="text-lg font-bold text-slate-900 dark:text-white">Agregar Horario</h2>
-                <button onclick="closeScheduleModal()" class="stk-icon-btn" aria-label="Cerrar">
+                <button data-action="closeScheduleModal" class="stk-icon-btn" aria-label="Cerrar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1082,7 +1082,7 @@
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     <span id="conflict-message"></span>
                 </div>
-                <button id="schedule-save-btn" onclick="saveScheduleBlock()"
+                <button id="schedule-save-btn" data-action="saveScheduleBlock"
                     class="stk-btn-primary w-full py-3">
                     <i class="fas fa-plus mr-2"></i> Agregar al Horario
                 </button>
@@ -1093,12 +1093,12 @@
     <!-- DETAILS MODAL (Zoom/Action) -->
     <div id="schedule-details-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4 px-4 opacity-0 transition-opacity duration-200"
-        onclick="if(event.target === this) closeDetailsModal()">
+        data-action-self="closeDetailsModal">
         <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl transform scale-95 transition-transform duration-200"
             id="details-modal-content">
             <div id="details-header"
                 class="px-6 py-6 text-white bg-gradient-to-br from-slate-700 to-slate-800 relative">
-                <button onclick="closeDetailsModal()"
+                <button data-action="closeDetailsModal"
                     class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition-all backdrop-blur-sm">
                     <i class="fas fa-times text-sm"></i>
                 </button>
@@ -1147,7 +1147,7 @@
     </div>
 
     <!-- SCROLL TO TOP BUTTON -->
-    <button id="scroll-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+    <button id="scroll-top-btn" data-action="scrollToTop"
         style="box-shadow:var(--stk-shadow-hover)"
         class="stk-press fixed bottom-20 right-4 w-12 h-12 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none">
         <i class="fas fa-arrow-up text-lg"></i>
@@ -1157,27 +1157,27 @@
     <nav aria-label="Navegación principal móvil"
         class="stk-tabbar fixed bottom-0 left-0 right-0 z-50 safe-area-bottom lg:hidden">
         <div class="max-w-lg mx-auto grid grid-cols-5 items-center gap-1 py-2 px-3">
-            <button onclick="switchView('home')" id="nav-home"
+            <button data-action="switchView" data-args='["home"]' id="nav-home"
                 class="nav-tab active flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-house text-lg"></i>
                 <span class="text-[10px] font-bold">Inicio</span>
             </button>
-            <button onclick="switchView('subjects')" id="nav-subjects"
+            <button data-action="switchView" data-args='["subjects"]' id="nav-subjects"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-book text-lg"></i>
                 <span class="text-[10px] font-bold">Materias</span>
             </button>
-            <button onclick="switchView('schedule')" id="nav-schedule"
+            <button data-action="switchView" data-args='["schedule"]' id="nav-schedule"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-calendar-alt text-lg"></i>
                 <span class="text-[10px] font-bold">Horario</span>
             </button>
-            <button onclick="showMobileProgress()" id="nav-progress"
+            <button data-action="showMobileProgress" id="nav-progress"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-chart-pie text-lg"></i>
                 <span class="text-[10px] font-bold">Progreso</span>
             </button>
-            <button onclick="openMobileMore()" id="nav-more"
+            <button data-action="openMobileMore" id="nav-more"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
                 <i class="fas fa-ellipsis-h text-lg"></i>
                 <span class="text-[10px] font-bold">Más</span>
@@ -1188,24 +1188,24 @@
     <!-- SETTINGS MODAL -->
     <div id="settings-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity"
-        onclick="if(event.target === this) closeSettings()">
+        data-action-self="closeSettings">
         <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover)"
             class="w-full sm:w-[500px] max-h-[90vh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
             <div style="background:var(--stk-surface);border-bottom:1px solid var(--stk-hairline)"
                 class="sticky top-0 px-6 py-5 flex items-center justify-between shrink-0 z-10">
                 <h2 class="text-xl font-bold text-slate-900 dark:text-white">Configuración</h2>
-                <button onclick="closeSettings()" class="stk-icon-btn" aria-label="Cerrar"><i
+                <button data-action="closeSettings" class="stk-icon-btn" aria-label="Cerrar"><i
                         class="fas fa-times"></i></button>
             </div>
 
             <div class="px-4 sm:px-6 pt-3 pb-0 border-b border-slate-100 dark:border-slate-800 overflow-x-auto shrink-0">
                 <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
-                    <button onclick="scrollSettingsSection('settings-section-career')" class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
-                    <button onclick="scrollSettingsSection('settings-section-preferences')" class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
-                    <button onclick="scrollSettingsSection('settings-section-requirements')" class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
-                    <button onclick="scrollSettingsSection('settings-section-grades')" class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
-                    <button onclick="scrollSettingsSection('settings-section-data')" class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
-                    <button onclick="scrollSettingsSection('settings-section-cloud')" class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-career"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-requirements"]' class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-grades"]' class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-data"]' class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-cloud"]' class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
                 </div>
             </div>
 
@@ -1217,7 +1217,7 @@
                             class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 flex items-center gap-2">
                             <i class="fas fa-book"></i> Cambiar Carrera
                         </h3>
-                        <button onclick="updateLibraryFromCloud()"
+                        <button data-action="updateLibraryFromCloud"
                             class="text-xs text-primary-500 font-bold hover:underline"><i
                                 class="fas fa-sync-alt mr-1"></i> Actualizar</button>
                     </div>
@@ -1247,7 +1247,7 @@
                                 <option value="" disabled selected>Elige universidad primero...</option>
                             </select>
                         </div>
-                        <button id="settings-load-btn" onclick="startAppFromSettings()"
+                        <button id="settings-load-btn" data-action="startAppFromSettings"
                             class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-sm shadow-md transition-all opacity-50 pointer-events-none">
                             Cargar Carrera Seleccionada
                         </button>
@@ -1259,15 +1259,15 @@
                             class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-2 border border-dashed border-slate-300 dark:border-slate-600 text-slate-500">
                             <i class="fas fa-file-import"></i> Importar Archivo JSON
                         </label>
-                        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(this)">
+                        <input type="file" id="import-file" class="hidden" accept=".json" data-change="importData" data-args='["$this"]'>
 
-                        <button onclick="toggleCustomJson()"
+                        <button data-action="toggleCustomJson"
                             class="mt-3 text-xs text-primary-600 font-bold flex items-center gap-1 hover:underline w-full justify-center"><i
                                 class="fas fa-code"></i> Avanzado: JSON Manual</button>
                         <div id="custom-json-area" class="hidden mt-3">
                             <textarea id="custom-json-input" placeholder='Pegar JSON aquí...'
                                 class="w-full h-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs font-mono outline-none"></textarea>
-                            <button onclick="loadCustomJSON()"
+                            <button data-action="loadCustomJSON"
                                 class="mt-2 w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold text-xs">Cargar</button>
                         </div>
                     </div>
@@ -1284,12 +1284,12 @@
                         <div id="new-req-form" class="hidden flex gap-2 mb-2 animate-fade-in">
                             <input type="text" id="new-req-name" placeholder="Nombre (ej. Tesis)"
                                 class="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none">
-                            <button onclick="confirmAddRequirement()"
+                            <button data-action="confirmAddRequirement"
                                 class="px-3 bg-primary-600 text-white rounded-lg"><i class="fas fa-check"></i></button>
-                            <button onclick="toggleAddReqForm()" class="px-3 bg-slate-200 text-slate-500 rounded-lg"><i
+                            <button data-action="toggleAddReqForm" class="px-3 bg-slate-200 text-slate-500 rounded-lg"><i
                                     class="fas fa-times"></i></button>
                         </div>
-                        <button onclick="toggleAddReqForm()" id="add-req-btn"
+                        <button data-action="toggleAddReqForm" id="add-req-btn"
                             class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary-500 hover:border-primary-200 font-bold text-sm flex items-center justify-center gap-2"><i
                                 class="fas fa-plus"></i> Agregar Requisito</button>
                     </div>
@@ -1298,13 +1298,13 @@
                     <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
                             class="fas fa-shield-halved"></i> Datos</h3>
                     <div class="space-y-2">
-                        <button onclick="exportProgress()"
+                        <button data-action="exportProgress"
                             class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
                                 class="fas fa-download mr-2 text-primary-500"></i> Exportar / Compartir</button>
-                        <button onclick="resetProgress()"
+                        <button data-action="resetProgress"
                             class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-orange-600"><i
                                 class="fas fa-rotate-left mr-2"></i> Reiniciar Notas</button>
-                        <button onclick="deleteAllData()"
+                        <button data-action="deleteAllData"
                             class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600"><i
                                 class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
                     </div>
@@ -1325,7 +1325,7 @@
                                 <p class="text-[11px] text-slate-400 dark:text-slate-500">Marcar materias sin cumplir
                                     requisitos (⚠️ amarillo)</p>
                             </div>
-                            <div id="toggle-skip-prereqs" onclick="toggleSkipPrerequisites()"
+                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites"
                                 class="toggle-switch active shrink-0"></div>
                         </div>
 
@@ -1338,7 +1338,7 @@
                                     mismo tiempo</p>
                             </div>
                             <input type="number" id="enrollment-limit-input" min="1" max="20" value="10"
-                                onchange="updateEnrollmentLimit(this.value)"
+                                data-change="updateEnrollmentLimit" data-args='["$value"]'
                                 class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
                     </div>
@@ -1355,7 +1355,7 @@
                         <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-3">Define los rangos para asignar
                             letras a tus notas.</p>
                         <div id="grade-scale-settings-list" class="space-y-2 mb-3"></div>
-                        <button onclick="addGradeRange()"
+                        <button data-action="addGradeRange"
                             class="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                             <i class="fas fa-plus mr-1"></i> Agregar Rango
                         </button>
@@ -1368,7 +1368,7 @@
                                     materia se marca como aprobada</p>
                             </div>
                             <input type="number" id="passing-grade-input" min="0" max="100" step="any" value="70"
-                                onchange="updatePassingGrade(this.value)"
+                                data-change="updatePassingGrade" data-args='["$value"]'
                                 class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
                     </div>
@@ -1397,7 +1397,7 @@
                                     placeholder='{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'
                                     class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary-500"></textarea>
                             </div>
-                            <button onclick="saveFirebaseConfig()"
+                            <button data-action="saveFirebaseConfig"
                                 class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs shadow transition-all">
                                 Guardar y Conectar
                             </button>
@@ -1429,7 +1429,7 @@
                             </div>
 
                             <div class="flex gap-2">
-                                <button id="firebase-login-btn" onclick="loginWithGoogle()"
+                                <button id="firebase-login-btn" data-action="loginWithGoogle"
                                     class="flex-1 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.72 5.72 0 0 1-2.48 3.76v3.12h3.99c2.33-2.14 3.54-5.3 3.54-8.73Z"/>
@@ -1439,11 +1439,11 @@
                                     </svg>
                                     Iniciar sesión con Google
                                 </button>
-                                <button id="firebase-sync-now-btn" onclick="forceSyncCloud()"
+                                <button id="firebase-sync-now-btn" data-action="forceSyncCloud"
                                     class="hidden px-3 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all">
                                     <i class="fas fa-sync-alt"></i> Sincronizar
                                 </button>
-                                <button id="firebase-logout-btn" onclick="logoutFirebase()"
+                                <button id="firebase-logout-btn" data-action="logoutFirebase"
                                     class="hidden px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg font-bold text-xs transition-all">
                                     Cerrar Sesión
                                 </button>
@@ -1452,7 +1452,7 @@
 
                         <!-- Reset Firebase credentials option -->
                         <div id="firebase-reset-box" class="hidden text-right border-t border-slate-100 dark:border-slate-800 pt-2">
-                            <button onclick="clearFirebaseConfig()" class="text-[10px] text-red-500 hover:underline font-bold">
+                            <button data-action="clearFirebaseConfig" class="text-[10px] text-red-500 hover:underline font-bold">
                                 <i class="fas fa-trash-alt mr-1"></i> Borrar credenciales de Firebase
                             </button>
                         </div>
@@ -1461,7 +1461,7 @@
 
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
-                    <button onclick="closeSettings()"
+                    <button data-action="closeSettings"
                         class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-base">
                         <i class="fas fa-times mr-2"></i> Cerrar Configuración
                     </button>
