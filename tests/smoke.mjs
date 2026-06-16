@@ -59,6 +59,7 @@ assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./src/insights.js'));
+assert.ok(serviceWorker.includes('./src/nfc.js'));
 assert.ok(serviceWorker.includes('./src/firebase-sync.js'));
 assert.ok(serviceWorker.includes('./src/app.js'), 'Service worker should cache the external controller');
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
@@ -74,7 +75,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/firebase-sync.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/nfc.js', 'src/firebase-sync.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -141,6 +142,8 @@ assert.ok(code.includes('StudyTrackRequirements.addRequirement(currentCurriculum
 assert.ok(code.includes('<script src="./src/schedule.js"></script>'));
 assert.ok(code.includes('<script src="./src/academics.js"></script>'));
 assert.ok(code.includes('<script src="./src/insights.js"></script>'));
+assert.ok(code.includes('<script src="./src/nfc.js"></script>'), 'index.html must load the NFC student-card module');
+assert.ok(code.includes('id="settings-section-share"'), 'Settings should expose the NFC student-card section');
 assert.ok(code.includes('id="home-view"'));
 assert.ok(code.includes('id="subjects-view"'));
 assert.ok(code.includes('StudyTrackInsights.buildHomeInsights'));
@@ -234,7 +237,7 @@ assert.ok(appJs.includes("document.addEventListener('change'"), 'A delegated cha
 const allJs = [
   'src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js',
   'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js',
-  'src/insights.js', 'src/firebase-sync.js', 'src/app.js'
+  'src/insights.js', 'src/nfc.js', 'src/firebase-sync.js', 'src/app.js'
 ].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 const declaredActions = new Set();
 for (const file of delegationFiles) {

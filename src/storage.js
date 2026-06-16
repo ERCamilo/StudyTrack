@@ -10,7 +10,8 @@
     gradeScale: 'grade_scale',
     passingGrade: 'passing_grade',
     schedule: 'studytrack_schedule_v1',
-    scheduleViewType: 'schedule_view_type'
+    scheduleViewType: 'schedule_view_type',
+    studentName: 'studytrack_student_name'
   };
 
   function getStorage() {

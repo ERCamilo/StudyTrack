@@ -874,7 +874,7 @@
             const sideId = activeId.replace('nav-', 'side-');
             document.querySelectorAll('.side-tab').forEach(btn => btn.classList.toggle('active', btn.id === sideId));
         }
-        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; document.getElementById('settings-modal').classList.remove('hidden'); }
+        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
@@ -928,6 +928,206 @@
         function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
         function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Cargar?')) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
         function exportProgress() { const b = new Blob([JSON.stringify({ curriculum: currentCurriculum, progress: userProgress }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup.json'; a.click(); }
+
+        // ── NFC Student Card (Carné por NFC) ───────────────────────────────
+        // Adapter layer between the browser (NDEFReader, Date, DOM) and the pure
+        // StudyTrackNfc model. The pure module owns the card shape; these handlers
+        // own everything impure: feature detection, runtime timestamps, NFC I/O,
+        // and DOM rendering. They are top-level declarations so the CSP-safe
+        // delegated dispatcher can resolve them via window[name].
+        function nfcSupported() { return typeof window !== 'undefined' && 'NDEFReader' in window; }
+
+        function getStudentName() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentName) || ''; }
+
+        function setStudentName(value) { StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentName, String(value || '')); }
+
+        function countPeriodsTaken() {
+            if (!currentCurriculum) return 0;
+            return (currentCurriculum.periods || []).filter(p => (p.subjects || []).some(s => userProgress[s.id]?.status === 'approved')).length;
+        }
+
+        function collectStudentCard() {
+            const summary = StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress, { getGradePoints, getGradeLabel });
+            const metadata = currentCurriculum?.metadata || {};
+            const input = {
+                name: getStudentName(),
+                institution: metadata.institution,
+                career: metadata.career_name,
+                degree: metadata.degree,
+                periodsTaken: countPeriodsTaken(),
+                subjectsApproved: summary.completed,
+                subjectsTotal: summary.total,
+                creditsEarned: summary.earned,
+                creditsTotal: metadata.total_credits ?? null,
+                progress: summary.progress,
+                average: summary.globalAvg,
+                gpa: summary.globalGPA,
+                // new Date() is fine here: this is the browser runtime, not the
+                // pure module. The model itself never calls Date.
+                generatedAt: new Date().toISOString()
+            };
+            return StudyTrackNfc.buildStudentCard(input);
+        }
+
+        // Lightweight dismissible status overlay used while we wait for the tag.
+        // Returns a function that removes the overlay so callers can close it on
+        // success, error, or cancel.
+        function showNfcStatusModal({ icon, title, message }) {
+            const modalId = 'nfc-status-modal';
+            const existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4';
+            modal.id = modalId;
+
+            const panel = document.createElement('div');
+            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up text-center';
+
+            const spinner = document.createElement('div');
+            spinner.className = 'w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center bg-primary-500/10 text-primary-500 animate-pulse';
+            const iconEl = document.createElement('i');
+            iconEl.className = `${icon} text-2xl`;
+            spinner.appendChild(iconEl);
+
+            const titleEl = document.createElement('h3');
+            titleEl.className = 'text-lg font-extrabold text-slate-900 dark:text-white mb-2';
+            titleEl.textContent = title;
+
+            const messageEl = document.createElement('p');
+            messageEl.className = 'text-sm text-slate-500 dark:text-slate-400 mb-5 leading-normal';
+            messageEl.textContent = message;
+
+            const close = () => modal.remove();
+
+            const cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.className = 'w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors';
+            cancel.textContent = 'Cancelar';
+            cancel.onclick = close;
+
+            panel.append(spinner, titleEl, messageEl, cancel);
+            modal.appendChild(panel);
+            document.body.appendChild(modal);
+            return close;
+        }
+
+        function shareStudentCardViaNfc() {
+            if (!currentCurriculum) { showToast('Carga un pensum primero', 'error'); return; }
+            if (!nfcSupported()) { showToast('NFC no disponible (requiere Chrome en Android)', 'error'); return; }
+            const card = collectStudentCard();
+            const text = StudyTrackNfc.serializeCard(card);
+            if (!StudyTrackNfc.fitsTag(text)) { showToast('El carné no entra en la etiqueta', 'error'); return; }
+
+            const closeModal = showNfcStatusModal({
+                icon: 'fas fa-id-card',
+                title: 'Escribiendo carné',
+                message: 'Acerca tu teléfono a la etiqueta NFC y mantenlo quieto.'
+            });
+
+            const reader = new NDEFReader();
+            reader.write({ records: [{ recordType: 'mime', mediaType: StudyTrackNfc.MIME_TYPE, data: new TextEncoder().encode(text) }] })
+                .then(() => { closeModal(); showToast('Carné escrito en la etiqueta', 'success'); })
+                .catch(err => { closeModal(); showToast('No se pudo escribir: ' + err.message, 'error'); });
+        }
+
+        function readStudentCardViaNfc() {
+            if (!nfcSupported()) { showToast('NFC no disponible (requiere Chrome en Android)', 'error'); return; }
+
+            const closeModal = showNfcStatusModal({
+                icon: 'fas fa-wifi',
+                title: 'Leyendo carné',
+                message: 'Acerca el teléfono a la etiqueta NFC para leer el carné.'
+            });
+
+            const reader = new NDEFReader();
+            reader.scan().then(() => {
+                reader.onreadingerror = () => { closeModal(); showToast('Error al leer la etiqueta', 'error'); };
+                reader.onreading = (event) => {
+                    for (const record of event.message.records) {
+                        if (record.recordType === 'mime' && record.mediaType === StudyTrackNfc.MIME_TYPE) {
+                            const text = new TextDecoder().decode(record.data);
+                            const parsed = StudyTrackNfc.parseCard(text);
+                            closeModal();
+                            if (parsed) { showStudentCardModal(parsed); }
+                            else { showToast('Etiqueta no válida', 'error'); }
+                            return;
+                        }
+                    }
+                    closeModal();
+                    showToast('La etiqueta no contiene un carné StudyTrack', 'error');
+                };
+            }).catch(err => { closeModal(); showToast('No se pudo iniciar el lector: ' + err.message, 'error'); });
+        }
+
+        function showStudentCardModal(card) {
+            const modalId = 'nfc-card-modal';
+            const existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            // textContent everywhere: card fields come from an EXTERNAL tag and
+            // must never be interpolated as HTML. '—' marks unknown values.
+            const dash = '—';
+            const text = (value) => (value === null || value === undefined || value === '') ? dash : String(value);
+            const num = (value) => (value === null || value === undefined) ? dash : String(value);
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4';
+            modal.id = modalId;
+
+            const panel = document.createElement('div');
+            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up';
+
+            const header = document.createElement('div');
+            header.className = 'flex items-center gap-3 text-primary-500 mb-4';
+            const headerIcon = document.createElement('i');
+            headerIcon.className = 'fas fa-id-card text-2xl';
+            const headerTitle = document.createElement('h3');
+            headerTitle.className = 'text-lg font-extrabold text-slate-900 dark:text-white';
+            headerTitle.textContent = 'Carné de estudiante';
+            header.append(headerIcon, headerTitle);
+
+            const list = document.createElement('div');
+            list.className = 'space-y-2 mb-6';
+
+            const addRow = (label, value) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-baseline justify-between gap-3 text-sm border-b border-slate-100 dark:border-slate-800 pb-2';
+                const labelEl = document.createElement('span');
+                labelEl.className = 'text-slate-400 dark:text-slate-500 font-medium shrink-0';
+                labelEl.textContent = label;
+                const valueEl = document.createElement('span');
+                valueEl.className = 'font-bold text-slate-700 dark:text-slate-200 text-right';
+                valueEl.textContent = value;
+                row.append(labelEl, valueEl);
+                list.appendChild(row);
+            };
+
+            const credits = (card.creditsTotal === null || card.creditsTotal === undefined)
+                ? text(card.creditsEarned)
+                : `${num(card.creditsEarned)} / ${num(card.creditsTotal)}`;
+
+            addRow('Nombre', text(card.name));
+            addRow('Institución', text(card.institution));
+            addRow('Carrera', text(card.career));
+            addRow('Título', text(card.degree));
+            addRow('Períodos cursados', num(card.periodsTaken));
+            addRow('Materias aprobadas', `${num(card.subjectsApproved)} / ${num(card.subjectsTotal)}`);
+            addRow('Créditos', credits);
+            addRow('Avance %', card.progress === null || card.progress === undefined ? dash : `${card.progress}%`);
+            addRow('Promedio', num(card.average));
+            addRow('Índice', num(card.gpa));
+
+            const footer = document.createElement('button');
+            footer.type = 'button';
+            footer.className = 'w-full py-2.5 bg-primary-500 text-white font-bold text-sm rounded-lg hover:bg-primary-600 transition-colors';
+            footer.textContent = 'Cerrar';
+            footer.onclick = () => modal.remove();
+
+            panel.append(header, list, footer);
+            modal.appendChild(panel);
+            document.body.appendChild(modal);
+        }
         function resetProgress() { if (confirm('¿Reiniciar?')) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
         function deleteAllData() { if (confirm('¿Borrar todo?')) { StudyTrackStorage.clearAll(); location.reload(); } }
         function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum); saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
