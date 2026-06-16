@@ -1,6 +1,6 @@
 (function (global) {
   function createDefaultSubjectProgress() {
-    return { status: 'pending', grade: null, attempts: [], completionDate: null };
+    return { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
   }
 
   const VALID_STATUSES = new Set(['pending', 'enrolled', 'approved']);
@@ -18,7 +18,7 @@
   function parseGradeInput(value) {
     if (value === null || value === undefined || value === '') return null;
 
-    const grade = Number.parseInt(value, 10);
+    const grade = Number.parseFloat(value);
     return Number.isFinite(grade) ? grade : null;
   }
 
@@ -55,14 +55,16 @@
     const source = progress && typeof progress === 'object' ? progress : {};
     const status = VALID_STATUSES.has(source.status) ? source.status : 'pending';
     const grade = parseGradeInput(source.grade);
-    const attemptsCount = Array.isArray(source.attempts)
-      ? source.attempts.length
-      : Math.max(0, Number.parseInt(source.attempts, 10) || 0);
+    // Preserve real attempt objects when present; only synthesize placeholders when
+    // attempts is stored as a plain count (number/string).
+    const attempts = Array.isArray(source.attempts)
+      ? source.attempts.map((attempt) => (attempt && typeof attempt === 'object' ? attempt : {}))
+      : Array(Math.max(0, Number.parseInt(source.attempts, 10) || 0)).fill({});
 
     return {
       status,
       grade,
-      attempts: Array(attemptsCount).fill({}),
+      attempts,
       completionDate: typeof source.completionDate === 'string' ? source.completionDate : null,
       section: typeof source.section === 'string' ? source.section : '',
       classroom: typeof source.classroom === 'string' ? source.classroom : '',

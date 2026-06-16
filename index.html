@@ -7,7 +7,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
     <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1E1B4B" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
@@ -15,10 +15,12 @@
     <link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">
     <link rel="apple-touch-icon" href="icons/studytrack-icon.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="StudyTrack">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>StudyTrack Pro - Tu Copiloto Académico</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind compiled locally (see tailwind.config.js + npm/binary build). Replaces the Play CDN. -->
+    <link rel="stylesheet" href="dist/tailwind.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
@@ -39,9 +41,6 @@
     <script src="./src/insights.js"></script>
     <!-- Sync module must load after other modules but before app initialization logic -->
     <script src="./src/firebase-sync.js"></script>
-    <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }, colors: { primary: { 50: '#EEF2FF', 100: '#E0E7FF', 500: '#6366F1', 600: '#4F46E5', 700: '#4338CA', 900: '#312E81' } } } } }
-    </script>
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
@@ -132,7 +131,7 @@
         }
 
         .animate-slide-up {
-            animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: slideInUp 0.42s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
         .animate-fade-in {
@@ -192,28 +191,32 @@
 
         /* Filter Button Styles */
         .filter-btn {
-            background: rgba(148, 163, 184, 0.1);
-            color: #64748b;
+            background: var(--stk-surface-2);
+            color: var(--stk-text-2);
             border: 1px solid transparent;
+            border-radius: var(--stk-radius-sm);
+            transition: background-color .2s var(--stk-ease), color .2s var(--stk-ease), transform .15s var(--stk-spring), box-shadow .2s var(--stk-ease);
         }
 
         .filter-btn:hover {
-            background: rgba(148, 163, 184, 0.2);
+            background: var(--stk-hairline);
         }
 
+        .filter-btn:active { transform: scale(.96); }
+
         .filter-btn.active {
-            background: linear-gradient(135deg, #6366F1, #4F46E5);
+            background: var(--stk-tint);
             color: white;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 14px var(--stk-tint-soft);
         }
 
         .dark .filter-btn {
-            background: rgba(71, 85, 105, 0.3);
-            color: #94a3b8;
+            background: var(--stk-surface-2);
+            color: var(--stk-text-2);
         }
 
         .dark .filter-btn.active {
-            background: linear-gradient(135deg, #6366F1, #4F46E5);
+            background: var(--stk-tint);
             color: white;
         }
 
@@ -261,7 +264,7 @@
             background: #cbd5e1;
             border-radius: 13px;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s var(--stk-ease);
         }
 
         .toggle-switch::after {
@@ -273,12 +276,12 @@
             height: 20px;
             background: white;
             border-radius: 50%;
-            transition: transform 0.3s;
+            transition: transform 0.35s var(--stk-spring);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .toggle-switch.active {
-            background: #4F46E5;
+            background: var(--stk-tint);
         }
 
         .toggle-switch.active::after {
@@ -289,37 +292,288 @@
             background: #475569;
         }
 
-        /* Bottom Navigation Bar */
+        /* Bottom Navigation Bar (Apple tab bar) */
+        .stk-tabbar {
+            background: var(--stk-surface);
+            border-top: 1px solid var(--stk-hairline);
+        }
+        @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+            .stk-tabbar {
+                background: var(--stk-glass);
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+            }
+        }
         .nav-tab {
-            color: #94a3b8;
+            color: var(--stk-text-3);
+            border-radius: var(--stk-radius-sm);
+            transition: color .3s var(--stk-ease), background-color .3s var(--stk-ease), transform .15s var(--stk-spring);
         }
-
+        .nav-tab i { transition: transform .3s var(--stk-spring); }
+        .nav-tab span { font-size: 11px; font-weight: 600; }
         .nav-tab.active {
-            color: #4F46E5;
-            background: rgba(79, 70, 229, 0.1);
+            color: var(--stk-tint);
+            background: var(--stk-tint-soft);
         }
-
+        .nav-tab.active i { transform: scale(1.08); }
         .nav-tab:hover:not(.active) {
-            color: #64748b;
-            background: rgba(148, 163, 184, 0.1);
+            color: var(--stk-text-2);
+            background: var(--stk-surface-2);
         }
-
-        .dark .nav-tab {
-            color: #64748b;
-        }
-
-        .dark .nav-tab.active {
-            color: #818CF8;
-            background: rgba(129, 140, 248, 0.15);
-        }
+        .nav-tab:active { transform: scale(.92); }
+        .nav-tab:focus-visible { outline: 2px solid var(--stk-tint); outline-offset: -2px; }
+        .dark .nav-tab { color: var(--stk-text-3); }
+        .dark .nav-tab.active { color: var(--stk-tint); background: var(--stk-tint-soft); }
 
         .safe-area-bottom {
             padding-bottom: env(safe-area-inset-bottom, 0px);
         }
+
+        /* Hide scrollbar on horizontal scroll strips (was a missing Tailwind plugin class) */
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+        /* ============================================================
+           APPLE HIG DESIGN TOKENS (Capa 0)
+           Estado = color + ícono + texto, todo derivado de tokens.
+           Cero !important: el acento sale de la clase de estado.
+           ============================================================ */
+        :root {
+            --stk-surface: #ffffff;
+            --stk-surface-2: #f0f0f3;
+            --stk-text-1: #1d1d1f;
+            --stk-text-2: #6e6e73;
+            --stk-text-3: #a1a1a6;
+            --stk-hairline: rgba(0, 0, 0, 0.06);
+            --stk-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 18px rgba(0, 0, 0, .06);
+            --stk-radius: 16px;
+            --stk-radius-sm: 11px;
+            --stk-orb-radius: 13px;
+            --stk-spring: cubic-bezier(.34, 1.56, .64, 1);
+            --stk-ease: cubic-bezier(.4, 0, .2, 1);
+            --stk-accent-approved: #34c759;  --stk-soft-approved: rgba(52, 199, 89, .14);
+            --stk-accent-enrolled: #007aff;  --stk-soft-enrolled: rgba(0, 122, 255, .14);
+            --stk-accent-available: #ff9500; --stk-soft-available: rgba(255, 149, 0, .16);
+            --stk-accent-warning: #ff9f0a;   --stk-soft-warning: rgba(255, 159, 10, .16);
+            --stk-accent-locked: #8e8e93;    --stk-soft-locked: rgba(142, 142, 147, .14);
+            --stk-tint: #4F46E5;             --stk-tint-soft: rgba(79, 70, 229, .12);
+            --stk-bg: #f2f2f7;
+            --stk-glass: rgba(255, 255, 255, 0.72);
+            --stk-shadow-hover: 0 2px 6px rgba(0, 0, 0, .06), 0 14px 32px rgba(0, 0, 0, .1);
+            /* AA-safe "ink" variants for text/glyphs on light surfaces (accents above are for bars/fills) */
+            --stk-ink-approved: #15803d; --stk-ink-enrolled: #1d4ed8; --stk-ink-available: #9a5b00;
+            --stk-ink-warning: #9a5b00;  --stk-ink-locked: #5e5e63;
+            --stk-enrolled-strong: #0a63c9;
+        }
+        .dark {
+            --stk-surface: #1c1c1e;
+            --stk-surface-2: #2c2c2e;
+            --stk-text-1: #f5f5f7;
+            --stk-text-2: #98989d;
+            --stk-text-3: #6e6e73;
+            --stk-hairline: rgba(255, 255, 255, 0.08);
+            --stk-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 22px rgba(0, 0, 0, .4);
+            --stk-accent-approved: #30d158;  --stk-soft-approved: rgba(48, 209, 88, .18);
+            --stk-accent-enrolled: #0a84ff;  --stk-soft-enrolled: rgba(10, 132, 255, .18);
+            --stk-accent-available: #ff9f0a; --stk-soft-available: rgba(255, 159, 10, .18);
+            --stk-tint: #818CF8;             --stk-tint-soft: rgba(129, 140, 248, .16);
+            --stk-bg: #000000;
+            --stk-glass: rgba(28, 28, 30, 0.72);
+            --stk-shadow-hover: 0 2px 6px rgba(0, 0, 0, .35), 0 16px 36px rgba(0, 0, 0, .5);
+            /* On dark surfaces the bright accents already pass AA, so ink = accent */
+            --stk-ink-approved: #30d158; --stk-ink-enrolled: #0a84ff; --stk-ink-available: #ff9f0a;
+            --stk-ink-warning: #ff9f0a;  --stk-ink-locked: #98989d;
+            --stk-accent-warning: #ff9f0a; --stk-soft-warning: rgba(255, 159, 10, .2);
+            --stk-accent-locked: #98989d;  --stk-soft-locked: rgba(142, 142, 147, .22);
+        }
+
+        /* ---- Subject card (Apple-style) ---- */
+        .stk-card {
+            position: relative; background: var(--stk-surface);
+            border-radius: var(--stk-radius); box-shadow: var(--stk-shadow);
+            overflow: hidden;
+            transition: transform .3s var(--stk-spring), box-shadow .3s var(--stk-ease);
+        }
+        .stk-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: var(--stk-accent); opacity: 0; transition: opacity .3s var(--stk-ease);
+        }
+        .stk-card:hover { transform: translateY(-2px); }
+        .stk-card:hover::before { opacity: 1; }
+        .stk-card { --stk-ink: var(--stk-text-2); }
+        .stk-card--approved  { --stk-accent: var(--stk-accent-approved);  --stk-soft: var(--stk-soft-approved);  --stk-ink: var(--stk-ink-approved); }
+        .stk-card--enrolled  { --stk-accent: var(--stk-accent-enrolled);  --stk-soft: var(--stk-soft-enrolled);  --stk-ink: var(--stk-ink-enrolled); }
+        .stk-card--available { --stk-accent: var(--stk-accent-available); --stk-soft: var(--stk-soft-available); --stk-ink: var(--stk-ink-available); }
+        .stk-card--warning   { --stk-accent: var(--stk-accent-warning);   --stk-soft: var(--stk-soft-warning);   --stk-ink: var(--stk-ink-warning); }
+        .stk-card--locked    { --stk-accent: var(--stk-accent-locked);    --stk-soft: var(--stk-soft-locked);    --stk-ink: var(--stk-ink-locked); }
+
+        .stk-head { display: flex; align-items: center; gap: 13px; padding: 13px 14px; cursor: pointer; }
+        .stk-orb {
+            position: relative;
+            width: 42px; height: 42px; border-radius: var(--stk-orb-radius); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;
+            background: var(--stk-soft); color: var(--stk-ink); font-size: 17px;
+            transition: transform .4s var(--stk-spring);
+        }
+        .stk-orb:active { transform: scale(.88); }
+        .stk-main { flex: 1; min-width: 0; }
+        .stk-title {
+            font-size: 15px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25;
+            color: var(--stk-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .stk-sub { font-size: 12.5px; color: var(--stk-text-2); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .stk-sub .stk-sep { opacity: .4; }
+        .stk-sub .stk-sw { color: var(--stk-ink); font-weight: 600; }
+        .stk-chip {
+            display: inline-flex; align-items: center; gap: 4px; max-width: 150px;
+            font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 7px;
+            background: var(--stk-surface-2); color: var(--stk-text-2); border: none; cursor: pointer;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .stk-chip--lock { background: var(--stk-soft); color: var(--stk-ink); }
+        .stk-credits { flex-shrink: 0; text-align: right; padding-left: 4px; }
+        .stk-credits b { font-size: 15px; font-weight: 800; color: var(--stk-text-1); }
+        .stk-credits span { display: block; font-size: 10px; font-weight: 700; color: var(--stk-text-2); margin-top: -2px; letter-spacing: .03em; }
+        .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 36px; min-height: 36px; padding: 7px; margin: -4px -3px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .stk-chev { color: var(--stk-text-3); font-size: 12px; flex-shrink: 0; transition: transform .35s var(--stk-spring); }
+        .stk-card.open .stk-chev { transform: rotate(180deg); }
+
+        .stk-actions { display: flex; align-items: center; gap: 9px; padding: 0 14px 13px; }
+        .stk-enroll {
+            flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer;
+            border-radius: var(--stk-radius-sm); padding: 9px 13px; font-family: inherit; font-size: 13px; font-weight: 700;
+            transition: transform .2s var(--stk-spring), background .2s var(--stk-ease);
+        }
+        .stk-enroll:active { transform: scale(.95); }
+        .stk-enroll--on { background: var(--stk-enrolled-strong); color: #fff; }
+        .stk-enroll--off { background: var(--stk-surface-2); color: var(--stk-text-2); }
+        .stk-note {
+            flex: 1; display: flex; align-items: center; justify-content: space-between;
+            background: var(--stk-surface-2); border-radius: var(--stk-radius-sm); padding: 9px 13px;
+            border: 1.5px solid transparent; transition: border-color .2s var(--stk-ease); cursor: text;
+        }
+        .stk-note--warn { border-color: var(--stk-accent-warning); background: var(--stk-soft-warning); }
+        .stk-note .stk-note-cap { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--stk-text-2); }
+        .stk-note input { width: 48px; text-align: right; border: none; background: transparent; outline: none; font-family: inherit; font-size: 16px; font-weight: 800; color: var(--stk-text-1); }
+        .stk-grade {
+            width: 44px; height: 40px; border-radius: var(--stk-radius-sm); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--stk-soft); color: var(--stk-ink); font-size: 16px; font-weight: 800;
+        }
+        .stk-grade--empty { background: var(--stk-surface-2); color: var(--stk-text-2); }
+        .stk-warn-text { font-size: 11px; font-weight: 700; color: var(--stk-ink-warning); display: flex; align-items: center; gap: 5px; padding: 0 14px 12px; margin-top: -4px; }
+
+        .stk-details { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--stk-ease); }
+        .stk-card.open .stk-details { grid-template-rows: 1fr; }
+        .stk-details-inner { overflow: hidden; }
+        .stk-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding: 14px; border-top: 1px solid var(--stk-hairline); }
+        .stk-field label { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--stk-text-2); margin-bottom: 5px; }
+        .stk-field input { width: 100%; background: var(--stk-surface-2); border: none; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--stk-text-1); outline: none; transition: box-shadow .2s var(--stk-ease); }
+        .stk-field input:focus { box-shadow: 0 0 0 2px var(--stk-accent); }
+        .stk-field--wide { grid-column: span 2; }
+
+        /* Entrada escalonada de la lista (Capa 2) */
+        @keyframes stkEnter { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+        .stk-anim-in { animation: stkEnter .45s var(--stk-spring) both; }
+        /* Pop celebratorio al aprobar (Capa 2) */
+        @keyframes stkPop { 0% { transform: scale(1); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
+        @keyframes stkRing { from { box-shadow: 0 0 0 0 var(--stk-soft); opacity: 1; } to { box-shadow: 0 0 0 16px transparent; opacity: 0; } }
+        .stk-orb.stk-pop { animation: stkPop .5s var(--stk-spring); }
+        .stk-orb.stk-pop::after { content: ''; position: absolute; inset: 0; border-radius: inherit; animation: stkRing .5s var(--stk-spring); }
+
+        /* ---- Global Apple polish (Capa 3) ---- */
+        body { background: var(--stk-bg); }
+        /* Thin Apple focus ring on keyboard nav (not on mouse click) */
+        button:focus-visible, a:focus-visible, select:focus-visible,
+        input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+            outline: 2px solid var(--stk-tint); outline-offset: 2px;
+        }
+        /* Reusable press feedback */
+        .stk-press { transition: transform .2s var(--stk-spring); }
+        .stk-press:active { transform: scale(.97); }
+        /* Standard Apple card surface */
+        .stk-surface-card {
+            background: var(--stk-surface);
+            border: 1px solid var(--stk-hairline);
+            box-shadow: var(--stk-shadow);
+            border-radius: var(--stk-radius);
+            transition: box-shadow .3s var(--stk-ease), transform .3s var(--stk-spring);
+        }
+        button.stk-surface-card:active, a.stk-surface-card:active { transform: scale(.985); }
+        /* Round icon button (header chrome) */
+        .stk-icon-btn {
+            width: 40px; height: 40px; border-radius: var(--stk-radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            background: var(--stk-surface-2); color: var(--stk-text-2); border: none; cursor: pointer;
+            transition: background-color .2s var(--stk-ease), transform .2s var(--stk-spring);
+        }
+        .stk-icon-btn:hover { background: var(--stk-hairline); }
+        .stk-icon-btn:active { transform: scale(.92); }
+        /* Inputs / selects */
+        .stk-input {
+            width: 100%; background-color: var(--stk-surface-2);
+            border: 1px solid var(--stk-hairline); border-radius: var(--stk-radius-sm);
+            padding: 11px 14px; font-size: 14px; font-weight: 600; color: var(--stk-text-1);
+            outline: none; transition: box-shadow .2s var(--stk-ease), background-color .2s var(--stk-ease);
+        }
+        .stk-input:focus { box-shadow: 0 0 0 2px var(--stk-tint); }
+        select.stk-input { padding-right: 2.5rem; }
+        /* Primary filled button (Apple tint) */
+        .stk-btn-primary {
+            background: var(--stk-tint); color: #fff; border: none; border-radius: var(--stk-radius-sm);
+            font-weight: 700; cursor: pointer;
+            transition: transform .2s var(--stk-spring), filter .2s var(--stk-ease);
+        }
+        .stk-btn-primary:hover { filter: brightness(1.06); }
+        .stk-btn-primary:active { transform: scale(.97); }
+        /* On tint-filled buttons the global tint ring is invisible — use an inset white ring */
+        .stk-btn-primary:focus-visible { outline: 2px solid rgba(255, 255, 255, .9); outline-offset: -5px; }
+        /* Settings quick-nav chips */
+        .settings-quick-link {
+            background: var(--stk-surface-2); color: var(--stk-text-2);
+            border-radius: var(--stk-radius-sm);
+            transition: background-color .2s var(--stk-ease), color .2s var(--stk-ease), transform .15s var(--stk-spring);
+        }
+        .settings-quick-link:hover { background: var(--stk-hairline); }
+        .settings-quick-link:active { transform: scale(.95); }
+        /* Desktop sidebar nav rows */
+        .side-tab {
+            display: flex; align-items: center; gap: 12px; width: 100%;
+            padding: 10px 14px; border-radius: var(--stk-radius-sm); border: none; cursor: pointer;
+            background: transparent; color: var(--stk-text-2); font-family: inherit;
+            font-size: 14px; font-weight: 600; text-align: left;
+            transition: background-color .2s var(--stk-ease), color .2s var(--stk-ease), transform .15s var(--stk-spring);
+        }
+        .side-tab i { width: 20px; text-align: center; font-size: 17px; }
+        .side-tab:hover { background: var(--stk-surface-2); color: var(--stk-text-1); }
+        .side-tab.active { background: var(--stk-tint-soft); color: var(--stk-tint); }
+        .side-tab:active { transform: scale(.98); }
+        .side-tab:focus-visible { outline: 2px solid var(--stk-tint); outline-offset: -2px; }
+        /* Search field */
+        .stk-search {
+            background-color: var(--stk-surface); border: 1px solid var(--stk-hairline);
+            box-shadow: var(--stk-shadow); border-radius: var(--stk-radius); color: var(--stk-text-1);
+        }
+        .stk-search:focus { box-shadow: 0 0 0 2px var(--stk-tint); border-color: var(--stk-tint); }
+        /* View transition between tabs */
+        @keyframes stkViewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .stk-view-in { animation: stkViewIn .4s var(--stk-spring) both; }
+        /* Popover / scale-in (referenced as animate-scale-up) */
+        @keyframes stkScale { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-up { animation: stkScale .3s var(--stk-spring); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .stk-card, .stk-orb, .stk-chev, .stk-details, .stk-anim-in, .stk-orb.stk-pop,
+            .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
+            .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-enroll, .stk-btn-primary,
+            .settings-quick-link, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab {
+                transition: none !important; animation: none !important;
+            }
+        }
     </style>
 </head>
 
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
+<body class="text-slate-900 dark:text-slate-100 overflow-x-hidden lg:pl-60">
 
     <!-- WELCOME MODAL (ONBOARDING) -->
     <div id="welcome-modal"
@@ -333,7 +587,7 @@
                     <i class="fas fa-graduation-cap text-4xl"></i>
                 </div>
                 <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">StudyTrack <span
-                        class="text-primary-600">Pro</span></h1>
+                        style="color:var(--stk-tint)">Pro</span></h1>
                 <p class="text-slate-500 dark:text-slate-400 text-sm">Tu compañero inteligente para dominar tu carrera
                     universitaria.</p>
             </div>
@@ -343,21 +597,21 @@
                 class="grid grid-cols-3 gap-4 text-xs font-medium text-slate-600 dark:text-slate-400 py-4 border-y border-slate-100 dark:border-slate-800">
                 <div class="flex flex-col items-center gap-2">
                     <div
-                        class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary-500 text-lg">
+                        class="w-10 h-10 flex items-center justify-center text-lg" style="border-radius:var(--stk-orb-radius);background:var(--stk-soft-enrolled);color:var(--stk-accent-enrolled)">
                         <i class="fas fa-map-signs"></i>
                     </div>
                     <span>Elige Camino</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
                     <div
-                        class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-emerald-500 text-lg">
+                        class="w-10 h-10 flex items-center justify-center text-lg" style="border-radius:var(--stk-orb-radius);background:var(--stk-soft-approved);color:var(--stk-accent-approved)">
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <span>Marca Progreso</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
                     <div
-                        class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-amber-500 text-lg">
+                        class="w-10 h-10 flex items-center justify-center text-lg" style="border-radius:var(--stk-orb-radius);background:var(--stk-soft-available);color:var(--stk-accent-available)">
                         <i class="fas fa-award"></i>
                     </div>
                     <span>Gradúate</span>
@@ -370,7 +624,7 @@
                     <label
                         class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Universidad</label>
                     <select id="welcome-uni-select"
-                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                        class="stk-input">
                         <option value="" disabled selected>Selecciona una institución...</option>
                     </select>
                 </div>
@@ -379,13 +633,13 @@
                     <label
                         class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Carrera</label>
                     <select id="welcome-career-select"
-                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                        class="stk-input">
                         <option value="" disabled selected>Primero elige universidad...</option>
                     </select>
                 </div>
 
                 <button id="welcome-start-btn" onclick="startAppFromWelcome()"
-                    class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-lg shadow-xl shadow-slate-300/50 dark:shadow-none hover:scale-[1.02] active:scale-95 transition-all opacity-50 pointer-events-none">
+                    class="stk-btn-primary w-full py-4 text-lg opacity-50 pointer-events-none">
                     Comenzar <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
@@ -394,14 +648,38 @@
         </div>
     </div>
 
+    <!-- DESKTOP SIDEBAR (replaces bottom tab bar on large screens) -->
+    <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 w-60 z-[60] px-3 py-4"
+        style="background:var(--stk-surface);border-right:1px solid var(--stk-hairline)">
+        <div class="flex items-center gap-3 px-2 py-2 mb-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30 shrink-0">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="font-extrabold text-sm leading-tight" style="color:var(--stk-text-1)">StudyTrack <span style="color:var(--stk-tint)">Pro</span></div>
+                <div class="text-xs" style="color:var(--stk-text-2)">Tu copiloto académico</div>
+            </div>
+        </div>
+        <nav class="flex flex-col gap-1" aria-label="Navegación principal">
+            <button onclick="switchView('home')" id="side-home" class="side-tab active"><i class="fas fa-house"></i><span>Inicio</span></button>
+            <button onclick="switchView('subjects')" id="side-subjects" class="side-tab"><i class="fas fa-book"></i><span>Materias</span></button>
+            <button onclick="switchView('schedule')" id="side-schedule" class="side-tab"><i class="fas fa-calendar-alt"></i><span>Horario</span></button>
+            <button onclick="showMobileProgress()" id="side-progress" class="side-tab"><i class="fas fa-chart-pie"></i><span>Progreso</span></button>
+            <button onclick="openMobileMore()" id="side-more" class="side-tab"><i class="fas fa-ellipsis-h"></i><span>Más</span></button>
+        </nav>
+        <div class="mt-auto">
+            <button onclick="openSettings()" class="side-tab"><i class="fas fa-cog"></i><span>Configuración</span></button>
+        </div>
+    </aside>
+
     <!-- HEADER -->
     <header id="app-header"
         class="sticky top-0 z-50 glass border-b border-slate-200/50 dark:border-slate-800/50 safe-top transition-opacity duration-300">
-        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
-            <div class="flex items-center justify-between mb-2 sm:mb-4">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div
-                        class="w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
+                        class="w-9 h-9 sm:w-12 sm:h-12 lg:hidden bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
                         <i class="fas fa-graduation-cap text-base sm:text-xl"></i>
                     </div>
                     <div>
@@ -409,84 +687,67 @@
                             class="font-extrabold text-sm sm:text-base leading-tight text-slate-900 dark:text-white line-clamp-1">
                             Cargando...</h1>
                         <p id="header-institution"
-                            class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            class="text-xs text-slate-500 dark:text-slate-400 font-medium">
                             StudyTrack Pro</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2">
-                    <button onclick="toggleDarkMode()"
-                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><i
-                            id="theme-icon" class="fas fa-moon text-xs sm:text-sm"></i></button>
+                    <button onclick="toggleDarkMode()" class="stk-icon-btn" aria-label="Cambiar tema"><i
+                            id="theme-icon" class="fas fa-moon text-sm"></i></button>
                     <!-- Google Account / Sync Button -->
                     <button id="auth-header-btn" onclick="openGoogleSyncSettings()"
-                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700"
+                        class="stk-icon-btn overflow-hidden" style="border-radius:50%"
                         title="Cuenta de Google y Sincronización">
-                        <i id="auth-header-icon" class="fas fa-user text-xs sm:text-sm text-slate-500 dark:text-slate-400"></i>
+                        <i id="auth-header-icon" class="fas fa-user text-sm"></i>
                     </button>
-                    <button onclick="openSettings()"
-                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"><i
-                            class="fas fa-cog text-xs sm:text-sm"></i></button>
+                    <button onclick="openSettings()" class="stk-icon-btn" aria-label="Configuración"><i
+                            class="fas fa-cog text-sm"></i></button>
                 </div>
             </div>
 
             <div id="desktop-summary-cards"
-                class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-3 sm:-mx-4 px-3 sm:px-4">
-                <div
-                    class="snap-start shrink-0 w-36 sm:w-56 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-white shadow-xl shadow-primary-500/30 flex flex-col justify-between">
-                    <div class="flex items-center justify-between mb-0.5 sm:mb-1">
-                        <div class="text-[8px] sm:text-[10px] uppercase font-bold opacity-90">Progreso</div>
-                        <div class="text-xs sm:text-sm opacity-100 font-bold bg-white/20 px-1.5 py-0.5 rounded">
+                class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory -mx-3 sm:-mx-4 px-3 sm:px-4">
+                <div class="snap-start shrink-0 w-48 sm:w-56 rounded-xl p-3 text-white flex flex-col justify-between"
+                    style="background:linear-gradient(135deg,#6366F1,#4F46E5);box-shadow:var(--stk-shadow)">
+                    <div class="flex items-center justify-between">
+                        <div class="text-[10px] uppercase font-bold opacity-80">Progreso</div>
+                        <div class="text-xs font-bold bg-white/20 px-1.5 py-0.5 rounded-md">
                             <span id="stat-completed-count">0</span>/<span id="stat-total-subjects">0</span>
                         </div>
                     </div>
-
-                    <div class="flex items-end justify-between gap-2 mb-1">
-                        <div class="text-xl sm:text-3xl font-black" id="stat-progress">0%</div>
-                        <div class="text-[10px] sm:text-xs opacity-90 font-bold mb-1" id="stat-remaining-text">0
-                            faltantes</div>
+                    <div class="flex items-end justify-between gap-2 mt-1">
+                        <div class="text-2xl font-black leading-none" id="stat-progress">0%</div>
+                        <div class="text-[10px] opacity-80 font-bold" id="stat-remaining-text">0 faltantes</div>
                     </div>
-
-                    <div class="h-1.5 bg-black/20 rounded-full overflow-hidden">
-                        <div id="progress-bar-mini"
-                            class="h-full bg-white/90 rounded-full transition-all duration-500 shadow-sm"
-                            style="width: 0%"></div>
+                    <div class="h-1 bg-black/20 rounded-full overflow-hidden mt-2">
+                        <div id="progress-bar-mini" class="h-full bg-white/95 rounded-full transition-all duration-500" style="width: 0%"></div>
                     </div>
                 </div>
 
-                <div
-                    class="snap-start shrink-0 w-24 sm:w-32 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
-                    <div
-                        class="text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5 sm:mb-1">
-                        Índice Académico</div>
-                    <div class="text-xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400" id="stat-gpa">N/A
-                    </div>
-                    <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">Escala
-                        0-100</div>
+                <div class="stk-surface-card snap-start shrink-0 w-28 sm:w-32 p-3 flex flex-col items-center justify-center text-center">
+                    <div class="text-[10px] uppercase font-bold" style="color:var(--stk-text-2)">Índice</div>
+                    <div class="text-2xl font-black leading-none mt-1" style="color:var(--stk-ink-approved)" id="stat-gpa">N/A</div>
+                    <div class="text-[10px] mt-1" style="color:var(--stk-text-2)">Escala 0-100</div>
                 </div>
 
-                <div
-                    class="snap-start shrink-0 w-24 sm:w-32 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
-                    <div
-                        class="text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5 sm:mb-1">
-                        Calificación</div>
-                    <div class="text-xl sm:text-3xl font-black text-blue-600 dark:text-blue-400"
-                        id="stat-global-letter">N/A</div>
-                    <div class="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">GPA: <span
-                            id="stat-global-gpa-points">N/A</span></div>
+                <div class="stk-surface-card snap-start shrink-0 w-28 sm:w-32 p-3 flex flex-col items-center justify-center text-center">
+                    <div class="text-[10px] uppercase font-bold" style="color:var(--stk-text-2)">Calificación</div>
+                    <div class="text-2xl font-black leading-none mt-1" id="stat-global-letter">N/A</div>
+                    <div class="text-[10px] mt-1" style="color:var(--stk-text-2)">GPA: <span id="stat-global-gpa-points">N/A</span></div>
                 </div>
             </div>
         </div>
     </header>
 
     <!-- HOME VIEW -->
-    <main id="home-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 space-y-4 sm:space-y-6">
+    <main id="home-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 space-y-4 sm:space-y-6">
         <section class="grid gap-3 sm:grid-cols-[1.15fr_0.85fr] sm:gap-4">
-            <div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-5">
+            <div class="stk-surface-card p-4 sm:p-5">
                 <div class="flex items-center gap-4">
                     <div id="home-progress-ring" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-2 shrink-0"
-                        style="background: conic-gradient(#10b981 0deg, #e2e8f0 0deg);">
-                        <div class="w-full h-full rounded-full bg-white dark:bg-slate-800 flex flex-col items-center justify-center">
-                            <div id="home-progress-value" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">0%</div>
+                        style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
+                        <div class="w-full h-full rounded-full flex flex-col items-center justify-center" style="background: var(--stk-surface)">
+                            <div id="home-progress-value" class="text-2xl sm:text-3xl font-black" style="color:var(--stk-accent-approved)">0%</div>
                             <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">avance</div>
                         </div>
                     </div>
@@ -494,25 +755,35 @@
                         <p id="home-greeting" class="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300">Listo para avanzar</p>
                         <p id="home-context" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Tu ruta académica actualizada.</p>
                         <div class="grid grid-cols-3 gap-2 mt-4">
-                            <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-2 text-center">
-                                <div id="home-earned-credits" class="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-300">0</div>
-                                <div class="text-[10px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
+                            <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-approved)">
+                                <div id="home-earned-credits" class="text-base sm:text-lg font-black" style="color:var(--stk-ink-approved)">0</div>
+                                <div class="text-[10px] leading-tight" style="color:var(--stk-text-2)">créditos</div>
                             </div>
-                            <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-2 text-center">
-                                <div id="home-index" class="text-base sm:text-lg font-black text-blue-700 dark:text-blue-300">N/A</div>
-                                <div class="text-[10px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
+                            <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-enrolled)">
+                                <div id="home-index" class="text-base sm:text-lg font-black" style="color:var(--stk-ink-enrolled)">N/A</div>
+                                <div class="text-[10px] leading-tight" style="color:var(--stk-text-2)">índice</div>
                             </div>
-                            <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 px-2 py-2 text-center">
-                                <div id="home-remaining" class="text-base sm:text-lg font-black text-slate-700 dark:text-slate-200">0</div>
-                                <div class="text-[10px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
+                            <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-surface-2)">
+                                <div id="home-remaining" class="text-base sm:text-lg font-black" style="color:var(--stk-text-1)">0</div>
+                                <div class="text-[10px] leading-tight" style="color:var(--stk-text-2)">faltantes</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- OFFLINE STATUS BANNER -->
+            <div id="offline-banner" class="hidden">
+                <div class="flex items-center justify-center gap-2 py-1.5 px-3 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-400/10 rounded-lg text-amber-600 dark:text-amber-400 text-[11px] font-medium">
+                    <span class="relative flex h-2 w-2 shrink-0">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    Sin conexion &mdash; tus datos se guardan localmente
+                </div>
+            </div>
             <button id="home-next-action" onclick="handleHomeAction('subjects')"
-                class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-5 text-left hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                class="stk-surface-card stk-press p-4 sm:p-5 text-left">
                 <div class="flex items-center gap-3">
                     <div id="home-action-icon" class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
                         <i class="fas fa-check-circle"></i>
@@ -528,21 +799,21 @@
         </section>
 
         <section class="grid gap-3 sm:grid-cols-3 sm:gap-4">
-            <button onclick="handleHomeAction('enrolled')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+            <button onclick="handleHomeAction('enrolled')" class="stk-surface-card stk-press p-4 text-left">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-slate-500 dark:text-slate-400">Materias inscritas</div>
                     <i class="fas fa-book-open text-emerald-500"></i>
                 </div>
                 <div id="home-enrolled-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0</div>
             </button>
-            <button onclick="switchView('schedule')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+            <button onclick="switchView('schedule')" class="stk-surface-card stk-press p-4 text-left">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-slate-500 dark:text-slate-400">Horario semanal</div>
                     <i class="fas fa-calendar-week text-blue-500"></i>
                 </div>
                 <div id="home-schedule-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0/0</div>
             </button>
-            <button onclick="handleHomeAction('pending')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+            <button onclick="handleHomeAction('pending')" class="stk-surface-card stk-press p-4 text-left">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-slate-500 dark:text-slate-400">Disponibles</div>
                     <i class="fas fa-route text-amber-500"></i>
@@ -552,7 +823,7 @@
         </section>
 
         <section class="grid gap-3 lg:grid-cols-[1fr_1fr] lg:gap-4">
-            <div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div class="stk-surface-card overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                     <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
                     <button onclick="handleHomeAction('pending')" class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver materias</button>
@@ -560,7 +831,7 @@
                 <div id="home-recommended-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div class="stk-surface-card overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                     <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-calendar-check text-blue-500"></i> En curso y pendientes</h3>
                     <button onclick="switchView('schedule')" class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Horario</button>
@@ -571,14 +842,14 @@
     </main>
 
     <!-- SUBJECTS VIEW -->
-    <main id="subjects-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 space-y-4 sm:space-y-6 hidden">
+    <main id="subjects-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 space-y-4 sm:space-y-6 hidden">
         <section id="mobile-academic-hub" class="sm:hidden space-y-3">
-            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3">
+            <div class="stk-surface-card p-3">
                 <div class="flex items-center gap-3">
                     <div id="mobile-progress-ring"
                         class="w-20 h-20 rounded-full p-1.5"
-                        style="background: conic-gradient(#10b981 0deg, #e2e8f0 0deg);">
-                        <div class="w-full h-full rounded-full bg-white dark:bg-slate-800 flex flex-col items-center justify-center">
+                        style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
+                        <div class="w-full h-full rounded-full flex flex-col items-center justify-center" style="background: var(--stk-surface)">
                             <div id="mobile-progress-value" class="text-xl font-black text-emerald-600 dark:text-emerald-400">0%</div>
                             <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500">avance</div>
                         </div>
@@ -634,7 +905,7 @@
         </section>
         <div class="relative">
             <input type="search" id="search-input" placeholder="Buscar materia, código..."
-                class="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none text-xs sm:text-sm font-medium shadow-sm">
+                class="stk-search w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 transition-all outline-none text-sm font-medium">
             <i
                 class="fas fa-search absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-sm"></i>
         </div>
@@ -684,47 +955,46 @@
     </main>
 
     <!-- SCHEDULE VIEW (hidden by default) -->
-    <main id="schedule-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 hidden">
+    <main id="schedule-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 hidden">
         <div class="space-y-4">
             <section id="schedule-summary"
-                class="grid grid-cols-3 gap-2 sm:gap-3 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 sm:p-4">
-                <div class="rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-3">
-                    <div class="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Inscritas</div>
-                    <div id="schedule-summary-enrolled" class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">0</div>
+                class="grid grid-cols-3 gap-2 sm:gap-3 stk-surface-card p-3 sm:p-4">
+                <div class="p-3" style="border-radius:var(--stk-radius-sm);background:var(--stk-surface-2)">
+                    <div class="text-[10px] font-black uppercase" style="color:var(--stk-text-2)">Inscritas</div>
+                    <div id="schedule-summary-enrolled" class="text-lg sm:text-xl font-black" style="color:var(--stk-text-1)">0</div>
                 </div>
-                <div class="rounded-lg border border-emerald-100 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/20 p-3">
-                    <div class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Con horario</div>
-                    <div id="schedule-summary-scheduled" class="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-300">0</div>
+                <div class="p-3" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-approved)">
+                    <div class="text-[10px] font-black uppercase" style="color:var(--stk-ink-approved)">Con horario</div>
+                    <div id="schedule-summary-scheduled" class="text-lg sm:text-xl font-black" style="color:var(--stk-ink-approved)">0</div>
                 </div>
-                <div class="rounded-lg border border-amber-100 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/20 p-3">
-                    <div class="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400">Pendientes</div>
-                    <div id="schedule-summary-pending" class="text-lg sm:text-xl font-black text-amber-700 dark:text-amber-300">0</div>
+                <div class="p-3" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-warning)">
+                    <div class="text-[10px] font-black uppercase" style="color:var(--stk-ink-warning)">Pendientes</div>
+                    <div id="schedule-summary-pending" class="text-lg sm:text-xl font-black" style="color:var(--stk-ink-warning)">0</div>
                 </div>
             </section>
 
             <!-- UNSCHEDULED SUBJECTS -->
             <div id="unscheduled-section"
-                class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                class="stk-surface-card overflow-hidden">
                 <div
                     class="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
                         <i class="fas fa-clock text-amber-500"></i> Materias sin horario
                     </h3>
                     <span id="unscheduled-count"
-                        class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">0</span>
+                        class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--stk-soft-warning);color:var(--stk-ink-warning)">0</span>
                 </div>
                 <div id="unscheduled-list" class="p-3 sm:p-4 space-y-2"></div>
             </div>
 
             <!-- WEEKLY SCHEDULE -->
-            <div
-                class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div class="stk-surface-card overflow-hidden">
                 <div
                     class="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
                         <i class="fas fa-calendar-week text-primary-500"></i> Horario Semanal
                     </h3>
-                    <div class="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1 gap-1">
+                    <div class="flex p-1 gap-1" style="background:var(--stk-surface-2);border-radius:var(--stk-radius-sm)">
                         <button onclick="toggleScheduleView('list')" id="view-btn-list"
                             class="px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all"><i
                                 class="fas fa-list mr-1"></i> Lista</button>
@@ -765,12 +1035,11 @@
     <div id="schedule-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center"
         onclick="if(event.target === this) closeScheduleModal()">
-        <div
-            class="bg-white dark:bg-slate-900 w-full sm:w-[400px] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl animate-slide-up">
-            <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover)"
+            class="w-full sm:w-[400px] rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up">
+            <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid var(--stk-hairline)">
                 <h2 class="text-lg font-bold text-slate-900 dark:text-white">Agregar Horario</h2>
-                <button onclick="closeScheduleModal()"
-                    class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                <button onclick="closeScheduleModal()" class="stk-icon-btn" aria-label="Cerrar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -781,8 +1050,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Día</label>
-                    <select id="schedule-day"
-                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                    <select id="schedule-day" class="stk-input">
                         <option value="lunes">Lunes</option>
                         <option value="martes">Martes</option>
                         <option value="miercoles">Miércoles</option>
@@ -796,18 +1064,18 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Hora Inicio</label>
                         <input type="time" id="schedule-start" value="08:00"
-                            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                            class="stk-input">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Hora Fin</label>
                         <input type="time" id="schedule-end" value="10:00"
-                            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                            class="stk-input">
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Aula (opcional)</label>
                     <input type="text" id="schedule-room" placeholder="Ej: A-101"
-                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                        class="stk-input">
                 </div>
                 <div id="schedule-conflict-alert"
                     class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
@@ -815,7 +1083,7 @@
                     <span id="conflict-message"></span>
                 </div>
                 <button id="schedule-save-btn" onclick="saveScheduleBlock()"
-                    class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl transition-all">
+                    class="stk-btn-primary w-full py-3">
                     <i class="fas fa-plus mr-2"></i> Agregar al Horario
                 </button>
             </div>
@@ -880,13 +1148,14 @@
 
     <!-- SCROLL TO TOP BUTTON -->
     <button id="scroll-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
-        class="fixed bottom-20 right-4 w-12 h-12 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none">
+        style="box-shadow:var(--stk-shadow-hover)"
+        class="stk-press fixed bottom-20 right-4 w-12 h-12 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none">
         <i class="fas fa-arrow-up text-lg"></i>
     </button>
 
     <!-- BOTTOM NAVIGATION BAR -->
     <nav aria-label="Navegación principal móvil"
-        class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-bottom">
+        class="stk-tabbar fixed bottom-0 left-0 right-0 z-50 safe-area-bottom lg:hidden">
         <div class="max-w-lg mx-auto grid grid-cols-5 items-center gap-1 py-2 px-3">
             <button onclick="switchView('home')" id="nav-home"
                 class="nav-tab active flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
@@ -920,24 +1189,23 @@
     <div id="settings-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity"
         onclick="if(event.target === this) closeSettings()">
-        <div
-            class="bg-white dark:bg-slate-900 w-full sm:w-[500px] max-h-[90vh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl animate-slide-up flex flex-col">
-            <div
-                class="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-5 flex items-center justify-between shrink-0 z-10">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover)"
+            class="w-full sm:w-[500px] max-h-[90vh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div style="background:var(--stk-surface);border-bottom:1px solid var(--stk-hairline)"
+                class="sticky top-0 px-6 py-5 flex items-center justify-between shrink-0 z-10">
                 <h2 class="text-xl font-bold text-slate-900 dark:text-white">Configuración</h2>
-                <button onclick="closeSettings()"
-                    class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center"><i
+                <button onclick="closeSettings()" class="stk-icon-btn" aria-label="Cerrar"><i
                         class="fas fa-times"></i></button>
             </div>
 
             <div class="px-4 sm:px-6 pt-3 pb-0 border-b border-slate-100 dark:border-slate-800 overflow-x-auto shrink-0">
                 <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
-                    <button onclick="scrollSettingsSection('settings-section-career')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Carrera</button>
-                    <button onclick="scrollSettingsSection('settings-section-preferences')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Preferencias</button>
-                    <button onclick="scrollSettingsSection('settings-section-requirements')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Requisitos</button>
-                    <button onclick="scrollSettingsSection('settings-section-grades')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Escala</button>
-                    <button onclick="scrollSettingsSection('settings-section-data')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Datos</button>
-                    <button onclick="scrollSettingsSection('settings-section-cloud')" class="settings-quick-link px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300">Nube</button>
+                    <button onclick="scrollSettingsSection('settings-section-career')" class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
+                    <button onclick="scrollSettingsSection('settings-section-preferences')" class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
+                    <button onclick="scrollSettingsSection('settings-section-requirements')" class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
+                    <button onclick="scrollSettingsSection('settings-section-grades')" class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
+                    <button onclick="scrollSettingsSection('settings-section-data')" class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
+                    <button onclick="scrollSettingsSection('settings-section-cloud')" class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
                 </div>
             </div>
 
@@ -1091,6 +1359,18 @@
                             class="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                             <i class="fas fa-plus mr-1"></i> Agregar Rango
                         </button>
+                        <div
+                            class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            <div class="flex-1">
+                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Nota mínima para aprobar
+                                </p>
+                                <p class="text-[11px] text-slate-400 dark:text-slate-500">A partir de esta nota una
+                                    materia se marca como aprobada</p>
+                            </div>
+                            <input type="number" id="passing-grade-input" min="0" max="100" step="any" value="70"
+                                onchange="updatePassingGrade(this.value)"
+                                class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
                     </div>
                 </section>
 
@@ -1207,30 +1487,46 @@
                 progress: StudyTrackStorage.KEYS.progress,
                 library_cache: StudyTrackStorage.KEYS.libraryCache
             },
-            darkMode: StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.darkMode, false),
             collapsedPeriods: new Set(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.collapsedPeriods, [])),
-            allowSkipPrerequisites: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.allowSkipPrerequisites) !== 'false', // true by default
-            maxEnrolledSubjects: StudyTrackStorage.getNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, 10),
-            gradeScale: (function () {
-                const s = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.gradeScale, null);
-                if (s && s.length && s[0].points !== undefined) return s;
-                // Default or migration if missing points
-                const defaults = [
-                    { min: 90, label: 'A', color: 'text-emerald-500', points: 4 },
-                    { min: 80, label: 'B', color: 'text-blue-500', points: 3 },
-                    { min: 70, label: 'C', color: 'text-yellow-500', points: 2 },
-                    { min: 60, label: 'D', color: 'text-orange-500', points: 1 },
-                    { min: 0, label: 'F', color: 'text-red-500', points: 0 }
-                ];
-                if (!s) return defaults;
-                // Add points to existing
-                return s.map(i => {
-                    let p = 0;
-                    if (i.min >= 90) p = 4; else if (i.min >= 80) p = 3; else if (i.min >= 70) p = 2; else if (i.min >= 60) p = 1;
-                    return { ...i, points: p };
-                });
-            })()
+            // Cloud-synced settings — defaults here, populated by loadSettings() below.
+            darkMode: false,
+            allowSkipPrerequisites: true,
+            maxEnrolledSubjects: 10,
+            passingGrade: 70,
+            gradeScale: []
         };
+
+        function readGradeScale() {
+            const s = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.gradeScale, null);
+            if (s && s.length && s[0].points !== undefined) return s;
+            // Default or migration if missing points
+            const defaults = [
+                { min: 90, label: 'A', color: 'text-emerald-500', points: 4 },
+                { min: 80, label: 'B', color: 'text-blue-500', points: 3 },
+                { min: 70, label: 'C', color: 'text-yellow-500', points: 2 },
+                { min: 60, label: 'D', color: 'text-orange-500', points: 1 },
+                { min: 0, label: 'F', color: 'text-red-500', points: 0 }
+            ];
+            if (!s) return defaults;
+            // Add points to existing
+            return s.map(i => {
+                let p = 0;
+                if (i.min >= 90) p = 4; else if (i.min >= 80) p = 3; else if (i.min >= 70) p = 2; else if (i.min >= 60) p = 1;
+                return { ...i, points: p };
+            });
+        }
+
+        // Re-reads cloud-synced settings into APP_CONFIG. Called at startup and again
+        // after a cloud sync so pulled-down settings take effect without a page reload.
+        function loadSettings() {
+            APP_CONFIG.darkMode = StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.darkMode, false);
+            APP_CONFIG.allowSkipPrerequisites = StudyTrackStorage.getItem(StudyTrackStorage.KEYS.allowSkipPrerequisites) !== 'false';
+            APP_CONFIG.maxEnrolledSubjects = StudyTrackStorage.getNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, 10);
+            APP_CONFIG.passingGrade = StudyTrackStorage.getFloat(StudyTrackStorage.KEYS.passingGrade, 70);
+            APP_CONFIG.gradeScale = readGradeScale();
+        }
+
+        loadSettings();
 
         let libraryData = [];
         let currentCurriculum = null;
@@ -1246,6 +1542,7 @@
         // ============================================================
 
         async function initApp() {
+            loadSettings(); // refresh cloud-synced settings (so a sync pull applies without reload)
             if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
 
             // Check persistence first
@@ -1443,8 +1740,11 @@
         // CORE HELPER FUNCTIONS (Preserved)
         // ============================================================
         function loadUserProgress() { userProgress = StudyTrackProgress.normalizeUserProgress(StudyTrackStorage.getJson(APP_CONFIG.storageKeys.progress, {}), currentCurriculum); }
-        function saveCurriculum() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.curriculum, currentCurriculum); }
-        function saveUserProgress() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.progress, userProgress); }
+        // Single explicit hook for the cloud sync: every persistence path calls this
+        // directly instead of the sync module monkey-patching function names.
+        function notifySyncChange() { window.StudyTrackFirebaseSync?.notifyChange?.(); }
+        function saveCurriculum() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.curriculum, currentCurriculum); notifySyncChange(); }
+        function saveUserProgress() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.progress, userProgress); notifySyncChange(); }
         let appEventListenersReady = false;
         function setupEventListeners() { if (appEventListenersReady) return; appEventListenersReady = true; document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value)); }
         function handleSearch(text) { renderPeriods(text); }
@@ -1469,145 +1769,77 @@
             const safeReqTxt = escapeHtml(reqTxt);
             const safeGrade = escapeHtml(st.grade ?? '');
             const isApprovedWithoutGrade = st.status === 'approved' && (st.grade === null || st.grade === undefined || st.grade === '');
-            const missingGradeMessage = isApprovedWithoutGrade
-                ? '<p class="grade-warning-message col-span-3 text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 sm:hidden"><i class="fas fa-exclamation-triangle text-[9px]"></i> Falta registrar nota</p>'
-                : '';
-            const gradeInputStateClass = isApprovedWithoutGrade
-                ? 'border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 focus:ring-amber-500'
-                : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-primary-500';
             const safeSection = escapeHtml(st.section || '');
             const safeClassroom = escapeHtml(st.classroom || '');
             const safeTeacher = escapeHtml(st.teacher || '');
             const safeCompletionDate = escapeHtml(st.completionDate || '');
 
             const isSkippedPrereq = st.status === 'approved' && !un && s.prerequisites?.length;
-            const cardSurfaceClass = isApprovedWithoutGrade
-                ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                : 'bg-white dark:bg-slate-800';
-            let bc = 'border-l-4 border-slate-200 dark:border-slate-700', op = '';
-            let checkboxClass = '';
-
-            if (st.status === 'approved') {
-                if (isApprovedWithoutGrade) {
-                    bc = 'border-l-4 border-amber-400 dark:border-amber-500';
-                    checkboxClass = 'checkbox-warning';
-                } else if (isSkippedPrereq) {
-                    bc = 'border-l-4 border-amber-400 dark:border-amber-600';
-                    checkboxClass = 'checkbox-warning';
-                } else {
-                    bc = 'border-l-4 border-emerald-500';
-                }
-            } else if (st.status === 'enrolled') {
-                bc = 'border-l-4 border-blue-500 dark:border-blue-400';
-            } else if (!un) {
-                bc = 'border-l-4 border-orange-300 dark:border-orange-700';
-                if (!APP_CONFIG.allowSkipPrerequisites) op = 'opacity-60 grayscale-[0.5]';
-            }
-
             const isDisabled = !un && st.status !== 'approved' && !APP_CONFIG.allowSkipPrerequisites;
+            // Dim subjects blocked by prerequisites (unless skipping is allowed)
+            const op = (isDisabled && st.status !== 'enrolled') ? 'opacity-60 grayscale-[0.5]' : '';
 
-            const checkboxOrLock = isDisabled
-                ? `<div class="w-5 h-5 flex items-center justify-center text-orange-400 dark:text-orange-500 cursor-pointer" onclick="toggleSubjectStatus('${subjectIdJs}')" title="Completa los prerrequisitos"><i class="fas fa-lock text-sm"></i></div>`
-                : `<input type="checkbox" class="${checkboxClass}" ${st.status === 'approved' ? 'checked' : ''} onchange="toggleSubjectStatus('${subjectIdJs}')">`;
-
-            const enrolledButton = st.status !== 'approved' ? `
-                <button onclick="event.stopPropagation(); toggleEnrollment('${subjectIdJs}')" 
-                    class="text-[10px] sm:text-xs 
-                    ${st.status === 'enrolled' ?
-                    'bg-blue-500 text-white' :
-                    isDisabled ?
-                        'bg-slate-200 dark:bg-slate-600 text-slate-400 dark:text-slate-500 cursor-not-allowed' :
-                        'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'} 
-                    px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg font-bold flex items-center gap-1 transition-all shrink-0">
-                    <i class="fas fa-${st.status === 'enrolled' ? 'check' : 'plus'} text-[8px] sm:text-[9px]"></i> 
-                    ${st.status === 'enrolled' ? 'En curso' : 'Inscribir'}
-                </button>` : '';
-
-            // Check if there's any extra data to show a filled indicator
-            const hasExtraData = st.section || st.classroom || st.teacher || st.attempts?.length || st.completionDate;
-            const statusLabel = st.status === 'approved'
-                ? (isApprovedWithoutGrade ? 'Aprobada sin nota' : 'Aprobada')
-                : st.status === 'enrolled'
-                    ? 'Inscrita'
-                    : un
-                        ? 'Disponible'
-                        : 'Bloqueada por requisitos';
-            const statusTextClass = st.status === 'approved'
-                ? (isApprovedWithoutGrade ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')
-                : st.status === 'enrolled'
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : un
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-red-600 dark:text-red-400';
-            const statusDotClass = st.status === 'approved'
-                ? (isApprovedWithoutGrade ? 'bg-amber-500' : 'bg-emerald-500')
-                : st.status === 'enrolled'
-                    ? 'bg-blue-500'
-                    : un
-                        ? 'bg-emerald-500'
-                        : 'bg-red-500';
+            // --- Apple-style status mapping (Capa 1) ---
+            const statusKey = st.status === 'approved'
+                ? ((isApprovedWithoutGrade || isSkippedPrereq) ? 'warning' : 'approved')
+                : st.status === 'enrolled' ? 'enrolled'
+                    : un ? 'available' : 'locked';
+            const orbIcon = {
+                approved: 'fa-circle-check', warning: 'fa-triangle-exclamation',
+                enrolled: 'fa-book-open', available: 'fa-route', locked: 'fa-lock'
+            }[statusKey];
+            const shortStatus = {
+                approved: 'Aprobada',
+                warning: isApprovedWithoutGrade ? 'Aprobada · sin nota' : 'Requisito saltado',
+                enrolled: 'Inscrita', available: 'Disponible', locked: 'Bloqueada'
+            }[statusKey];
+            const prereqChip = (s.prerequisites?.length && (!un || isSkippedPrereq))
+                ? `<button class="stk-chip stk-chip--lock" title="${safeReqTxt}" onclick="event.stopPropagation(); showPrerequisitePopover(event, '${subjectIdJs}')"><i class="fas fa-${isSkippedPrereq ? 'triangle-exclamation' : 'lock'}" style="font-size:9px"></i>${safeReqTxt}</button>`
+                : '';
+            const unlockChip = fo > 0
+                ? `<span class="stk-chip" title="Desbloquea ${fo} materia(s)"><i class="fas fa-key" style="font-size:9px"></i>${fo}</span>`
+                : '';
+            const enrollBtn = st.status !== 'approved'
+                ? `<button class="stk-enroll ${st.status === 'enrolled' ? 'stk-enroll--on' : 'stk-enroll--off'}" ${isDisabled ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''} onclick="event.stopPropagation(); toggleEnrollment('${subjectIdJs}')"><i class="fas fa-${st.status === 'enrolled' ? 'check' : 'plus'}" style="font-size:11px"></i>${st.status === 'enrolled' ? 'En curso' : 'Inscribir'}</button>`
+                : '';
+            const warnText = isApprovedWithoutGrade
+                ? `<div class="stk-warn-text"><i class="fas fa-triangle-exclamation" style="font-size:10px"></i>Falta registrar la nota</div>`
+                : '';
 
             return `
-                <div id="subject-card-${subjectIdHtml}" class="subject-card-mobile ${cardSurfaceClass} rounded-lg sm:rounded-xl p-3 sm:p-3 border border-slate-200 dark:border-slate-700 ${bc} ${op} transition-all hover:shadow-md group">
-                    <div class="flex items-start gap-2 sm:gap-3">
-                        <div class="shrink-0">${checkboxOrLock}</div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-start justify-between gap-2">
-                                <h4 class="font-bold text-slate-900 dark:text-white text-sm leading-tight min-w-0">
-                                    ${safeSubjectName}${st.status === 'enrolled' ? ' 📚' : ''}
-                                </h4>
-                                <div class="flex items-center gap-1.5 shrink-0">
-                                    <span class="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">${safeSubjectCode}</span>
-                                    <span class="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-1.5 py-0.5 rounded font-bold">${safeCredits}CR</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
-                                <div class="flex flex-wrap items-center gap-1">
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-black ${statusTextClass}">
-                                        <span class="w-1.5 h-1.5 rounded-full ${statusDotClass}"></span>${statusLabel}
-                                    </span>
-                                    ${enrolledButton}
-                                    ${fo > 0 ? `<span class="text-[10px] bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5"><i class="fas fa-key text-[8px]"></i>${fo}</span>` : ''}
-                                    ${!un && s.prerequisites?.length ? `<button onclick="showPrerequisitePopover(event, '${subjectIdJs}')" class="text-[10px] bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all truncate max-w-[120px]"><i class="fas fa-${isSkippedPrereq ? 'exclamation-triangle' : 'lock'} text-[8px]"></i>${safeReqTxt}</button>` : ''}
-                                </div>
-                                <div class="mobile-subject-actions grid grid-cols-[1fr_auto_auto] sm:flex items-center gap-1.5 w-full sm:w-auto">
-                                    <label class="flex items-center justify-between gap-2 px-2 py-1.5 sm:px-1.5 sm:py-1 rounded border ${gradeInputStateClass}" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
-                                        <span class="text-[9px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">Nota</span>
-                                        <input type="number" min="0" max="100" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" onchange="updateGrade('${subjectIdJs}', this.value)" class="w-12 sm:w-10 bg-transparent text-xs font-bold text-center outline-none">
-                                    </label>
-                                    <div class="w-9 h-9 sm:w-7 sm:h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-center" title="Calificación literal">
-                                        ${gradeLabel ? `<span class="text-sm font-black ${gradeLabel.color}">${gradeLabel.label}</span>` : '<span class="text-slate-300 dark:text-slate-600 text-xs">-</span>'}
-                                    </div>
-                                    <button onclick="toggleSubjectDetails('${subjectIdJs}')" aria-label="Ver detalles de ${safeSubjectName}" title="Detalles" class="w-9 h-9 sm:w-7 sm:h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all ${hasExtraData ? 'text-primary-500' : 'text-slate-400 dark:text-slate-500'}">
-                                        <i class="fas fa-chevron-down text-[10px] transition-transform" id="chevron-${subjectIdHtml}"></i>
-                                    </button>
-                                    ${missingGradeMessage}
-                                </div>
+                <div id="subject-card-${subjectIdHtml}" class="subject-card-mobile stk-card stk-card--${statusKey} ${op} group">
+                    <div class="stk-head" onclick="toggleSubjectDetails('${subjectIdJs}')">
+                        <button class="stk-orb" aria-label="Cambiar estado de ${safeSubjectName}" onclick="event.stopPropagation(); toggleSubjectStatus('${subjectIdJs}')">
+                            <i class="fas ${orbIcon}"></i>
+                        </button>
+                        <div class="stk-main">
+                            <div class="stk-title">${safeSubjectName}</div>
+                            <div class="stk-sub">
+                                <span>${safeSubjectCode}</span><span class="stk-sep">·</span><span class="stk-sw">${shortStatus}</span>
+                                ${prereqChip}${unlockChip}
                             </div>
                         </div>
+                        <div class="stk-credits"><b>${safeCredits}</b><span>CR</span></div>
+                        <button class="stk-expand-btn" aria-label="Ver detalles de ${safeSubjectName}" onclick="event.stopPropagation(); toggleSubjectDetails('${subjectIdJs}')"><i class="fas fa-chevron-down stk-chev" id="chevron-${subjectIdHtml}"></i></button>
                     </div>
+                    <div class="stk-actions">
+                        ${enrollBtn}
+                        <label class="stk-note ${isApprovedWithoutGrade ? 'stk-note--warn' : ''}" onclick="event.stopPropagation()" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
+                            <span class="stk-note-cap">Nota</span>
+                            <input type="number" min="0" max="100" step="any" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" onchange="updateGrade('${subjectIdJs}', this.value)">
+                        </label>
+                        <div class="stk-grade ${gradeLabel ? '' : 'stk-grade--empty'}" title="Calificación literal">${gradeLabel ? gradeLabel.label : '–'}</div>
+                    </div>
+                    ${warnText}
                     <!-- Collapsible Details Section -->
-                    <div id="details-${subjectIdHtml}" class="hidden mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Sección</label>
-                                <input type="text" placeholder="Ej: 01" value="${safeSection}" onchange="updateSubjectExtra('${subjectIdJs}', 'section', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Aula</label>
-                                <input type="text" placeholder="Ej: A-101" value="${safeClassroom}" onchange="updateSubjectExtra('${subjectIdJs}', 'classroom', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
-                            </div>
-                            <div class="col-span-2 sm:col-span-1">
-                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Maestro</label>
-                                <input type="text" placeholder="Nombre del profesor" value="${safeTeacher}" onchange="updateSubjectExtra('${subjectIdJs}', 'teacher', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Retiros</label>
-                                <input type="number" min="0" max="10" placeholder="0" value="${escapeHtml(st.attempts?.length || 0)}" onchange="updateAttempts('${subjectIdJs}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium text-center focus:ring-1 focus:ring-primary-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Fecha</label>
-                                <input type="month" value="${safeCompletionDate}" onchange="updateCompletionDate('${subjectIdJs}', this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary-500 outline-none">
+                    <div class="stk-details" id="details-${subjectIdHtml}">
+                        <div class="stk-details-inner">
+                            <div class="stk-details-grid">
+                                <div class="stk-field"><label>Sección</label><input type="text" placeholder="Ej: 01" value="${safeSection}" onchange="updateSubjectExtra('${subjectIdJs}', 'section', this.value)"></div>
+                                <div class="stk-field"><label>Aula</label><input type="text" placeholder="Ej: A-101" value="${safeClassroom}" onchange="updateSubjectExtra('${subjectIdJs}', 'classroom', this.value)"></div>
+                                <div class="stk-field stk-field--wide"><label>Maestro</label><input type="text" placeholder="Nombre del profesor" value="${safeTeacher}" onchange="updateSubjectExtra('${subjectIdJs}', 'teacher', this.value)"></div>
+                                <div class="stk-field"><label>Retiros</label><input type="number" min="0" max="10" placeholder="0" value="${escapeHtml(st.attempts?.length || 0)}" onchange="updateAttempts('${subjectIdJs}', this.value)"></div>
+                                <div class="stk-field"><label>Fecha</label><input type="month" value="${safeCompletionDate}" onchange="updateCompletionDate('${subjectIdJs}', this.value)"></div>
                             </div>
                         </div>
                     </div>
@@ -1643,35 +1875,28 @@
             saveUserProgress();
             refreshAffectedSubjects(id);
             calculateStatistics();
+            if (userProgress[id].status === 'approved') popSubjectOrb(id);
+        }
+        function popSubjectOrb(id) {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const orb = document.getElementById(`subject-card-${id}`)?.querySelector('.stk-orb');
+            if (!orb) return;
+            orb.classList.add('stk-pop');
+            orb.addEventListener('animationend', () => orb.classList.remove('stk-pop'), { once: true });
         }
         function updateGrade(id, val) {
-            userProgress[id] = StudyTrackProgress.applyGradeToSubjectProgress(userProgress[id], val);
-            const g = userProgress[id].grade;
-
-            const loc = findSubjectLocation(id);
-
-            if (g >= 70) {
-                saveUserProgress();
-                refreshAffectedSubjects(id);
-                calculateStatistics();
-            } else {
-                saveUserProgress();
-                calculateStatistics();
-                if (loc) {
-                    reRenderSubjectCardDOM(loc.subject, loc.period.period_number);
-                    updatePeriodHeaderDOM(loc.periodIndex);
-                }
-            }
+            userProgress[id] = StudyTrackProgress.applyGradeToSubjectProgress(userProgress[id], val, APP_CONFIG.passingGrade);
+            saveUserProgress();
+            // Always refresh dependents: a grade change can flip approval in either
+            // direction, so lowering a passing grade must re-lock the subjects it unlocked.
+            refreshAffectedSubjects(id);
+            calculateStatistics();
         }
         function updateAttempts(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].attempts = Array(parseInt(val) || 0).fill({}); saveUserProgress(); }
         function updateCompletionDate(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].completionDate = val; saveUserProgress(); }
         function toggleSubjectDetails(id) {
-            const detailsEl = document.getElementById(`details-${id}`);
-            const chevronEl = document.getElementById(`chevron-${id}`);
-            if (detailsEl) {
-                detailsEl.classList.toggle('hidden');
-                if (chevronEl) chevronEl.classList.toggle('rotate-180');
-            }
+            const card = document.getElementById(`subject-card-${id}`);
+            if (card) card.classList.toggle('open');
         }
         function updateSubjectExtra(id, field, val) {
             if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
@@ -1694,7 +1919,7 @@
 
             if (letterEl) {
                 letterEl.textContent = letterObj ? letterObj.label : 'N/A';
-                letterEl.className = letterObj ? `text-4xl sm:text-5xl font-black ${letterObj.color}` : 'text-xl sm:text-3xl font-black text-slate-400 dark:text-slate-500';
+                letterEl.className = letterObj ? `text-2xl font-black ${letterObj.color}` : 'text-2xl font-black text-slate-400 dark:text-slate-500';
             }
             if (gpaEl) gpaEl.textContent = hasGrades ? globalGPA.toFixed(2) : 'N/A';
 
@@ -1727,7 +1952,7 @@
             const roundedProgress = Math.round(summary.progress);
             const progressDegrees = Math.round(summary.progress * 3.6);
             const ring = document.getElementById('mobile-progress-ring');
-            if (ring) ring.style.background = `conic-gradient(#10b981 ${progressDegrees}deg, #e2e8f0 ${progressDegrees}deg)`;
+            if (ring) ring.style.background = `conic-gradient(var(--stk-accent-approved) ${progressDegrees}deg, var(--stk-surface-2) ${progressDegrees}deg)`;
 
             document.getElementById('mobile-progress-value').textContent = `${roundedProgress}%`;
             document.getElementById('mobile-progress-message').textContent = roundedProgress >= 70 ? 'Vas muy bien' : roundedProgress >= 35 ? 'Buen avance' : 'Listo para avanzar';
@@ -1792,7 +2017,7 @@
             const roundedProgress = Math.round(academic.progress);
             const progressDegrees = Math.round(academic.progress * 3.6);
             const ring = document.getElementById('home-progress-ring');
-            if (ring) ring.style.background = `conic-gradient(#10b981 ${progressDegrees}deg, #e2e8f0 ${progressDegrees}deg)`;
+            if (ring) ring.style.background = `conic-gradient(var(--stk-accent-approved) ${progressDegrees}deg, var(--stk-surface-2) ${progressDegrees}deg)`;
 
             document.getElementById('home-progress-value').textContent = `${roundedProgress}%`;
             document.getElementById('home-greeting').textContent = roundedProgress >= 70 ? 'Vas muy bien' : roundedProgress >= 35 ? 'Buen avance' : 'Listo para avanzar';
@@ -1939,9 +2164,24 @@
                 c.appendChild(div);
             });
         }
+        function animateSubjectEntrance() {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const cards = document.querySelectorAll('#subjects-view .stk-card');
+            if (!cards.length) return;
+            cards.forEach(card => card.classList.remove('stk-anim-in'));
+            void document.body.offsetWidth; // single reflow to allow re-trigger
+            cards.forEach((card, i) => {
+                card.style.animationDelay = Math.min(i, 12) * 35 + 'ms';
+                card.classList.add('stk-anim-in');
+                card.addEventListener('animationend', () => {
+                    card.classList.remove('stk-anim-in');
+                    card.style.animationDelay = '';
+                }, { once: true });
+            });
+        }
         function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
         function updateFilterCounts() { if (!currentCurriculum) return; const counts = StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress); document.getElementById('count-all').textContent = counts.all; document.getElementById('count-enrolled').textContent = counts.enrolled; document.getElementById('count-completed').textContent = counts.completed; document.getElementById('count-pending').textContent = counts.pending; }
-        function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; }
+        function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; notifySyncChange(); }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
         function registerServiceWorker() {
@@ -1990,7 +2230,8 @@
             const rawRequirement = formatPrerequisiteString(loc.subject.prerequisites);
             const popover = document.createElement('div');
             popover.id = 'prerequisite-popover';
-            popover.className = 'fixed z-[130] w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-3 animate-scale-up';
+            popover.className = 'fixed z-[130] w-72 p-3 animate-scale-up stk-surface-card';
+            popover.style.boxShadow = 'var(--stk-shadow-hover)';
 
             const anchorRect = event?.currentTarget?.getBoundingClientRect();
             const top = Math.min(window.innerHeight - 170, Math.max(12, (anchorRect?.bottom || 80) + 8));
@@ -2012,7 +2253,7 @@
             actions.className = 'flex items-center gap-2 mt-3';
             const closeBtn = document.createElement('button');
             closeBtn.type = 'button';
-            closeBtn.className = 'flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold';
+            closeBtn.className = 'settings-quick-link flex-1 py-2 text-xs font-bold';
             closeBtn.textContent = 'Cerrar';
             closeBtn.onclick = closePrerequisitePopover;
             actions.appendChild(closeBtn);
@@ -2020,7 +2261,7 @@
             if (target) {
                 const goBtn = document.createElement('button');
                 goBtn.type = 'button';
-                goBtn.className = 'flex-1 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold';
+                goBtn.className = 'stk-btn-primary flex-1 py-2 text-xs font-bold';
                 goBtn.textContent = 'Ir';
                 goBtn.onclick = () => navigateToSubject(target.subject.id);
                 actions.appendChild(goBtn);
@@ -2058,6 +2299,7 @@
 
         function saveGradeScale() {
             StudyTrackStorage.setJson(StudyTrackStorage.KEYS.gradeScale, APP_CONFIG.gradeScale);
+            notifySyncChange();
             renderGradeScaleSettings();
             renderUI(); // Refresh Cards to show new labels
             renderPeriods(document.getElementById('search-input').value); // Re-calculate Period GPA
@@ -2088,7 +2330,7 @@
                 const safeColor = sanitizeCssClasses(g.color);
                 return `
                 <div class="flex items-center gap-2 mb-2">
-                    <input type="number" value="${safeMin}" onchange="updateGradeRange(${i}, 'min', this.value)" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
+                    <input type="number" step="any" value="${safeMin}" onchange="updateGradeRange(${i}, 'min', this.value)" class="w-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Min">
                     <span class="text-xs text-slate-400">→</span>
                     <input type="text" value="${safeLabel}" onchange="updateGradeRange(${i}, 'label', this.value)" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${safeColor}" placeholder="Letra">
                     <span class="text-xs text-slate-400">=</span>
@@ -2100,14 +2342,40 @@
         }
 
         function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : currentView === 'subjects' ? 'nav-subjects' : 'nav-home'; }
-        function setActiveMobileNav(activeId) { document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId)); }
-        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('settings-modal').classList.remove('hidden'); }
+        function setActiveMobileNav(activeId) {
+            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId));
+            const sideId = activeId.replace('nav-', 'side-');
+            document.querySelectorAll('.side-tab').forEach(btn => btn.classList.toggle('active', btn.id === sideId));
+        }
+        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-        function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); }
+        function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
         function toggleEnrollment(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); }
-        function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
+        function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; notifySyncChange(); showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
+        function updatePassingGrade(val) {
+            const parsed = parseFloat(val);
+            const input = document.getElementById('passing-grade-input');
+            if (!Number.isFinite(parsed)) { if (input) input.value = APP_CONFIG.passingGrade; return; }
+            const newPassing = Math.max(0, Math.min(100, parsed));
+            APP_CONFIG.passingGrade = newPassing;
+            StudyTrackStorage.setItem(StudyTrackStorage.KEYS.passingGrade, newPassing);
+            // Re-evaluate every graded subject so the stored approval status matches the new threshold.
+            Object.keys(userProgress).forEach(id => {
+                const entry = userProgress[id];
+                // Skip enrolled (in-progress) subjects: changing the threshold should not
+                // silently mark a course you are currently taking as approved.
+                if (entry && entry.status !== 'enrolled' && entry.grade !== null && entry.grade !== undefined && entry.grade !== '') {
+                    userProgress[id] = StudyTrackProgress.applyGradeToSubjectProgress(entry, entry.grade, newPassing);
+                }
+            });
+            saveUserProgress();
+            if (input) input.value = newPassing;
+            renderPeriods(document.getElementById('search-input').value);
+            calculateStatistics();
+            showToast(`Nota mínima para aprobar: ${newPassing}`, 'success');
+        }
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
         function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
         function showToast(msg, type = 'info') { const t = document.createElement('div'); const c = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-slate-800' }; t.className = `${c[type]} text-white px-4 py-3 rounded-lg shadow-xl fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
@@ -2164,7 +2432,7 @@
         const DAYS = StudyTrackSchedule.DAYS;
         const DAY_NAMES = StudyTrackSchedule.DAY_NAMES;
 
-        function saveScheduleData() { StudyTrackStorage.setJson(StudyTrackStorage.KEYS.schedule, scheduleData); }
+        function saveScheduleData() { StudyTrackStorage.setJson(StudyTrackStorage.KEYS.schedule, scheduleData); notifySyncChange(); }
 
         function formatTime12h(time) {
             return StudyTrackSchedule.formatTime12h(time);
@@ -2207,6 +2475,9 @@
             setActiveMobileNav(view === 'schedule' ? 'nav-schedule' : view === 'subjects' ? 'nav-subjects' : 'nav-home');
             if (view === 'home') renderHomeView();
             if (view === 'schedule') renderScheduleView();
+            if (view === 'subjects') animateSubjectEntrance();
+            const shown = view === 'home' ? homeView : view === 'schedule' ? scheduleView : null;
+            if (shown) { shown.classList.remove('stk-view-in'); void shown.offsetWidth; shown.classList.add('stk-view-in'); }
         }
 
         function showMobileProgress() {
@@ -2219,7 +2490,7 @@
 
         function getEnrolledSubjects() { const enrolled = []; if (currentCurriculum) { currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') enrolled.push({ ...s, period: p.period_number }); })); } return enrolled; }
 
-        function toggleScheduleView(type) { scheduleViewType = type; StudyTrackStorage.setItem(StudyTrackStorage.KEYS.scheduleViewType, type); updateScheduleViewButtons(); const listContainer = document.getElementById('weekly-schedule-list'); const gridContainer = document.getElementById('weekly-schedule-table'); if (type === 'list') { listContainer.classList.remove('hidden'); gridContainer.classList.add('hidden'); } else { listContainer.classList.add('hidden'); gridContainer.classList.remove('hidden'); } renderScheduleView(); }
+        function toggleScheduleView(type) { scheduleViewType = type; StudyTrackStorage.setItem(StudyTrackStorage.KEYS.scheduleViewType, type); notifySyncChange(); updateScheduleViewButtons(); const listContainer = document.getElementById('weekly-schedule-list'); const gridContainer = document.getElementById('weekly-schedule-table'); if (type === 'list') { listContainer.classList.remove('hidden'); gridContainer.classList.add('hidden'); } else { listContainer.classList.add('hidden'); gridContainer.classList.remove('hidden'); } renderScheduleView(); }
 
         function updateScheduleViewButtons() { const btnList = document.getElementById('view-btn-list'); const btnGrid = document.getElementById('view-btn-grid'); if (scheduleViewType === 'list') { btnList.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all'; btnGrid.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all'; } else { btnGrid.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all'; btnList.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all'; } }
 
