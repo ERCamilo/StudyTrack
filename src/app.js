@@ -69,6 +69,7 @@
         // ============================================================
 
         async function initApp() {
+            milestonesReady = false; // silence celebrations during (re)init — incl. cloud-pull re-runs
             loadSettings(); // refresh cloud-synced settings (so a sync pull applies without reload)
             if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
 
@@ -96,6 +97,9 @@
             setupSelectors('settings'); // Prepare settings selectors
             setTimeout(updateLibraryFromCloud, 1000);
             setupEventListeners();
+            // A cloud pull re-runs initApp; keep the on-screen profile fresh if it's active.
+            if (currentView === 'profile') renderProfileView();
+            milestonesReady = true; // baseline is stamped; from here new achievements celebrate
         }
 
         // ============================================================
@@ -456,6 +460,7 @@
             updateMobileAcademicHub({ progress, earned, globalAvg, globalGPA, letter: letterObj?.label || 'N/A', remaining });
             renderHomeView(summary);
             updateFilterCounts();
+            recomputeMilestones();
         }
 
         function formatCountLabel(count, singular, plural) {
@@ -530,7 +535,32 @@
             return `<div class="px-4 py-6 text-center text-slate-400 dark:text-slate-500"><i class="${icon} text-2xl mb-2 opacity-60"></i><div class="text-sm font-bold text-slate-500 dark:text-slate-400">${escapeHtml(title)}</div><div class="text-xs mt-1">${escapeHtml(detail)}</div></div>`;
         }
 
+        // Gentle "remember your why" + latest achievement on the Home greeting card.
+        function renderHomeMotivation() {
+            const el = document.getElementById('home-motivation');
+            if (!el) return;
+            const goal = getStudentGoal();
+            const latest = getLatestMilestone();
+            el.innerHTML = '';
+            if (!goal && !latest) { el.classList.add('hidden'); return; }
+            el.classList.remove('hidden');
+            if (goal) {
+                const row = document.createElement('div');
+                row.className = 'flex items-start gap-2';
+                const ic = document.createElement('i'); ic.className = 'fas fa-bullseye text-xs mt-0.5'; ic.style.color = 'var(--stk-tint)';
+                const tx = document.createElement('span'); tx.className = 'text-xs font-semibold'; tx.style.color = 'var(--stk-text-1)'; tx.textContent = goal;
+                row.append(ic, tx); el.appendChild(row);
+            }
+            if (latest) {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2';
+                const ic = document.createElement('i'); ic.className = 'fas ' + latest.icon + ' text-xs'; ic.style.color = 'var(--stk-ink-approved)';
+                const tx = document.createElement('span'); tx.className = 'text-[11px] font-semibold'; tx.style.color = 'var(--stk-text-1)'; tx.textContent = 'Último logro: ' + latest.label;
+                row.append(ic, tx); el.appendChild(row);
+            }
+        }
         function renderHomeView(summary = null) {
+            renderHomeMotivation();
             if (!currentCurriculum || !document.getElementById('home-view')) return;
             const academic = summary || StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress, { getGradePoints, getGradeLabel });
             const insights = StudyTrackInsights.buildHomeInsights({
@@ -868,7 +898,7 @@
             }).join('');
         }
 
-        function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : currentView === 'subjects' ? 'nav-subjects' : 'nav-home'; }
+        function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : currentView === 'subjects' ? 'nav-subjects' : currentView === 'profile' ? 'nav-progress' : 'nav-home'; }
         function setActiveMobileNav(activeId) {
             document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId));
             const sideId = activeId.replace('nav-', 'side-');
@@ -939,7 +969,206 @@
 
         function getStudentName() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentName) || ''; }
 
-        function setStudentName(value) { StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentName, String(value || '')); }
+        function setStudentName(value) { StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentName, String(value || '')); notifySyncChange(); }
+
+        function getStudentPhoto() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentPhoto) || ''; }
+        // Returns the storage success boolean so callers can detect a quota rejection
+        // (a photo is the only profile field big enough to ever hit the localStorage limit).
+        function setStudentPhoto(value) { const ok = StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentPhoto, String(value || '')); if (ok) notifySyncChange(); return ok; }
+        function getStudentId() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentId) || ''; }
+        function setStudentId(value) { StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentId, String(value || '')); notifySyncChange(); }
+        function getStudentGoal() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentGoal) || ''; }
+        function setStudentGoal(value) { StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentGoal, String(value || '')); notifySyncChange(); }
+        function getStudentStatus() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentStatus) || ''; }
+        function setStudentStatus(value) { StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentStatus, String(value || '')); notifySyncChange(); }
+
+        // Name change also refreshes the avatar initials / heading without a full re-render.
+        function updateProfileName(value) { setStudentName(value); refreshProfileIdentity(); }
+
+        function profileInitials(name) {
+            const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+            if (!parts.length) return '';
+            return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        }
+        function renderProfileAvatar() {
+            const el = document.getElementById('profile-avatar');
+            if (!el) return;
+            const photo = getStudentPhoto();
+            el.innerHTML = '';
+            if (photo) {
+                const img = document.createElement('img');
+                img.src = photo; img.alt = 'Foto de perfil';
+                img.className = 'w-full h-full object-cover';
+                el.appendChild(img);
+            } else {
+                const initials = profileInitials(getStudentName());
+                if (initials) {
+                    const s = document.createElement('span');
+                    s.className = 'text-2xl font-black'; s.style.color = 'var(--stk-tint)';
+                    s.textContent = initials;
+                    el.appendChild(s);
+                } else {
+                    const i = document.createElement('i');
+                    i.className = 'fas fa-user text-2xl'; i.style.color = 'var(--stk-text-3)';
+                    el.appendChild(i);
+                }
+            }
+            const rm = document.getElementById('profile-photo-remove');
+            if (rm) rm.classList.toggle('hidden', !photo);
+        }
+        function refreshProfileIdentity() { renderProfileAvatar(); }
+
+        function pickProfilePhoto() { const i = document.getElementById('profile-photo-input'); if (i) i.click(); }
+        function removeProfilePhoto() { setStudentPhoto(''); renderProfileAvatar(); }
+        // Cover-crop the decoded source to a 256px square JPEG data URL, persist it,
+        // and report failures honestly (quota, unusable image).
+        function finishProfilePhoto(source) {
+            const w = source.width, h = source.height;
+            if (!w || !h) { showToast('Imagen no válida', 'error'); return; }
+            const SIZE = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = SIZE; canvas.height = SIZE;
+            const side = Math.min(w, h);
+            canvas.getContext('2d').drawImage(source, (w - side) / 2, (h - side) / 2, side, side, 0, 0, SIZE, SIZE);
+            if (typeof source.close === 'function') source.close();
+            let dataUrl;
+            try { dataUrl = canvas.toDataURL('image/jpeg', 0.72); }
+            catch { showToast('No se pudo procesar la imagen', 'error'); return; }
+            if (!setStudentPhoto(dataUrl)) { showToast('No hay espacio para guardar la foto', 'error'); return; }
+            renderProfileAvatar();
+            showToast('Foto actualizada', 'success');
+        }
+        // Fallback decode for browsers without createImageBitmap (no EXIF normalization).
+        function loadPhotoViaImage(file) {
+            const reader = new FileReader();
+            reader.onerror = () => showToast('No se pudo leer la imagen', 'error');
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = () => showToast('Imagen no válida', 'error');
+                img.onload = () => finishProfilePhoto(img);
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        // Compress to a small square JPEG so it fits localStorage and the Firestore 1 MiB
+        // document (only one photo is ever kept, replacing the prior).
+        function onProfilePhotoSelected(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
+            if (!/^image\//.test(file.type) || file.type === 'image/svg+xml') { showToast('Selecciona una imagen (JPG o PNG)', 'error'); return; }
+            if (file.size > 15 * 1024 * 1024) { showToast('La imagen es demasiado grande (máx. 15 MB)', 'error'); return; }
+            // createImageBitmap with imageOrientation:'from-image' bakes EXIF rotation so
+            // phone portrait photos are not saved sideways; fall back to <img> if missing.
+            if (typeof createImageBitmap === 'function') {
+                createImageBitmap(file, { imageOrientation: 'from-image' })
+                    .then(finishProfilePhoto)
+                    .catch(() => loadPhotoViaImage(file));
+            } else {
+                loadPhotoViaImage(file);
+            }
+        }
+
+        function showProfile() { switchView('profile'); }
+
+        let milestonesReady = false;
+        function buildMilestoneStats() {
+            const card = collectStudentCard();
+            return { subjectsApproved: card.subjectsApproved, subjectsTotal: card.subjectsTotal, creditsEarned: card.creditsEarned, progress: card.progress, periodsTaken: card.periodsTaken, average: card.average };
+        }
+        // Re-evaluate achievements after any stats change; stamp newly-earned ones with
+        // a date. Celebrate only once the app is ready (so the initial baseline that a
+        // returning student already meets is recorded silently, not as a toast flood).
+        function recomputeMilestones() {
+            if (!currentCurriculum || !window.StudyTrackMilestones) return;
+            const achieved = StudyTrackMilestones.evaluateMilestones(buildMilestoneStats());
+            const stored = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.milestones, {}) || {};
+            const { newlyAchieved } = StudyTrackMilestones.reconcileMilestones(achieved, stored);
+            if (newlyAchieved.length) {
+                const now = new Date().toISOString();
+                newlyAchieved.forEach(id => { stored[id] = now; });
+                StudyTrackStorage.setJson(StudyTrackStorage.KEYS.milestones, stored);
+                notifySyncChange();
+                if (milestonesReady) {
+                    const def = StudyTrackMilestones.DEFS.find(d => d.id === newlyAchieved[newlyAchieved.length - 1]);
+                    if (def) showToast(`🎉 ¡Logro desbloqueado! ${def.label}`, 'success');
+                }
+            }
+            if (currentView === 'profile') renderMilestones();
+        }
+        function getLatestMilestone() {
+            if (!window.StudyTrackMilestones) return null;
+            const stored = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.milestones, {}) || {};
+            let latest = null, latestDate = '';
+            // DEFS is ordered low->high; >= makes the most-advanced milestone win on equal timestamps.
+            StudyTrackMilestones.DEFS.forEach(d => { const date = stored[d.id]; if (date && date >= latestDate) { latestDate = date; latest = d; } });
+            return latest;
+        }
+        function formatMilestoneDate(iso) {
+            try { return new Date(iso).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' }); }
+            catch { return ''; }
+        }
+        function renderMilestones() {
+            const container = document.getElementById('profile-milestones');
+            if (!container || !window.StudyTrackMilestones) return;
+            const stored = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.milestones, {}) || {};
+            container.innerHTML = '';
+            StudyTrackMilestones.DEFS.forEach(def => {
+                const done = !!stored[def.id];
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-3';
+                const orb = document.createElement('div');
+                orb.className = 'w-9 h-9 rounded-full flex items-center justify-center shrink-0';
+                orb.style.background = done ? 'var(--stk-soft-approved)' : 'var(--stk-surface-2)';
+                orb.style.color = done ? 'var(--stk-ink-approved)' : 'var(--stk-text-3)';
+                const ic = document.createElement('i');
+                ic.className = 'fas ' + def.icon + ' text-sm';
+                orb.appendChild(ic);
+                const txt = document.createElement('div');
+                txt.className = 'flex-1 min-w-0';
+                const lbl = document.createElement('div');
+                lbl.className = 'text-sm font-bold truncate';
+                lbl.style.color = done ? 'var(--stk-text-1)' : 'var(--stk-text-2)';
+                lbl.textContent = def.label;
+                txt.appendChild(lbl);
+                if (done) {
+                    const dt = document.createElement('div');
+                    dt.className = 'text-[11px]';
+                    dt.style.color = 'var(--stk-text-2)';
+                    dt.textContent = formatMilestoneDate(stored[def.id]);
+                    txt.appendChild(dt);
+                }
+                row.append(orb, txt);
+                if (done) { const chk = document.createElement('i'); chk.className = 'fas fa-circle-check'; chk.style.color = 'var(--stk-ink-approved)'; row.appendChild(chk); }
+                container.appendChild(row);
+            });
+        }
+        function renderProfileView() {
+            renderProfileAvatar();
+            renderMilestones();
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+            const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            setVal('profile-name', getStudentName());
+            setVal('profile-id', getStudentId());
+            setVal('profile-status', getStudentStatus());
+            setVal('profile-goal', getStudentGoal());
+            if (!currentCurriculum) {
+                setTxt('profile-career', 'Sin carrera seleccionada');
+                setTxt('profile-institution', '');
+                return;
+            }
+            const card = collectStudentCard();
+            setTxt('profile-career', card.career || 'Sin carrera');
+            setTxt('profile-institution', card.institution || '');
+            const pct = Math.round(card.progress || 0);
+            const ring = document.getElementById('profile-ring');
+            if (ring) ring.style.background = `conic-gradient(var(--stk-accent-approved) ${pct * 3.6}deg, var(--stk-surface-2) ${pct * 3.6}deg)`;
+            setTxt('profile-progress-value', pct + '%');
+            setTxt('profile-approved', `${card.subjectsApproved}/${card.subjectsTotal}`);
+            setTxt('profile-credits', card.creditsEarned);
+            setTxt('profile-index', Number.isFinite(card.average) ? card.average.toFixed(1) : 'N/A');
+            setTxt('profile-periods', card.periodsTaken);
+        }
 
         function countPeriodsTaken() {
             if (!currentCurriculum) return 0;
@@ -1196,23 +1425,18 @@
             const homeView = document.getElementById('home-view');
             const subjectsView = document.getElementById('subjects-view');
             const scheduleView = document.getElementById('schedule-view');
+            const profileView = document.getElementById('profile-view');
             homeView.classList.toggle('hidden', view !== 'home');
             subjectsView.classList.toggle('hidden', view !== 'subjects');
             scheduleView.classList.toggle('hidden', view !== 'schedule');
-            setActiveMobileNav(view === 'schedule' ? 'nav-schedule' : view === 'subjects' ? 'nav-subjects' : 'nav-home');
+            if (profileView) profileView.classList.toggle('hidden', view !== 'profile');
+            setActiveMobileNav(view === 'schedule' ? 'nav-schedule' : view === 'subjects' ? 'nav-subjects' : view === 'profile' ? 'nav-progress' : 'nav-home');
             if (view === 'home') renderHomeView();
             if (view === 'schedule') renderScheduleView();
             if (view === 'subjects') animateSubjectEntrance();
-            const shown = view === 'home' ? homeView : view === 'schedule' ? scheduleView : null;
+            if (view === 'profile') renderProfileView();
+            const shown = view === 'home' ? homeView : view === 'schedule' ? scheduleView : view === 'profile' ? profileView : null;
             if (shown) { shown.classList.remove('stk-view-in'); void shown.offsetWidth; shown.classList.add('stk-view-in'); }
-        }
-
-        function showMobileProgress() {
-            switchView('subjects');
-            setActiveMobileNav('nav-progress');
-            const hub = document.getElementById('mobile-academic-hub');
-            if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            else window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function getEnrolledSubjects() { const enrolled = []; if (currentCurriculum) { currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') enrolled.push({ ...s, period: p.period_number }); })); } return enrolled; }

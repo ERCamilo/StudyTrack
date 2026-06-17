@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -533,5 +533,23 @@ assert.equal(rankedRecommendations[0].recommendation.category, 'unlock');
 assert.equal(rankedRecommendations[0].recommendation.badge, 'Alto impacto');
 assert.equal(rankedRecommendations[1].id, 'LIGHT');
 assert.equal(rankedRecommendations[1].recommendation.category, 'light-load');
+
+// Milestones engine (compare via primitives: vm-realm arrays aren't deepStrictEqual to main-realm [])
+assert.equal(StudyTrackMilestones.evaluateMilestones({ subjectsApproved: 0, progress: 0, periodsTaken: 0 }).length, 0, 'No milestones with empty progress');
+{
+  const ids = StudyTrackMilestones.evaluateMilestones({ subjectsApproved: 3, progress: 30, periodsTaken: 1, average: 88 }).map(d => d.id);
+  assert.ok(ids.includes('first-subject') && ids.includes('first-period') && ids.includes('progress-25'), 'Early milestones achieved');
+  assert.ok(!ids.includes('subjects-5') && !ids.includes('progress-50') && !ids.includes('excellence'), 'Higher milestones not yet achieved');
+}
+{
+  const ids = StudyTrackMilestones.evaluateMilestones({ subjectsApproved: 12, progress: 100, periodsTaken: 4, average: 95 }).map(d => d.id);
+  assert.ok(['first-subject', 'first-period', 'subjects-5', 'progress-25', 'subjects-10', 'progress-50', 'excellence', 'progress-75', 'progress-100'].every(x => ids.includes(x)), 'All milestones achieved at full completion');
+}
+assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null, 'Non-numeric average normalizes to null (no excellence)');
+{
+  const achieved = StudyTrackMilestones.evaluateMilestones({ subjectsApproved: 6, progress: 26 });
+  const rec = StudyTrackMilestones.reconcileMilestones(achieved, { 'first-subject': '2026-01-01', 'progress-25': '2026-01-02' });
+  assert.equal(rec.newlyAchieved.slice().sort().join('|'), 'subjects-5', 'Only the genuinely new milestone is flagged');
+}
 
 console.log('Logic checks passed');

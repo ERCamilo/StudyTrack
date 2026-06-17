@@ -11,7 +11,12 @@
     passingGrade: 'passing_grade',
     schedule: 'studytrack_schedule_v1',
     scheduleViewType: 'schedule_view_type',
-    studentName: 'studytrack_student_name'
+    studentName: 'studytrack_student_name',
+    studentPhoto: 'studytrack_student_photo',
+    studentId: 'studytrack_student_id',
+    studentGoal: 'studytrack_student_goal',
+    studentStatus: 'studytrack_student_status',
+    milestones: 'studytrack_milestones'
   };
 
   function getStorage() {

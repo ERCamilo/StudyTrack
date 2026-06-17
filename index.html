@@ -39,6 +39,7 @@
     <script src="./src/requirements.js"></script>
     <script src="./src/schedule.js"></script>
     <script src="./src/insights.js"></script>
+    <script src="./src/milestones.js"></script>
     <script src="./src/nfc.js"></script>
     <!-- Sync module must load after other modules but before app initialization logic -->
     <script src="./src/firebase-sync.js"></script>
@@ -470,7 +471,7 @@
         .stk-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding: 14px; border-top: 1px solid var(--stk-hairline); }
         .stk-field label { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--stk-text-2); margin-bottom: 5px; }
         .stk-field input { width: 100%; background: var(--stk-surface-2); border: none; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--stk-text-1); outline: none; transition: box-shadow .2s var(--stk-ease); }
-        .stk-field input:focus { box-shadow: 0 0 0 2px var(--stk-accent); }
+        .stk-field input:focus { box-shadow: 0 0 0 2px var(--stk-accent, var(--stk-tint)); }
         .stk-field--wide { grid-column: span 2; }
 
         /* Entrada escalonada de la lista (Capa 2) */
@@ -665,7 +666,7 @@
             <button data-action="switchView" data-args='["home"]' id="side-home" class="side-tab active"><i class="fas fa-house"></i><span>Inicio</span></button>
             <button data-action="switchView" data-args='["subjects"]' id="side-subjects" class="side-tab"><i class="fas fa-book"></i><span>Materias</span></button>
             <button data-action="switchView" data-args='["schedule"]' id="side-schedule" class="side-tab"><i class="fas fa-calendar-alt"></i><span>Horario</span></button>
-            <button data-action="showMobileProgress" id="side-progress" class="side-tab"><i class="fas fa-chart-pie"></i><span>Progreso</span></button>
+            <button data-action="showProfile" id="side-progress" class="side-tab"><i class="fas fa-id-card"></i><span>Perfil</span></button>
             <button data-action="openMobileMore" id="side-more" class="side-tab"><i class="fas fa-ellipsis-h"></i><span>Más</span></button>
         </nav>
         <div class="mt-auto">
@@ -748,13 +749,14 @@
                     <div id="home-progress-ring" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-2 shrink-0"
                         style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
                         <div class="w-full h-full rounded-full flex flex-col items-center justify-center" style="background: var(--stk-surface)">
-                            <div id="home-progress-value" class="text-2xl sm:text-3xl font-black" style="color:var(--stk-accent-approved)">0%</div>
+                            <div id="home-progress-value" class="text-2xl sm:text-3xl font-black" style="color:var(--stk-ink-approved)">0%</div>
                             <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">avance</div>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p id="home-greeting" class="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300">Listo para avanzar</p>
                         <p id="home-context" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Tu ruta académica actualizada.</p>
+                        <div id="home-motivation" class="hidden mt-2 rounded-lg px-3 py-2 space-y-1" style="background:var(--stk-tint-soft)"></div>
                         <div class="grid grid-cols-3 gap-2 mt-4">
                             <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-approved)">
                                 <div id="home-earned-credits" class="text-base sm:text-lg font-black" style="color:var(--stk-ink-approved)">0</div>
@@ -1032,6 +1034,76 @@
         </div>
     </main>
 
+    <!-- PROFILE VIEW -->
+    <main id="profile-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 space-y-4 sm:space-y-6 hidden">
+        <input type="file" id="profile-photo-input" accept="image/*" class="hidden" data-change="onProfilePhotoSelected" data-args='["$this"]'>
+
+        <!-- Identity -->
+        <section class="stk-surface-card p-5 sm:p-6">
+            <div class="flex items-center gap-4 sm:gap-5">
+                <div class="relative shrink-0">
+                    <div id="profile-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center" style="background:var(--stk-surface-2)"></div>
+                    <button data-action="pickProfilePhoto" aria-label="Cambiar foto" class="stk-icon-btn absolute -bottom-1 -right-1" style="box-shadow:var(--stk-shadow)">
+                        <i class="fas fa-camera text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <input id="profile-name" type="text" placeholder="Tu nombre" aria-label="Tu nombre" data-change="updateProfileName" data-args='["$value"]'
+                        class="w-full bg-transparent border-none outline-none font-black text-xl sm:text-2xl p-0" style="color:var(--stk-text-1)">
+                    <div class="text-sm mt-0.5 truncate" style="color:var(--stk-text-2)"><span id="profile-career">—</span></div>
+                    <div class="text-xs truncate" style="color:var(--stk-text-2)"><span id="profile-institution"></span></div>
+                    <button id="profile-photo-remove" data-action="removeProfilePhoto" class="hidden text-xs font-bold mt-2" style="color:var(--stk-ink-warning)"><i class="fas fa-trash-can mr-1"></i>Quitar foto</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-5">
+                <div class="stk-field">
+                    <label for="profile-id">ID de estudiante</label>
+                    <input id="profile-id" type="text" placeholder="Ej: 2021-0123" data-change="setStudentId" data-args='["$value"]'>
+                </div>
+                <div class="stk-field">
+                    <label for="profile-status">Estado</label>
+                    <input id="profile-status" type="text" placeholder="Ej: Activo · 2º año" data-change="setStudentStatus" data-args='["$value"]'>
+                </div>
+            </div>
+        </section>
+
+        <!-- Goal / "mi porqué" -->
+        <section class="stk-surface-card p-5">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-bullseye" style="color:var(--stk-tint)"></i>
+                <h3 class="text-sm font-black" style="color:var(--stk-text-1)">Mi meta</h3>
+            </div>
+            <textarea id="profile-goal" rows="2" aria-label="Mi meta" placeholder="¿Por qué estás haciendo esta carrera? Tu porqué te va a sostener los días difíciles." data-change="setStudentGoal" data-args='["$value"]'
+                class="w-full resize-none" style="background-color:var(--stk-surface-2);border:1px solid var(--stk-hairline);border-radius:var(--stk-radius-sm);padding:10px 12px;font-size:14px;color:var(--stk-text-1);outline:none"></textarea>
+        </section>
+
+        <!-- Progress -->
+        <section class="stk-surface-card p-5">
+            <div class="flex items-center gap-4">
+                <div id="profile-ring" class="w-20 h-20 rounded-full p-1.5 shrink-0" style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
+                    <div class="w-full h-full rounded-full flex items-center justify-center" style="background:var(--stk-surface)">
+                        <span id="profile-progress-value" class="text-lg font-black" style="color:var(--stk-ink-approved)">0%</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 flex-1">
+                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-approved">0/0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Materias aprobadas</div></div>
+                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-credits">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Créditos</div></div>
+                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-index">N/A</div><div class="text-[11px]" style="color:var(--stk-text-2)">Índice</div></div>
+                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-periods">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Períodos cursados</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Milestones -->
+        <section class="stk-surface-card p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-medal" style="color:var(--stk-tint)"></i>
+                <h3 class="text-sm font-black" style="color:var(--stk-text-1)">Hitos</h3>
+            </div>
+            <div id="profile-milestones" class="space-y-3"></div>
+        </section>
+    </main>
+
     <!-- SCHEDULE MODAL -->
     <div id="schedule-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center"
@@ -1173,10 +1245,10 @@
                 <i class="fas fa-calendar-alt text-lg"></i>
                 <span class="text-[10px] font-bold">Horario</span>
             </button>
-            <button data-action="showMobileProgress" id="nav-progress"
+            <button data-action="showProfile" id="nav-progress"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
-                <i class="fas fa-chart-pie text-lg"></i>
-                <span class="text-[10px] font-bold">Progreso</span>
+                <i class="fas fa-id-card text-lg"></i>
+                <span class="text-[10px] font-bold">Perfil</span>
             </button>
             <button data-action="openMobileMore" id="nav-more"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">

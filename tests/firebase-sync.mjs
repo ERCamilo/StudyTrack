@@ -447,6 +447,7 @@ assert.equal(store.get(StudyTrackFirebaseSync.STORAGE_KEYS.localDirty), 'true',
     gradeScale: localSnapshot.gradeScale, allowSkipPrereqs: localSnapshot.allowSkipPrereqs,
     maxEnrolledSubjects: localSnapshot.maxEnrolledSubjects, passingGrade: localSnapshot.passingGrade,
     darkMode: localSnapshot.darkMode, scheduleViewType: localSnapshot.scheduleViewType,
+    profile: localSnapshot.profile, milestones: localSnapshot.milestones,
     rev: 'fresh-rev', updatedAtClient: '2026-06-06T00:00:00.000Z'
   };
   await StudyTrackFirebaseSync.syncCloudData();
@@ -454,6 +455,17 @@ assert.equal(store.get(StudyTrackFirebaseSync.STORAGE_KEYS.localDirty), 'true',
   assert.equal(writes.length, 0, 'Identical content must not write to the cloud (saves quota)');
   assert.equal(store.get(KEYS.lastSyncedRev), 'fresh-rev', 'Identical content reconciles the baseline to the cloud rev');
   assert.equal(store.get(KEYS.localDirty), 'false', 'Identical content clears the dirty flag');
+
+  // ── Profile-only edit must push (statesDiffer now compares profile/milestones) ─
+  // Regression guard: without 'profile' in the compare whitelist this edit was
+  // silently dropped (dirty cleared, never pushed) against an otherwise-identical cloud.
+  resetModal();
+  writes.length = 0;
+  store.set(KEYS.localDirty, 'true');
+  StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentName, 'Erlin');
+  await StudyTrackFirebaseSync.syncCloudData();
+  assert.ok(!elements.get('sync-conflict-modal'), 'Profile-only edit must not open a conflict modal');
+  assert.equal(writes.length, 1, 'A profile-only edit must push, not be dropped as identical content');
 
   // ── Offline push: serverTimestamp unavailable falls back to client ISO ─────
   resetModal();
