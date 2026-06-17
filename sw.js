@@ -15,6 +15,7 @@ const APP_SHELL = [
   './src/requirements.js',
   './src/schedule.js',
   './src/insights.js',
+  './src/nfc.js',
   './src/firebase-sync.js',
   './src/app.js',
   './icons/studytrack-icon.svg',

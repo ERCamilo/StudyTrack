@@ -49,6 +49,7 @@ Notas:
 node tests/smoke.mjs
 node tests/logic.mjs
 node tests/firebase-sync.mjs
+node tests/nfc.mjs
 ```
 
 Las pruebas cubren:
@@ -58,6 +59,7 @@ Las pruebas cubren:
 - Service worker y cache del shell.
 - Logica academica, notas, prerrequisitos, requisitos y horario.
 - Escapes de HTML en render dinamico.
+- Carne de estudiante por NFC: normalizacion del modelo, round-trip de serializacion y limite de tamano de la etiqueta.
 
 ## PWA
 
