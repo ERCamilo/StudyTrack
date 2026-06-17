@@ -188,7 +188,10 @@
     const timeColWidth = 65;
     const totalHours = maxHour - minHour;
     const height = headerHeight + (totalHours * hourHeight);
-    let html = `<div class="sticky top-0 left-0 w-full h-[${headerHeight}px] flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/95 backdrop-blur shadow-sm font-bold text-xs text-slate-500 dark:text-slate-400 z-30"><div class="w-[${timeColWidth}px] shrink-0 border-r border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="far fa-clock"></i></div>${DAYS.map((day) => `<div class="flex-1 flex items-center justify-center border-r border-slate-200 dark:border-slate-700 last:border-0">${escapeHtml(DAY_NAMES[day])}</div>`).join('')}</div>`;
+    // Header day cells are positioned with the SAME calc as the blocks below, so a
+    // block is guaranteed to sit under its day label (no flex-vs-calc drift).
+    const dayHeaderCells = DAYS.map((day, i) => `<div class="absolute top-0 h-full flex items-center justify-center border-r border-slate-200 dark:border-slate-700" style="left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${i} / 7); width: calc((100% - ${timeColWidth}px) / 7);">${escapeHtml(DAY_NAMES[day])}</div>`).join('');
+    let html = `<div class="sticky top-0 w-full h-[${headerHeight}px] border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/95 backdrop-blur shadow-sm font-bold text-xs text-slate-500 dark:text-slate-400 z-30"><div class="absolute left-0 top-0 h-full w-[${timeColWidth}px] border-r border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="far fa-clock"></i></div>${dayHeaderCells}</div>`;
 
     for (let hour = minHour; hour < maxHour; hour++) {
       const timeLabel = escapeHtml(formatTime12h(`${hour}:00`));

@@ -60,6 +60,7 @@ assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./src/insights.js'));
 assert.ok(serviceWorker.includes('./src/nfc.js'));
+assert.ok(serviceWorker.includes('./src/milestones.js'), 'Service worker should cache the milestones module');
 assert.ok(serviceWorker.includes('./src/firebase-sync.js'));
 assert.ok(serviceWorker.includes('./src/app.js'), 'Service worker should cache the external controller');
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
@@ -75,7 +76,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/nfc.js', 'src/firebase-sync.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/firebase-sync.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -95,6 +96,9 @@ assert.ok(code.includes("connect-src 'self' https://raw.githubusercontent.com ht
 assert.ok(code.includes('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js'));
 assert.ok(code.includes('<script src="./src/firebase-sync.js"></script>'));
 assert.ok(code.includes('<script src="./src/app.js"></script>'), 'index.html must load the externalized controller');
+assert.ok(code.includes('<script src="./src/milestones.js"></script>'), 'index.html must load the milestones module');
+assert.ok(code.includes('id="profile-milestones"') && code.includes('function renderMilestones()'), 'Profile milestones timeline must be wired');
+assert.ok(code.includes('id="home-motivation"') && code.includes('function renderHomeMotivation()'), 'Home motivational layer must be wired');
 assert.ok(code.includes('id="settings-section-cloud"'));
 assert.ok(code.includes('id="auth-header-btn"'));
 assert.ok(code.includes('id="mobile-academic-hub"'));
@@ -116,9 +120,11 @@ assert.ok(code.includes('id="nav-home"'));
 assert.ok(code.includes('id="nav-progress"'));
 assert.ok(code.includes('id="nav-more"'));
 assert.ok(code.includes('function setActiveMobileNav(activeId)'));
-assert.ok(code.includes('function showMobileProgress()'));
-assert.ok(code.includes("switchView('subjects');\r\n            setActiveMobileNav('nav-progress');") || code.includes("switchView('subjects');\n            setActiveMobileNav('nav-progress');"), 'Progress tab should not duplicate the home view');
-assert.ok(code.includes("document.getElementById('mobile-academic-hub')"), 'Progress tab should target the academic progress hub');
+assert.ok(code.includes('function showProfile()'), 'Profile tab should open a dedicated profile view');
+assert.ok(code.includes('id="profile-view"'), 'Profile must be its own view, not a duplicate of Materias');
+assert.ok(code.includes('function renderProfileView()'), 'Profile view should have a renderer');
+assert.ok(code.includes('id="profile-photo-input"') && code.includes('function onProfilePhotoSelected(input)'), 'Profile photo picker must be wired');
+assert.ok(code.includes('data-action="showProfile"'), 'Nav must route the Perfil tab to the profile view');
 assert.ok(code.includes('function openMobileMore()'));
 assert.ok(code.includes('id="settings-quick-nav"'), 'Settings modal should expose quick navigation on mobile');
 for (const id of ['settings-section-career', 'settings-section-preferences', 'settings-section-requirements', 'settings-section-grades', 'settings-section-data']) {

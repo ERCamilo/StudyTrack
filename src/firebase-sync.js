@@ -344,6 +344,16 @@
       passingGrade: StudyTrackStorage.getFloat(StudyTrackStorage.KEYS.passingGrade, 70),
       darkMode: StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.darkMode, false),
       scheduleViewType: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.scheduleViewType) || 'list',
+      // Student profile: a single record (photo kept small/compressed by the UI so
+      // the synced document stays well under the Firestore 1 MiB limit).
+      profile: {
+        name: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentName) || '',
+        photo: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentPhoto) || '',
+        studentId: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentId) || '',
+        goal: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentGoal) || '',
+        status: StudyTrackStorage.getItem(StudyTrackStorage.KEYS.studentStatus) || ''
+      },
+      milestones: StudyTrackStorage.getJson(StudyTrackStorage.KEYS.milestones, {}),
       // No fabricated timestamp: a device that never synced must lose to existing
       // cloud data so logging in on a fresh device pulls down instead of overwriting.
       updatedAt: getStorageItem(STORAGE_KEYS.localUpdatedAt) || null
@@ -363,6 +373,15 @@
     StudyTrackStorage.setItem(StudyTrackStorage.KEYS.passingGrade, state.passingGrade ?? 70);
     StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, !!state.darkMode);
     if (state.scheduleViewType) StudyTrackStorage.setItem(StudyTrackStorage.KEYS.scheduleViewType, state.scheduleViewType);
+    if (Object.hasOwn(state, 'profile') && state.profile && typeof state.profile === 'object') {
+      const p = state.profile;
+      StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentName, p.name || '');
+      StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentPhoto, p.photo || '');
+      StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentId, p.studentId || '');
+      StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentGoal, p.goal || '');
+      StudyTrackStorage.setItem(StudyTrackStorage.KEYS.studentStatus, p.status || '');
+    }
+    if (Object.hasOwn(state, 'milestones')) StudyTrackStorage.setJson(StudyTrackStorage.KEYS.milestones, state.milestones);
     // Prefer the client ISO stamp; the server `updatedAt` may be a Firestore
     // Timestamp object that must not be stringified into storage.
     const localStamp = state.updatedAtClient || (typeof state.updatedAt === 'string' ? state.updatedAt : null);
@@ -421,7 +440,7 @@
   }
 
   function statesDiffer(cloudState, localState) {
-    const keysToCompare = ['curriculum', 'progress', 'schedule', 'gradeScale', 'allowSkipPrereqs', 'maxEnrolledSubjects', 'passingGrade', 'darkMode', 'scheduleViewType'];
+    const keysToCompare = ['curriculum', 'progress', 'schedule', 'gradeScale', 'allowSkipPrereqs', 'maxEnrolledSubjects', 'passingGrade', 'darkMode', 'scheduleViewType', 'profile', 'milestones'];
     return keysToCompare.some((key) => stableStringify(cloudState?.[key]) !== stableStringify(localState?.[key]));
   }
 
