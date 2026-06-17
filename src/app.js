@@ -1363,7 +1363,61 @@
         // The QR encodes a URL with the card embedded. The receiver scans it with
         // their phone's normal camera, which opens the app and shows the card —
         // works on Android AND iPhone, with no in-app scanner and no camera permission.
-        function shareStudentCardViaQr() {
+        // ── QR sharing & scanning ──────────────────────────────────────────
+        // One entry point: the user can MOSTRAR su carné (generate a QR) or LEER
+        // otro (decode a photo of a QR). Reading uses a PHOTO (file input), not a
+        // live camera — so it needs no camera permission and works on iPhone too.
+        function openQrShareModal() {
+            const modalId = 'qr-choose-modal';
+            const existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4';
+            modal.id = modalId;
+            const close = () => modal.remove();
+
+            const panel = document.createElement('div');
+            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-xs rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up';
+
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-extrabold text-slate-900 dark:text-white mb-1 text-center';
+            title.textContent = 'Carné por QR';
+            const hint = document.createElement('p');
+            hint.className = 'text-sm text-slate-500 dark:text-slate-400 mb-5 text-center leading-normal';
+            hint.textContent = '¿Querés mostrar tu carné o leer el de alguien?';
+
+            const makeChoice = (icon, label, sub, onClick) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-primary-500 dark:hover:border-primary-500 transition-all flex items-center gap-3 mb-3';
+                const ic = document.createElement('i');
+                ic.className = 'fas ' + icon + ' text-xl text-primary-500 shrink-0 w-6 text-center';
+                const box = document.createElement('div');
+                const t = document.createElement('div'); t.className = 'text-sm font-bold text-slate-700 dark:text-slate-200'; t.textContent = label;
+                const s = document.createElement('div'); s.className = 'text-[11px] text-slate-400 dark:text-slate-500'; s.textContent = sub;
+                box.append(t, s);
+                btn.append(ic, box);
+                btn.onclick = () => { close(); onClick(); };
+                return btn;
+            };
+
+            const cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.className = 'w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors';
+            cancel.textContent = 'Cancelar';
+            cancel.onclick = close;
+
+            panel.append(
+                title, hint,
+                makeChoice('fa-qrcode', 'Mostrar mi carné', 'Genera un QR para que lo escaneen', generateMyQr),
+                makeChoice('fa-camera', 'Leer un carné', 'Tomá una foto de un QR', scanQrFromPhoto),
+                cancel
+            );
+            modal.appendChild(panel);
+            document.body.appendChild(modal);
+        }
+        function generateMyQr() {
             if (!currentCurriculum) { showToast('Carga un pensum primero', 'error'); return; }
             if (typeof window.qrcode !== 'function') { showToast('Generador de QR no disponible', 'error'); return; }
             const card = collectStudentCard();
@@ -1372,6 +1426,60 @@
             try { canvas = renderQrCanvas(url); }
             catch { showToast('El carné es demasiado grande para un QR', 'error'); return; }
             showQrModal(canvas);
+        }
+        function scanQrFromPhoto() {
+            if (typeof window.jsQR !== 'function') { showToast('Lector de QR no disponible', 'error'); return; }
+            const input = document.getElementById('qr-scan-input');
+            if (input) input.click();
+        }
+        // Decode a QR from the chosen photo. Mirrors the profile photo picker's
+        // decode path (createImageBitmap, with a FileReader+Image fallback) so it
+        // stays CSP-safe (no blob: URLs) and EXIF-tolerant.
+        function onQrPhotoSelected(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
+            if (typeof window.jsQR !== 'function') { showToast('Lector de QR no disponible', 'error'); return; }
+            const decode = (source) => {
+                const w0 = source.width, h0 = source.height;
+                if (!w0 || !h0) { showToast('Imagen no válida', 'error'); return; }
+                const scale = Math.min(1, 1000 / Math.max(w0, h0));
+                const w = Math.round(w0 * scale), h = Math.round(h0 * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(source, 0, 0, w, h);
+                if (typeof source.close === 'function') source.close();
+                const imageData = canvas.getContext('2d').getImageData(0, 0, w, h);
+                const found = window.jsQR(imageData.data, w, h);
+                if (!found) { showToast('No se encontró un QR en la foto', 'error'); return; }
+                const card = parseScannedCard(found.data);
+                if (card) showStudentCardModal(card);
+                else showToast('El QR no es un carné de StudyTrack', 'error');
+            };
+            if (typeof createImageBitmap === 'function') {
+                createImageBitmap(file).then(decode).catch(() => loadImageForQr(file, decode));
+            } else {
+                loadImageForQr(file, decode);
+            }
+        }
+        function loadImageForQr(file, decode) {
+            const reader = new FileReader();
+            reader.onerror = () => showToast('No se pudo leer la imagen', 'error');
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = () => showToast('Imagen no válida', 'error');
+                img.onload = () => decode(img);
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        // The QR normally encodes our deep-link URL; pull the ?card= payload out of
+        // it (falling back to treating the whole string as a query if it isn't a URL).
+        function parseScannedCard(textData) {
+            let card = null;
+            try { card = StudyTrackShare.parseShareParam(new URL(textData).search); } catch (e) { /* not a full URL */ }
+            if (!card) card = StudyTrackShare.parseShareParam(textData);
+            return card;
         }
         // Draw the QR module matrix onto a canvas. Always white-on-black on a white
         // background (so it scans even in dark mode). Throws if data exceeds capacity.
