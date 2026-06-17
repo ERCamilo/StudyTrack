@@ -41,6 +41,8 @@
     <script src="./src/insights.js"></script>
     <script src="./src/milestones.js"></script>
     <script src="./src/nfc.js"></script>
+    <script src="./src/vendor/qrcode.min.js"></script>
+    <script src="./src/qr-share.js"></script>
     <!-- Sync module must load after other modules but before app initialization logic -->
     <script src="./src/firebase-sync.js"></script>
     <style>
@@ -1387,7 +1389,7 @@
                 <!-- NFC STUDENT CARD SECTION -->
                 <section id="settings-section-share" class="settings-section scroll-mt-4">
                     <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
-                            class="fas fa-id-card"></i> Carné NFC</h3>
+                            class="fas fa-id-card"></i> Compartir carné</h3>
                     <div class="space-y-2">
                         <div>
                             <label for="student-name-input"
@@ -1403,8 +1405,11 @@
                         <button data-action="readStudentCardViaNfc"
                             class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
                                 class="fas fa-wifi mr-2 text-primary-500"></i> Leer carné NFC</button>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500">Requiere Chrome en Android con NFC
-                            activado.</p>
+                        <button data-action="shareStudentCardViaQr"
+                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
+                                class="fas fa-qrcode mr-2 text-primary-500"></i> Compartir carné por QR</button>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500">NFC requiere Chrome en Android. El QR
+                            funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
                     </div>
                 </section>
 

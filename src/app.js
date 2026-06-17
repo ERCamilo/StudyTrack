@@ -100,6 +100,7 @@
             // A cloud pull re-runs initApp; keep the on-screen profile fresh if it's active.
             if (currentView === 'profile') renderProfileView();
             milestonesReady = true; // baseline is stamped; from here new achievements celebrate
+            maybeShowSharedCard(); // if opened from a shared QR/link, show the received card
         }
 
         // ============================================================
@@ -1356,6 +1357,86 @@
             panel.append(header, list, footer);
             modal.appendChild(panel);
             document.body.appendChild(modal);
+        }
+
+        // ── QR sharing (deep-link) ─────────────────────────────────────────
+        // The QR encodes a URL with the card embedded. The receiver scans it with
+        // their phone's normal camera, which opens the app and shows the card —
+        // works on Android AND iPhone, with no in-app scanner and no camera permission.
+        function shareStudentCardViaQr() {
+            if (!currentCurriculum) { showToast('Carga un pensum primero', 'error'); return; }
+            if (typeof window.qrcode !== 'function') { showToast('Generador de QR no disponible', 'error'); return; }
+            const card = collectStudentCard();
+            const url = StudyTrackShare.buildShareUrl(location.origin + location.pathname, card);
+            let canvas;
+            try { canvas = renderQrCanvas(url); }
+            catch { showToast('El carné es demasiado grande para un QR', 'error'); return; }
+            showQrModal(canvas);
+        }
+        // Draw the QR module matrix onto a canvas. Always white-on-black on a white
+        // background (so it scans even in dark mode). Throws if data exceeds capacity.
+        function renderQrCanvas(textData) {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(textData);
+            qr.make();
+            const count = qr.getModuleCount();
+            const cell = 6, margin = 4;
+            const size = (count + margin * 2) * cell;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#000000';
+            for (let r = 0; r < count; r++) {
+                for (let c = 0; c < count; c++) {
+                    if (qr.isDark(r, c)) ctx.fillRect((c + margin) * cell, (r + margin) * cell, cell, cell);
+                }
+            }
+            canvas.style.width = '240px'; canvas.style.height = '240px';
+            canvas.style.imageRendering = 'pixelated';
+            return canvas;
+        }
+        function showQrModal(canvas) {
+            const modalId = 'qr-share-modal';
+            const existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4';
+            modal.id = modalId;
+
+            const panel = document.createElement('div');
+            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-xs rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up text-center';
+
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-extrabold text-slate-900 dark:text-white mb-1';
+            title.textContent = 'Compartir carné';
+            const hint = document.createElement('p');
+            hint.className = 'text-sm text-slate-500 dark:text-slate-400 mb-4 leading-normal';
+            hint.textContent = 'Escaneá este código con la cámara de otro teléfono.';
+
+            const frame = document.createElement('div');
+            frame.className = 'bg-white p-3 rounded-xl inline-block mb-4';
+            frame.appendChild(canvas);
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors';
+            close.textContent = 'Cerrar';
+            close.onclick = () => modal.remove();
+
+            panel.append(title, hint, frame, close);
+            modal.appendChild(panel);
+            document.body.appendChild(modal);
+        }
+        // On load, if the URL carries a shared card (?card=...), show it and then
+        // strip the param so a refresh doesn't re-trigger and the address stays clean.
+        function maybeShowSharedCard() {
+            if (!location.search || typeof StudyTrackShare === 'undefined') return;
+            const card = StudyTrackShare.parseShareParam(location.search);
+            if (!card) return;
+            try { history.replaceState(null, '', location.origin + location.pathname); } catch (e) { /* history may be unavailable */ }
+            showStudentCardModal(card);
         }
         function resetProgress() { if (confirm('¿Reiniciar?')) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
         function deleteAllData() { if (confirm('¿Borrar todo?')) { StudyTrackStorage.clearAll(); location.reload(); } }
