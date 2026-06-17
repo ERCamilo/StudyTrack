@@ -61,6 +61,8 @@ assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./src/insights.js'));
 assert.ok(serviceWorker.includes('./src/nfc.js'));
 assert.ok(serviceWorker.includes('./src/milestones.js'), 'Service worker should cache the milestones module');
+assert.ok(serviceWorker.includes('./src/vendor/qrcode.min.js'), 'Service worker should cache the vendored QR library');
+assert.ok(serviceWorker.includes('./src/qr-share.js'), 'Service worker should cache the QR share module');
 assert.ok(serviceWorker.includes('./src/firebase-sync.js'));
 assert.ok(serviceWorker.includes('./src/app.js'), 'Service worker should cache the external controller');
 assert.ok(serviceWorker.includes('./icons/studytrack-icon.svg'));
@@ -76,7 +78,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/firebase-sync.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -97,6 +99,9 @@ assert.ok(code.includes('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-
 assert.ok(code.includes('<script src="./src/firebase-sync.js"></script>'));
 assert.ok(code.includes('<script src="./src/app.js"></script>'), 'index.html must load the externalized controller');
 assert.ok(code.includes('<script src="./src/milestones.js"></script>'), 'index.html must load the milestones module');
+assert.ok(code.includes('<script src="./src/vendor/qrcode.min.js"></script>'), 'index.html must load the vendored QR library');
+assert.ok(code.includes('<script src="./src/qr-share.js"></script>'), 'index.html must load the QR share module');
+assert.ok(code.includes('data-action="shareStudentCardViaQr"') && code.includes('function shareStudentCardViaQr()'), 'QR card sharing must be wired');
 assert.ok(code.includes('id="profile-milestones"') && code.includes('function renderMilestones()'), 'Profile milestones timeline must be wired');
 assert.ok(code.includes('id="home-motivation"') && code.includes('function renderHomeMotivation()'), 'Home motivational layer must be wired');
 assert.ok(code.includes('id="settings-section-cloud"'));

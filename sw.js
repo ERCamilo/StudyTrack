@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v11';
+const CACHE_NAME = 'studytrack-shell-v12';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,8 @@ const APP_SHELL = [
   './src/insights.js',
   './src/milestones.js',
   './src/nfc.js',
+  './src/vendor/qrcode.min.js',
+  './src/qr-share.js',
   './src/firebase-sync.js',
   './src/app.js',
   './icons/studytrack-icon.svg',

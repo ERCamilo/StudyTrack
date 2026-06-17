@@ -50,6 +50,7 @@ node tests/smoke.mjs
 node tests/logic.mjs
 node tests/firebase-sync.mjs
 node tests/nfc.mjs
+node tests/qr-share.mjs
 ```
 
 Las pruebas cubren:
@@ -60,6 +61,7 @@ Las pruebas cubren:
 - Logica academica, notas, prerrequisitos, requisitos y horario.
 - Escapes de HTML en render dinamico.
 - Carne de estudiante por NFC: normalizacion del modelo, round-trip de serializacion y limite de tamano de la etiqueta.
+- Compartir carne por QR (deep-link): construccion del enlace, round-trip base64url y rechazo de payloads invalidos.
 
 ## PWA
 
