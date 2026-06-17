@@ -25,9 +25,18 @@
       .join(' ');
   }
 
+  // Serializes handler arguments into a CSP-safe `data-args` attribute value:
+  // JSON (handles quotes/types) then HTML-escaped for the attribute context. The
+  // delegated dispatcher JSON.parses it back. Tokens "$value"/"$this"/"$event"
+  // are resolved at dispatch time.
+  function actionArgs(...args) {
+    return escapeHtml(JSON.stringify(args));
+  }
+
   global.StudyTrackSanitize = {
     escapeHtml,
     escapeJsString,
-    sanitizeCssClasses
+    sanitizeCssClasses,
+    actionArgs
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -137,25 +137,25 @@
     return { scheduleData: nextData, changed };
   }
 
-  function renderEnrolledScheduleHTML(enrolledSubjects, scheduleData, { escapeHtml = String, escapeJsString = String } = {}) {
+  function renderEnrolledScheduleHTML(enrolledSubjects, scheduleData, { escapeHtml = String, escapeJsString = String, actionArgs = (...a) => escapeHtml(JSON.stringify(a)) } = {}) {
     return enrolledSubjects.map((subject, index) => {
       const blocks = scheduleData[subject.id] || [];
       const subjectIdJs = escapeJsString(subject.id);
       const safeSubjectName = escapeHtml(subject.name);
       const safeSubjectCodePrefix = escapeHtml(String(subject.code ?? '').substring(0, 2));
-      const blocksHtml = blocks.map((block) => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" onclick="showBlockDetails('${subjectIdJs}', '${escapeJsString(block.id)}')">${escapeHtml(DAY_NAMES[block.day])} ${escapeHtml(formatTime12h(block.startTime))}-${escapeHtml(formatTime12h(block.endTime))}</span>`).join(' ');
+      const blocksHtml = blocks.map((block) => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" data-action="showBlockDetails" data-args="${actionArgs(subject.id, block.id)}">${escapeHtml(DAY_NAMES[block.day])} ${escapeHtml(formatTime12h(block.startTime))}-${escapeHtml(formatTime12h(block.endTime))}</span>`).join(' ');
 
-      return `<div class="schedule-subject-row stk-surface-card flex flex-col sm:flex-row sm:items-center gap-3 p-3"><div class="flex items-center gap-3 flex-1 min-w-0"><div class="w-8 h-8 ${getSubjectColor(subject.id, index)} rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0">${safeSubjectCodePrefix}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-slate-900 dark:text-white text-sm truncate">${safeSubjectName}</h4><div class="flex flex-wrap items-center gap-2 mt-1">${blocksHtml || '<span class="text-[10px] text-amber-600 dark:text-amber-400 italic">Sin horario asignado</span>'}</div></div></div><button onclick="openScheduleModal('${subjectIdJs}', '${escapeJsString(subject.name)}', null)" class="stk-press w-full sm:w-auto text-xs px-3 py-2 sm:py-1.5 font-bold shrink-0" style="background:var(--stk-surface-2);color:var(--stk-text-1);border:none;border-radius:var(--stk-radius-sm)"><i class="fas fa-plus mr-1"></i>Agregar Bloque</button></div>`;
+      return `<div class="schedule-subject-row stk-surface-card flex flex-col sm:flex-row sm:items-center gap-3 p-3"><div class="flex items-center gap-3 flex-1 min-w-0"><div class="w-8 h-8 ${getSubjectColor(subject.id, index)} rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0">${safeSubjectCodePrefix}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-slate-900 dark:text-white text-sm truncate">${safeSubjectName}</h4><div class="flex flex-wrap items-center gap-2 mt-1">${blocksHtml || '<span class="text-[10px] text-amber-600 dark:text-amber-400 italic">Sin horario asignado</span>'}</div></div></div><button data-action="openScheduleModal" data-args="${actionArgs(subject.id, subject.name, null)}" class="stk-press w-full sm:w-auto text-xs px-3 py-2 sm:py-1.5 font-bold shrink-0" style="background:var(--stk-surface-2);color:var(--stk-text-1);border:none;border-radius:var(--stk-radius-sm)"><i class="fas fa-plus mr-1"></i>Agregar Bloque</button></div>`;
     }).join('');
   }
 
-  function renderWeeklyScheduleHTML(blocks, { escapeHtml = String, escapeJsString = String } = {}) {
+  function renderWeeklyScheduleHTML(blocks, { escapeHtml = String, escapeJsString = String, actionArgs = (...a) => escapeHtml(JSON.stringify(a)) } = {}) {
     const byDay = groupBlocksByDay(blocks);
     let html = '';
 
     DAYS.forEach((day) => {
       if (byDay[day].length === 0) return;
-      html += `<div class="mb-4"><div class="flex items-center gap-2 mb-2"><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-12 text-center">${escapeHtml(DAY_NAMES[day])}</span><div class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div></div><div class="space-y-2 pl-14">${byDay[day].map((block) => `<div class="flex items-center gap-3 p-3 rounded-xl ${block.color} text-white group cursor-pointer hover:scale-[1.01] transition-transform" onclick="showBlockDetails('${escapeJsString(block.subject.id)}', '${escapeJsString(block.id)}')"><div class="flex-1"><div class="font-bold text-sm">${escapeHtml(block.subject.name)}</div><div class="text-xs opacity-80">${escapeHtml(formatTime12h(block.startTime))} - ${escapeHtml(formatTime12h(block.endTime))}${block.room ? ' &bull; ' + escapeHtml(block.room) : ''}</div></div><div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-search-plus text-[10px]"></i></div></div>`).join('')}</div></div>`;
+      html += `<div class="mb-4"><div class="flex items-center gap-2 mb-2"><span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-12 text-center">${escapeHtml(DAY_NAMES[day])}</span><div class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div></div><div class="space-y-2 pl-14">${byDay[day].map((block) => `<div class="flex items-center gap-3 p-3 rounded-xl ${block.color} text-white group cursor-pointer hover:scale-[1.01] transition-transform" data-action="showBlockDetails" data-args="${actionArgs(block.subject.id, block.id)}"><div class="flex-1"><div class="font-bold text-sm">${escapeHtml(block.subject.name)}</div><div class="text-xs opacity-80">${escapeHtml(formatTime12h(block.startTime))} - ${escapeHtml(formatTime12h(block.endTime))}${block.room ? ' &bull; ' + escapeHtml(block.room) : ''}</div></div><div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-search-plus text-[10px]"></i></div></div>`).join('')}</div></div>`;
     });
 
     return html;
@@ -181,7 +181,7 @@
     return { minHour, maxHour };
   }
 
-  function renderVisualScheduleHTML(blocks, { escapeHtml = String, escapeJsString = String } = {}) {
+  function renderVisualScheduleHTML(blocks, { escapeHtml = String, escapeJsString = String, actionArgs = (...a) => escapeHtml(JSON.stringify(a)) } = {}) {
     const { minHour, maxHour } = getVisualScheduleRange(blocks);
     const hourHeight = 60;
     const headerHeight = 40;
@@ -202,7 +202,7 @@
       const endHour = timeToDecimal(block.endTime);
       const top = headerHeight + (startHour - minHour) * hourHeight;
       const blockHeight = (endHour - startHour) * hourHeight;
-      html += `<div class="absolute px-1 py-0.5 rounded-lg ${block.color} text-white text-[10px] leading-tight overflow-hidden shadow-sm hover:z-20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-center" style="top:${top + 2}px; height:${blockHeight - 4}px; left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${dayIndex} / 7); width: calc((100% - ${timeColWidth}px) / 7 - 4px); margin-left: 2px;" onclick="showBlockDetails('${escapeJsString(block.subject.id)}', '${escapeJsString(block.id)}')"><div class="font-bold truncate">${escapeHtml(block.subject.name)}</div><div class="opacity-90 truncate">${escapeHtml(formatTime12h(block.startTime))} - ${escapeHtml(formatTime12h(block.endTime))}</div>${block.room ? `<div class="opacity-75 truncate text-[9px]">${escapeHtml(block.room)}</div>` : ''}</div>`;
+      html += `<div class="absolute px-1 py-0.5 rounded-lg ${block.color} text-white text-[10px] leading-tight overflow-hidden shadow-sm hover:z-20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-center" style="top:${top + 2}px; height:${blockHeight - 4}px; left: calc(${timeColWidth}px + (100% - ${timeColWidth}px) * ${dayIndex} / 7); width: calc((100% - ${timeColWidth}px) / 7 - 4px); margin-left: 2px;" data-action="showBlockDetails" data-args="${actionArgs(block.subject.id, block.id)}"><div class="font-bold truncate">${escapeHtml(block.subject.name)}</div><div class="opacity-90 truncate">${escapeHtml(formatTime12h(block.startTime))} - ${escapeHtml(formatTime12h(block.endTime))}</div>${block.room ? `<div class="opacity-75 truncate text-[9px]">${escapeHtml(block.room)}</div>` : ''}</div>`;
     });
 
     return { html, height };

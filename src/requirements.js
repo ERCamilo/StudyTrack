@@ -72,7 +72,7 @@
 
     const stats = getRequirementStats(normalized);
     const header = `
-                <div class="flex items-center justify-between mb-3 cursor-pointer select-none group" onclick="toggleRequirementsWidget()">
+                <div class="flex items-center justify-between mb-3 cursor-pointer select-none group" data-action="toggleRequirementsWidget">
                     <div class="flex items-center gap-2">
                         <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">Requisitos de Grado</h3>
                         <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">${stats.completed}/${stats.total}</span>
@@ -102,8 +102,8 @@
     return header + content;
   }
 
-  function renderSettingsRequirementsHTML(requirements, { escapeHtml = String } = {}) {
-    return normalizeRequirements(requirements).map((requirement, index) => `<div class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 group"><input type="checkbox" ${requirement.completed ? 'checked' : ''} onchange="toggleRequirement(${index})" class="shrink-0 cursor-pointer"><div class="flex-1 font-medium text-sm text-slate-900 dark:text-white">${escapeHtml(requirement.name)}</div><button onclick="deleteRequirement(${index})" class="text-slate-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt"></i></button></div>`).join('');
+  function renderSettingsRequirementsHTML(requirements, { escapeHtml = String, actionArgs = (...a) => escapeHtml(JSON.stringify(a)) } = {}) {
+    return normalizeRequirements(requirements).map((requirement, index) => `<div class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 group"><input type="checkbox" ${requirement.completed ? 'checked' : ''} data-change="toggleRequirement" data-args="${actionArgs(index)}" class="shrink-0 cursor-pointer"><div class="flex-1 font-medium text-sm text-slate-900 dark:text-white">${escapeHtml(requirement.name)}</div><button data-action="deleteRequirement" data-args="${actionArgs(index)}" class="text-slate-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt"></i></button></div>`).join('');
   }
 
   global.StudyTrackRequirements = {
