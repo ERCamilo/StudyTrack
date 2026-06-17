@@ -105,6 +105,7 @@ assert.ok(code.includes('<script src="./src/vendor/jsqr.min.js"></script>'), 'in
 assert.ok(code.includes('<script src="./src/qr-share.js"></script>'), 'index.html must load the QR share module');
 assert.ok(code.includes('data-action="openQrShareModal"') && code.includes('function openQrShareModal()'), 'QR share/scan chooser must be wired');
 assert.ok(code.includes('id="qr-scan-input"') && code.includes('function onQrPhotoSelected('), 'QR photo scanning must be wired');
+assert.ok(code.includes('data-action="forceAppRefresh"') && code.includes('function forceAppRefresh('), 'App cache-refresh button must be wired');
 assert.ok(code.includes('id="profile-milestones"') && code.includes('function renderMilestones()'), 'Profile milestones timeline must be wired');
 assert.ok(code.includes('id="home-motivation"') && code.includes('function renderHomeMotivation()'), 'Home motivational layer must be wired');
 assert.ok(code.includes('id="settings-section-cloud"'));
