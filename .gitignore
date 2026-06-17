@@ -36,3 +36,6 @@ graphify-out/
 
 # Stray diff dumps
 stk_diff.txt
+
+# Design mockups (local reference, not part of the shipped app)
+mockups/
