@@ -112,6 +112,106 @@ const validCurriculum = {
 assert.equal(StudyTrackCurriculum.validateCurriculum(validCurriculum).valid, true);
 assert.equal(StudyTrackCurriculum.validateCurriculum({}).valid, false);
 
+const catalogIndex = JSON.parse(fs.readFileSync('library/index.json', 'utf8'));
+assert.ok(catalogIndex.length > 0, 'Local catalog index must include careers');
+for (const entry of catalogIndex) {
+  const catalogPath = `library/${entry.path}`;
+  assert.ok(fs.existsSync(catalogPath), `Catalog entry ${entry.id} must reference an existing curriculum file`);
+  const catalogCurriculum = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+  const result = StudyTrackCurriculum.validateCatalogEntry(entry, catalogCurriculum);
+  assert.equal(result.valid, true, `${entry.id} should validate: ${result.errors.join('; ')}`);
+}
+
+const catalogValidationFixture = {
+  schema_version: '2.0',
+  metadata: {
+    career_name: 'Catalog Validation',
+    institution: 'Demo U',
+    source: {
+      name: 'Official curriculum',
+      url: 'https://example.edu/curriculum.pdf',
+      retrieved_at: '2026-06-01'
+    }
+  },
+  periods: [
+    {
+      period_number: 1,
+      subjects: [
+        { id: 'BASE-101', name: 'Base', code: 'BASE-101', credits: 0, prerequisites: [] }
+      ]
+    },
+    {
+      period_number: 2,
+      subjects: [
+        { id: 'ADV-201', name: 'Advanced', code: 'ADV-201', credits: 3, prerequisites: ['BASE-101'] }
+      ]
+    }
+  ]
+};
+assert.equal(StudyTrackCurriculum.validateCurriculum(catalogValidationFixture).valid, true, 'New schema/source metadata should be accepted');
+assert.equal(StudyTrackCurriculum.validateCatalogEntry({
+  id: 'demo-catalog',
+  institution: 'Demo U',
+  degree_type: 'Grado',
+  career_name: 'Catalog Validation',
+  path: 'data/demo/catalog.json',
+  last_update: '2026-06-01'
+}, catalogValidationFixture).valid, true, 'New catalog metadata should validate');
+assert.equal(StudyTrackCurriculum.validateCurriculum({
+  metadata: { career_name: 'Legacy', institution: 'Demo U' },
+  periods: [
+    {
+      subjects: [
+        { id: 'LEG-101', name: 'Legacy', code: 'LEG-101', credits: 3, prerequisites: [] }
+      ]
+    }
+  ]
+}).valid, true, 'Legacy curriculum fields should remain compatible');
+
+const invalidCatalogCurriculum = {
+  schema_version: 2,
+  metadata: {
+    career_name: 'Broken',
+    institution: 'Demo U',
+    source: { url: 'not-a-url' }
+  },
+  periods: [
+    { period_number: 1, subjects: [] },
+    {
+      period_number: 2,
+      subjects: [
+        { id: 'DUP-101', name: 'Duplicate A', code: 'DUP-A', credits: 3, prerequisites: [] },
+        { id: 'DUP-101', name: 'Duplicate B', code: 'DUP-B', credits: -1, prerequisites: ['MISSING-999'] }
+      ]
+    }
+  ]
+};
+const invalidCatalogResult = StudyTrackCurriculum.validateCurriculum(invalidCatalogCurriculum);
+assert.equal(invalidCatalogResult.valid, false);
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('schema_version')));
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('metadata.source.name')));
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('metadata.source.url')));
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('subjects vacio')));
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('id duplicado')));
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('credits invalido')));
+assert.ok(invalidCatalogResult.errors.some((error) => error.includes('prerequisite desconocido')));
+
+const missingAlternativePrerequisiteResult = StudyTrackCurriculum.validateCurriculum({
+  schema_version: '2.0',
+  metadata: { career_name: 'Broken Alternative', institution: 'Demo U' },
+  periods: [
+    {
+      period_number: 1,
+      subjects: [
+        { id: 'BASE', name: 'Base', code: 'BASE', credits: 3, prerequisites: [] },
+        { id: 'ADV', name: 'Advanced', code: 'ADV', credits: 3, prerequisites: [['MISSING', 'BASE']] }
+      ]
+    }
+  ]
+});
+assert.equal(missingAlternativePrerequisiteResult.valid, false);
+assert.ok(missingAlternativePrerequisiteResult.errors.some((error) => error.includes('prerequisite desconocido: MISSING')));
+
 const normalizedProgress = StudyTrackProgress.normalizeUserProgress({
   'MAT-101': {
     status: 'approved',
