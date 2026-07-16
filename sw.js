@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v13';
+const CACHE_NAME = 'studytrack-shell-v14';
 const APP_SHELL = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const APP_SHELL = [
   './src/progress.js',
   './src/prerequisites.js',
   './src/periods.js',
+  './src/cards.js',
   './src/requirements.js',
   './src/schedule.js',
   './src/insights.js',

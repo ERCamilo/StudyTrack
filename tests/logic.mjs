@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -304,26 +304,138 @@ assert.equal(StudyTrackPeriods.getVisibleSubjects(periodForFiltering, progress, 
 assert.equal(StudyTrackPeriods.isPeriodOpen(0, new Set([0]), '', 'all'), false);
 assert.equal(StudyTrackPeriods.isPeriodOpen(0, new Set([0]), 'mat', 'all'), true);
 assert.equal(StudyTrackPeriods.isPeriodOpen(0, new Set([0]), '', 'completed'), true);
+// periods.js no longer builds the period header markup itself — the caller
+// pre-renders it (via StudyTrackCards.renderPeriodHeaderCard) and hands it in
+// as `headerHtml`; periods.js only owns the collapse shell + subject list.
 const periodHtml = StudyTrackPeriods.renderPeriodCardHTML({
-  period: periodForFiltering,
   periodIndex: 0,
+  periodNumber: periodForFiltering.period_number,
+  headerHtml: '<div class="header-stub"><script>Header</script></div>',
   visibleSubjects: [periodForFiltering.subjects[0]],
   open: true,
-  stats: { completed: 1, completionPercentage: 50 },
-  average: `<b>90</b>`,
-  gpa4: '4.00',
-  statusColor: 'bg-emerald-500',
   escapeHtml: StudyTrackSanitize.escapeHtml,
-  renderSubject: (subject) => `<article>${StudyTrackSanitize.escapeHtml(subject.name)}</article>`
+  renderSubject: (subject, periodNumber) => `<article data-period="${StudyTrackSanitize.escapeHtml(periodNumber)}">${StudyTrackSanitize.escapeHtml(subject.name)}</article>`
 });
-assert.ok(periodHtml.includes('&lt;script&gt;Periodo&lt;/script&gt;'));
-assert.ok(periodHtml.includes('&lt;b&gt;90&lt;/b&gt;'));
-assert.ok(periodHtml.includes('&lt;1&gt;'));
-assert.ok(periodHtml.includes('period-header-stats'));
-assert.ok(periodHtml.includes('period-progress'));
-assert.ok(periodHtml.includes('period-mobile-metrics'));
-assert.ok(periodHtml.includes('50%'));
-assert.ok(!periodHtml.includes('<script>Periodo</script>'));
+assert.ok(periodHtml.includes('<div class="header-stub"><script>Header</script></div>'), 'Pre-rendered header markup is embedded as-is (its own escaping is StudyTrackCards\' job)');
+assert.ok(periodHtml.includes('data-period="&lt;1&gt;"'), 'renderSubject should receive the raw period number so it can escape it itself');
+assert.ok(periodHtml.includes('Matematica I'), 'Visible subjects should be rendered via the injected renderSubject callback');
+assert.ok(periodHtml.includes('collapsible-content open'), 'Open period should render the open collapsible state');
+assert.ok(periodHtml.includes('data-action="togglePeriod"') && periodHtml.includes('data-args="[0]"'), 'Period header should be wired to togglePeriod with its index');
+assert.ok(periodHtml.includes('id="period-header-content-0"'), 'Header content wrapper must carry a stable id so it can be patched in place after a subject change');
+
+const closedPeriodHtml = StudyTrackPeriods.renderPeriodCardHTML({
+  periodIndex: 2,
+  periodNumber: 3,
+  headerHtml: '<div></div>',
+  visibleSubjects: [],
+  open: false,
+  escapeHtml: StudyTrackSanitize.escapeHtml,
+  renderSubject: () => ''
+});
+assert.ok(!closedPeriodHtml.includes('collapsible-content open'), 'Closed period should not carry the open class');
+assert.ok(!closedPeriodHtml.includes('rotate(180deg)'), 'Closed period chevron should not be rotated');
+
+// ── StudyTrackCards (Phase 3 period/subject card templates) ────────────────
+const helpers = { escapeHtml: StudyTrackSanitize.escapeHtml, actionArgs: StudyTrackSanitize.actionArgs };
+
+const activeHeaderHtml = StudyTrackCards.renderPeriodHeaderCard({
+  periodNumber: '<4>',
+  periodName: '<script>Trimestre 4</script>',
+  completed: false,
+  subjectCount: 3,
+  totalCredits: 13,
+  progressPercent: 42,
+  average: null,
+  enrolledCount: 2
+}, { escapeHtml: StudyTrackSanitize.escapeHtml });
+assert.ok(activeHeaderHtml.includes('&lt;script&gt;Trimestre 4&lt;/script&gt;'), 'Period name must be escaped');
+assert.ok(activeHeaderHtml.includes('&lt;4&gt;'), 'Period number must be escaped, including in the watermark');
+assert.ok(activeHeaderHtml.includes('42%'), 'Active period header should render the rounded ring percentage');
+assert.ok(activeHeaderHtml.includes('Cursando ahora'), 'Active period header should carry the in-progress eyebrow copy when a subject is enrolled');
+assert.ok(activeHeaderHtml.includes('stk-period-index'), 'Active period header should render the left-side period number');
+assert.ok(!activeHeaderHtml.includes('<script>Trimestre 4</script>'), 'Period name must not leak unescaped');
+
+// An active period with nothing enrolled yet must NOT claim "Cursando ahora".
+const idleHeaderHtml = StudyTrackCards.renderPeriodHeaderCard({
+  periodNumber: 5,
+  periodName: 'Trimestre 5',
+  completed: false,
+  subjectCount: 4,
+  totalCredits: 14,
+  progressPercent: 0,
+  average: null,
+  enrolledCount: 0
+}, { escapeHtml: StudyTrackSanitize.escapeHtml });
+assert.ok(!idleHeaderHtml.includes('Cursando ahora'), 'Period with no enrolled subject should not show the in-progress eyebrow');
+assert.ok(idleHeaderHtml.includes('Por cursar'), 'Period with no enrolled subject should show the upcoming eyebrow');
+assert.ok(idleHeaderHtml.includes('stk-period-index'), 'Idle active period header should still render the left-side period number');
+
+const completedHeaderHtml = StudyTrackCards.renderPeriodHeaderCard({
+  periodNumber: 3,
+  periodName: 'Trimestre 3',
+  completed: true,
+  subjectCount: 4,
+  totalCredits: 16,
+  progressPercent: 100,
+  average: 88
+}, { escapeHtml: StudyTrackSanitize.escapeHtml });
+assert.ok(completedHeaderHtml.includes('Completado'), 'Completed period header should carry the completed eyebrow copy');
+assert.ok(completedHeaderHtml.includes('Prom 88'), 'Completed period header should surface the rounded average');
+assert.ok(completedHeaderHtml.includes('stk-period-index'), 'Completed period header should render the left-side period number');
+
+const enrolledCardHtml = StudyTrackCards.renderSubjectCard({
+  id: 'MAT-103', name: '<script>Análisis</script>', code: 'MAT-103', credits: 5, state: 'enrolled',
+  grade: null, scheduleSummary: null, completionLabel: null, prerequisiteLabel: '', missingGrade: false,
+  skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: ''
+}, helpers);
+assert.ok(enrolledCardHtml.includes('&lt;script&gt;Análisis&lt;/script&gt;'), 'Subject name must be escaped');
+assert.ok(enrolledCardHtml.includes('data-action="toggleEnrollment"'), 'Enrolled card should reuse the existing toggleEnrollment action');
+assert.ok(enrolledCardHtml.includes('data-action="openScheduleModal"'), 'Enrolled card without a schedule should offer "Agregar horario" via the existing openScheduleModal action');
+assert.ok(enrolledCardHtml.includes('data-action="toggleSubjectDetails"'), 'Enrolled card should stay progressively-disclosable');
+assert.ok(!enrolledCardHtml.includes('<script>Análisis</script>'), 'Subject name must not leak unescaped');
+
+const scheduledCardHtml = StudyTrackCards.renderSubjectCard({
+  id: 'PRO-102', name: 'Programación II', code: 'PRO-102', credits: 4, state: 'enrolled',
+  grade: null, scheduleSummary: 'Mar y Jue · 6:00 PM–8:00 PM', completionLabel: null, prerequisiteLabel: '',
+  missingGrade: false, skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: ''
+}, helpers);
+assert.ok(scheduledCardHtml.includes('Mar y Jue'), 'Enrolled card with a schedule should show its summary');
+assert.ok(!scheduledCardHtml.includes('data-action="openScheduleModal"'), 'Enrolled card with a schedule already set should not repeat "Agregar horario"');
+
+const availableCardHtml = StudyTrackCards.renderSubjectCard({
+  id: 'FIS-201', name: 'Física General', code: 'FIS-201', credits: 4, state: 'available',
+  grade: null, scheduleSummary: null, completionLabel: null, prerequisiteLabel: '', missingGrade: false,
+  skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: ''
+}, helpers);
+assert.ok(availableCardHtml.includes('Inscribir'), 'Available card should offer the Inscribir action');
+assert.ok(availableCardHtml.includes('data-action="toggleEnrollment"'), 'Available card should reuse the existing toggleEnrollment action');
+
+const lockedCardHtml = StudyTrackCards.renderSubjectCard({
+  id: 'LAF-201', name: 'Práctica de Física', code: 'LAF-201', credits: 2, state: 'locked',
+  grade: null, scheduleSummary: null, completionLabel: null, prerequisiteLabel: 'Física General', missingGrade: false,
+  skippedPrerequisite: false, disabled: true, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: ''
+}, helpers);
+assert.ok(lockedCardHtml.includes('requiere Física General'), 'Locked card should surface the prerequisite requirement');
+assert.ok(!lockedCardHtml.includes('Inscribir'), 'Locked + disabled card should not offer the Inscribir action');
+assert.ok(lockedCardHtml.includes('data-action="showPrerequisitePopover"'), 'Locked card should reuse the existing showPrerequisitePopover action');
+
+const approvedCardHtml = StudyTrackCards.renderSubjectCard({
+  id: 'FGI-104', name: 'Programación I', code: 'FGI-104', credits: 3, state: 'approved',
+  grade: 92, scheduleSummary: null, completionLabel: 'Concluida mar 2025', prerequisiteLabel: '', missingGrade: false,
+  skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: '2025-03'
+}, helpers);
+assert.ok(approvedCardHtml.includes('Concluida mar 2025'), 'Approved row should show the formatted completion label when available');
+assert.ok(approvedCardHtml.includes('value="92"'), 'Approved row should surface the recorded grade');
+assert.ok(!approvedCardHtml.includes('Falta registrar la nota'), 'Approved row with a grade should not show the missing-grade warning');
+
+const warningCardHtml = StudyTrackCards.renderSubjectCard({
+  id: 'FGI-105', name: 'Estructuras de Datos', code: 'FGI-105', credits: 4, state: 'warning',
+  grade: null, scheduleSummary: null, completionLabel: null, prerequisiteLabel: '', missingGrade: true,
+  skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: ''
+}, helpers);
+assert.ok(warningCardHtml.includes('Falta registrar la nota'), 'Warning row missing a grade should show the warning text');
+assert.ok(warningCardHtml.includes('stk-subject-card--warning'), 'Warning row should carry the warning state class');
+assert.ok(warningCardHtml.includes('data-change="updateGrade"'), 'Warning row should reuse the existing updateGrade action to capture the missing grade');
 
 const graph = StudyTrackPrerequisites.buildDependencyGraph(curriculum);
 assert.deepEqual(Array.from(graph.dependents.get('MAT-101')), ['MAT-102', 'SCI-201']);

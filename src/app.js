@@ -284,98 +284,91 @@
         function areAllOtherSubjectsCompleted() { return StudyTrackPrerequisites.areAllOtherSubjectsCompleted(currentCurriculum, userProgress); }
         function formatPrerequisiteString(p) { return StudyTrackPrerequisites.formatPrerequisiteString(p); }
         function buildDependencyGraph(c) { return StudyTrackPrerequisites.buildDependencyGraph(c); }
-        function calculatePeriodStats(p) { return StudyTrackAcademics.calculatePeriodStats(p, userProgress); }
-        function renderPeriodStatsHTML(s, t) { return StudyTrackPeriods.renderPeriodStatsHTML(s, t); }
         function renderUI() { document.getElementById('header-career').textContent = currentCurriculum.metadata.career_name; document.getElementById('header-institution').textContent = currentCurriculum.metadata.institution; renderPeriods(); }
-        function renderSubjectCardString(s, pn) {
+        // Spanish month abbreviations for the "Concluida {mes} {año}" completed-row
+        // subtitle. The app only stores completion dates at month granularity
+        // (input type="month"), so we never invent a day-of-month here.
+        const MONTH_ABBR_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        function formatCompletionLabel(completionDate) {
+            if (!completionDate) return null;
+            const [year, month] = String(completionDate).split('-');
+            const monthIndex = Number.parseInt(month, 10) - 1;
+            if (!year || !Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) return null;
+            return `Concluida ${MONTH_ABBR_ES[monthIndex]} ${year}`;
+        }
+        // Groups the subject's schedule blocks that share the same time range into
+        // one "Mar y Jue · 6–8 PM"-style summary line (the common recurring-class
+        // case). Any remaining blocks on a different time are folded into a "+N".
+        function formatScheduleSummary(subjectId) {
+            const blocks = [...(scheduleData[subjectId] || [])].sort((a, b) => StudyTrackSchedule.DAYS.indexOf(a.day) - StudyTrackSchedule.DAYS.indexOf(b.day));
+            if (!blocks.length) return null;
+            const first = blocks[0];
+            const sameTimeBlocks = blocks.filter((block) => block.startTime === first.startTime && block.endTime === first.endTime);
+            const dayLabels = sameTimeBlocks.map((block) => StudyTrackSchedule.DAY_NAMES[block.day]);
+            const daysText = dayLabels.length > 1
+                ? `${dayLabels.slice(0, -1).join(', ')} y ${dayLabels[dayLabels.length - 1]}`
+                : dayLabels[0];
+            const timeText = `${formatTime12h(first.startTime)}–${formatTime12h(first.endTime)}`;
+            const extraCount = blocks.length - sameTimeBlocks.length;
+            return `${daysText} · ${timeText}${extraCount > 0 ? ` +${extraCount}` : ''}`;
+        }
+        // Turns curriculum + progress state into the plain-data shape src/cards.js
+        // expects (see StudyTrackCards' SubjectCardData jsdoc). No DOM reads here.
+        function buildSubjectCardData(s) {
             const st = userProgress[s.id] || { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
             const un = checkPrerequisites(s.prerequisites);
-            const fo = dependencyGraph?.unlocks.get(s.id) || 0;
             const reqTxt = formatPrerequisiteString(s.prerequisites);
-            const gradeLabel = getGradeLabel(st.grade);
-            const subjectIdJs = escapeJsString(s.id);
-            const subjectIdHtml = escapeHtml(s.id);
-            const safeSubjectName = escapeHtml(s.name);
-            const safeSubjectCode = escapeHtml(s.code);
-            const safeCredits = escapeHtml(s.credits);
-            const safeReqTxt = escapeHtml(reqTxt);
-            const safeGrade = escapeHtml(st.grade ?? '');
             const isApprovedWithoutGrade = st.status === 'approved' && (st.grade === null || st.grade === undefined || st.grade === '');
-            const safeSection = escapeHtml(st.section || '');
-            const safeClassroom = escapeHtml(st.classroom || '');
-            const safeTeacher = escapeHtml(st.teacher || '');
-            const safeCompletionDate = escapeHtml(st.completionDate || '');
-
-            const isSkippedPrereq = st.status === 'approved' && !un && s.prerequisites?.length;
+            const isSkippedPrereq = Boolean(st.status === 'approved' && !un && s.prerequisites?.length);
             const isDisabled = !un && st.status !== 'approved' && !APP_CONFIG.allowSkipPrerequisites;
-            // Dim subjects blocked by prerequisites (unless skipping is allowed)
-            const op = (isDisabled && st.status !== 'enrolled') ? 'opacity-60 grayscale-[0.5]' : '';
 
-            // --- Apple-style status mapping (Capa 1) ---
-            const statusKey = st.status === 'approved'
+            const state = st.status === 'approved'
                 ? ((isApprovedWithoutGrade || isSkippedPrereq) ? 'warning' : 'approved')
                 : st.status === 'enrolled' ? 'enrolled'
                     : un ? 'available' : 'locked';
-            const orbIcon = {
-                approved: 'fa-circle-check', warning: 'fa-triangle-exclamation',
-                enrolled: 'fa-book-open', available: 'fa-route', locked: 'fa-lock'
-            }[statusKey];
-            const shortStatus = {
-                approved: 'Aprobada',
-                warning: isApprovedWithoutGrade ? 'Aprobada · sin nota' : 'Requisito saltado',
-                enrolled: 'Inscrita', available: 'Disponible', locked: 'Bloqueada'
-            }[statusKey];
-            const prereqChip = (s.prerequisites?.length && (!un || isSkippedPrereq))
-                ? `<button class="stk-chip stk-chip--lock" title="${safeReqTxt}" data-action="showPrerequisitePopover" data-args="${actionArgs('$event', s.id)}"><i class="fas fa-${isSkippedPrereq ? 'triangle-exclamation' : 'lock'}" style="font-size:9px"></i>${safeReqTxt}</button>`
-                : '';
-            const unlockChip = fo > 0
-                ? `<span class="stk-chip" title="Desbloquea ${fo} materia(s)"><i class="fas fa-key" style="font-size:9px"></i>${fo}</span>`
-                : '';
-            const enrollBtn = st.status !== 'approved'
-                ? `<button class="stk-enroll ${st.status === 'enrolled' ? 'stk-enroll--on' : 'stk-enroll--off'}" ${isDisabled ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''} data-action="toggleEnrollment" data-args="${actionArgs(s.id)}"><i class="fas fa-${st.status === 'enrolled' ? 'check' : 'plus'}" style="font-size:11px"></i>${st.status === 'enrolled' ? 'En curso' : 'Inscribir'}</button>`
-                : '';
-            const warnText = isApprovedWithoutGrade
-                ? `<div class="stk-warn-text"><i class="fas fa-triangle-exclamation" style="font-size:10px"></i>Falta registrar la nota</div>`
-                : '';
 
-            return `
-                <div id="subject-card-${subjectIdHtml}" class="subject-card-mobile stk-card stk-card--${statusKey} ${op} group">
-                    <div class="stk-head" data-action="toggleSubjectDetails" data-args="${actionArgs(s.id)}">
-                        <button class="stk-orb" aria-label="Cambiar estado de ${safeSubjectName}" data-action="toggleSubjectStatus" data-args="${actionArgs(s.id)}">
-                            <i class="fas ${orbIcon}"></i>
-                        </button>
-                        <div class="stk-main">
-                            <div class="stk-title">${safeSubjectName}</div>
-                            <div class="stk-sub">
-                                <span>${safeSubjectCode}</span><span class="stk-sep">·</span><span class="stk-sw">${shortStatus}</span>
-                                ${prereqChip}${unlockChip}
-                            </div>
-                        </div>
-                        <div class="stk-credits"><b>${safeCredits}</b><span>CR</span></div>
-                        <button class="stk-expand-btn" aria-label="Ver detalles de ${safeSubjectName}" data-action="toggleSubjectDetails" data-args="${actionArgs(s.id)}"><i class="fas fa-chevron-down stk-chev" id="chevron-${subjectIdHtml}"></i></button>
-                    </div>
-                    <div class="stk-actions">
-                        ${enrollBtn}
-                        <label class="stk-note ${isApprovedWithoutGrade ? 'stk-note--warn' : ''}" data-action="stop" title="${isApprovedWithoutGrade ? 'Materia completada sin nota registrada' : 'Nota'}">
-                            <span class="stk-note-cap">Nota</span>
-                            <input type="number" min="0" max="100" step="any" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" data-change="updateGrade" data-args="${actionArgs(s.id, '$value')}">
-                        </label>
-                        <div class="stk-grade ${gradeLabel ? '' : 'stk-grade--empty'}" title="Calificación literal">${gradeLabel ? gradeLabel.label : '–'}</div>
-                    </div>
-                    ${warnText}
-                    <!-- Collapsible Details Section -->
-                    <div class="stk-details" id="details-${subjectIdHtml}">
-                        <div class="stk-details-inner">
-                            <div class="stk-details-grid">
-                                <div class="stk-field"><label>Sección</label><input type="text" placeholder="Ej: 01" value="${safeSection}" data-change="updateSubjectExtra" data-args="${actionArgs(s.id, 'section', '$value')}"></div>
-                                <div class="stk-field"><label>Aula</label><input type="text" placeholder="Ej: A-101" value="${safeClassroom}" data-change="updateSubjectExtra" data-args="${actionArgs(s.id, 'classroom', '$value')}"></div>
-                                <div class="stk-field stk-field--wide"><label>Maestro</label><input type="text" placeholder="Nombre del profesor" value="${safeTeacher}" data-change="updateSubjectExtra" data-args="${actionArgs(s.id, 'teacher', '$value')}"></div>
-                                <div class="stk-field"><label>Retiros</label><input type="number" min="0" max="10" placeholder="0" value="${escapeHtml(st.attempts?.length || 0)}" data-change="updateAttempts" data-args="${actionArgs(s.id, '$value')}"></div>
-                                <div class="stk-field"><label>Fecha</label><input type="month" value="${safeCompletionDate}" data-change="updateCompletionDate" data-args="${actionArgs(s.id, '$value')}"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
+            return {
+                id: s.id,
+                name: s.name,
+                code: s.code,
+                credits: s.credits,
+                state,
+                grade: st.grade,
+                scheduleSummary: state === 'enrolled' ? formatScheduleSummary(s.id) : null,
+                completionLabel: (state === 'approved' || state === 'warning') ? formatCompletionLabel(st.completionDate) : null,
+                prerequisiteLabel: reqTxt,
+                missingGrade: isApprovedWithoutGrade,
+                skippedPrerequisite: isSkippedPrereq,
+                disabled: isDisabled,
+                attempts: st.attempts?.length || 0,
+                section: st.section || '',
+                classroom: st.classroom || '',
+                teacher: st.teacher || '',
+                completionRaw: st.completionDate || ''
+            };
+        }
+        function renderSubjectCardString(s) {
+            return StudyTrackCards.renderSubjectCard(buildSubjectCardData(s), { escapeHtml, actionArgs });
+        }
+        // Builds the plain-data shape StudyTrackCards.renderPeriodHeaderCard expects.
+        function buildPeriodHeaderData(p) {
+            const periodProgress = StudyTrackInsights.getPeriodProgress(currentCurriculum, userProgress, p.period_number);
+            const completed = periodProgress.total > 0 && periodProgress.completed === periodProgress.total;
+            const average = calculatePeriodAverage(p);
+            const enrolledCount = p.subjects.filter((subject) => userProgress[subject.id]?.status === 'enrolled').length;
+            return {
+                periodNumber: p.period_number,
+                periodName: p.name,
+                completed,
+                subjectCount: p.subjects.length,
+                totalCredits: p.subjects.reduce((sum, subject) => sum + (Number(subject.credits) || 0), 0),
+                progressPercent: Math.round(periodProgress.completionRatio * 100),
+                average: average ? Math.round(Number.parseFloat(average)) : null,
+                enrolledCount
+            };
+        }
+        function renderPeriodHeaderHTML(p) {
+            return StudyTrackCards.renderPeriodHeaderCard(buildPeriodHeaderData(p), { escapeHtml });
         }
         function refreshAffectedSubjects(subjectId) {
             const periodIndexes = new Set();
@@ -512,13 +505,6 @@
             return tones[tone] || tones.emerald;
         }
 
-        function renderHomeSubjectRow(subject, meta = '') {
-            const safeName = escapeHtml(subject.name || 'Materia');
-            const safeCode = escapeHtml(subject.code || subject.id || '');
-            const safeMeta = escapeHtml(meta || `${subject.credits || 0} créditos`);
-            return `<button data-action="switchView" data-args='["subjects"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div><div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeMeta}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
-        }
-
         function renderHomeRecommendationRow(subject) {
             const recommendation = subject.recommendation || {};
             const safeName = escapeHtml(subject.name || 'Materia');
@@ -560,6 +546,239 @@
                 row.append(ic, tx); el.appendChild(row);
             }
         }
+        // ── Home route map (MiRuta "Ruta" screen) ──────────────────────────
+        // Turns the loaded curriculum + progress into an abstract "stops" model:
+        // one grouped stop for finished periods, one stop for the current period,
+        // up to two upcoming stops, and a final goal stop. Works for any period
+        // count and for brand-new users (current = first period, no completed stop).
+        function formatPeriodShortLabel(periodNumber) {
+            return `P${periodNumber}`;
+        }
+
+        function buildCompletedGroupLabel(periodStates) {
+            if (!periodStates.length) return '';
+            if (periodStates.length <= 4) {
+                return periodStates.map((state) => formatPeriodShortLabel(state.period.period_number)).join(' · ');
+            }
+            const first = periodStates[0].period.period_number;
+            const last = periodStates[periodStates.length - 1].period.period_number;
+            return `P${first}–P${last}`;
+        }
+
+        function buildRouteModel(curriculum, progress) {
+            const periods = curriculum?.periods || [];
+            const periodStates = periods.map((period) => {
+                const stats = StudyTrackInsights.getPeriodProgress(curriculum, progress, period.period_number);
+                return { period, completed: stats.total > 0 && stats.completed === stats.total };
+            });
+
+            const firstIncompleteIndex = periodStates.findIndex((state) => !state.completed);
+            const allCompleted = periodStates.length > 0 && firstIncompleteIndex === -1;
+            const currentIndex = allCompleted ? periodStates.length : firstIncompleteIndex;
+
+            const completedStates = periodStates.slice(0, currentIndex);
+            const currentState = allCompleted ? null : periodStates[currentIndex];
+            const futureStates = allCompleted ? [] : periodStates.slice(currentIndex + 1, currentIndex + 3);
+
+            const stops = [];
+            if (completedStates.length) {
+                stops.push({ type: 'completed', label: buildCompletedGroupLabel(completedStates) });
+            }
+            if (currentState) {
+                stops.push({ type: 'current', label: `Estás aquí · ${formatPeriodShortLabel(currentState.period.period_number)}`, period: currentState.period });
+            }
+            futureStates.forEach((state) => {
+                stops.push({ type: 'future', label: formatPeriodShortLabel(state.period.period_number), period: state.period });
+            });
+            stops.push({
+                type: 'goal',
+                label: `Meta · ${curriculum?.metadata?.career_name || 'tu carrera'}`,
+                reached: allCompleted
+            });
+
+            const foundCurrentStopIndex = stops.findIndex((stop) => stop.type === 'current');
+            const currentStopIndex = Math.max(0, foundCurrentStopIndex);
+            const traveledIndex = allCompleted ? stops.length - 1 : currentStopIndex;
+            const remainingPeriods = allCompleted ? 0 : periodStates.length - currentIndex;
+
+            return { stops, currentStopIndex, traveledIndex, currentState, allCompleted, remainingPeriods };
+        }
+
+        // Lays out N stops as a vertical zig-zag inside a fixed-width viewBox; the
+        // container's aspect-ratio matches the viewBox so percentage positions and
+        // the SVG stay in sync at any screen size.
+        function computeRouteLayout(stopCount) {
+            const width = 353;
+            const stepY = 150;
+            const topPad = 55;
+            const bottomPad = 65;
+            const xLeft = 70;
+            const xRight = 283;
+            const height = topPad + stepY * Math.max(0, stopCount - 1) + bottomPad;
+            const points = [];
+            for (let i = 0; i < stopCount; i++) {
+                points.push({ x: i % 2 === 0 ? xLeft : xRight, y: topPad + stepY * i });
+            }
+            return { width, height, points };
+        }
+
+        function buildSmoothPathD(points) {
+            if (!points.length) return '';
+            let d = `M ${points[0].x} ${points[0].y}`;
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i - 1];
+                const next = points[i];
+                const midY = (prev.y + next.y) / 2;
+                d += ` C ${prev.x} ${midY}, ${next.x} ${midY}, ${next.x} ${next.y}`;
+            }
+            return d;
+        }
+
+        function routeNodeInk(stopType) {
+            if (stopType === 'completed') return 'var(--stk-ink-approved)';
+            if (stopType === 'current') return 'var(--stk-tint)';
+            if (stopType === 'goal') return 'var(--stk-ink-goal)';
+            return 'var(--stk-text-2)';
+        }
+
+        function buildRouteNode(stop) {
+            const node = document.createElement('div');
+            if (stop.type === 'completed') {
+                node.className = 'stk-route-node stk-route-node--completed';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-check';
+                node.appendChild(icon);
+            } else if (stop.type === 'current') {
+                node.className = 'stk-route-node stk-route-node--current';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-location-arrow';
+                node.appendChild(icon);
+                const pulse = document.createElement('span');
+                pulse.className = 'stk-route-pulse';
+                node.appendChild(pulse);
+            } else if (stop.type === 'future') {
+                node.className = 'stk-route-node stk-route-node--future';
+                node.textContent = stop.label;
+            } else {
+                node.className = 'stk-route-node stk-route-node--goal';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-map-pin';
+                node.appendChild(icon);
+            }
+            return node;
+        }
+
+        function renderHomeRouteMap(routeModel) {
+            const mapEl = document.getElementById('home-route-map');
+            const svgEl = document.getElementById('home-route-svg');
+            const stopsEl = document.getElementById('home-route-stops');
+            if (!mapEl || !svgEl || !stopsEl) return;
+
+            const { stops, traveledIndex } = routeModel;
+            const { width, height, points } = computeRouteLayout(stops.length);
+            mapEl.style.aspectRatio = `${width} / ${height}`;
+            svgEl.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            svgEl.replaceChildren();
+
+            const svgNs = 'http://www.w3.org/2000/svg';
+            const fullPathD = buildSmoothPathD(points);
+            const traveledPoints = points.slice(0, traveledIndex + 1);
+            const traveledPathD = traveledPoints.length > 1 ? buildSmoothPathD(traveledPoints) : '';
+
+            const bgPath = document.createElementNS(svgNs, 'path');
+            bgPath.setAttribute('d', fullPathD);
+            bgPath.setAttribute('fill', 'none');
+            bgPath.setAttribute('stroke', 'var(--stk-surface-2)');
+            bgPath.setAttribute('stroke-width', '30');
+            bgPath.setAttribute('stroke-linecap', 'round');
+            svgEl.appendChild(bgPath);
+
+            if (traveledPathD) {
+                const fgPath = document.createElementNS(svgNs, 'path');
+                fgPath.setAttribute('d', traveledPathD);
+                fgPath.setAttribute('fill', 'none');
+                fgPath.setAttribute('stroke', 'var(--stk-tint)');
+                fgPath.setAttribute('stroke-width', '30');
+                fgPath.setAttribute('stroke-linecap', 'round');
+                svgEl.appendChild(fgPath);
+            }
+
+            const dashPath = document.createElementNS(svgNs, 'path');
+            dashPath.setAttribute('d', fullPathD);
+            dashPath.setAttribute('fill', 'none');
+            dashPath.setAttribute('stroke', '#ffffff');
+            dashPath.setAttribute('stroke-width', '2.5');
+            dashPath.setAttribute('stroke-dasharray', '1 13');
+            dashPath.setAttribute('stroke-linecap', 'round');
+            dashPath.setAttribute('opacity', '0.8');
+            svgEl.appendChild(dashPath);
+
+            stopsEl.replaceChildren();
+            stops.forEach((stop, index) => {
+                const point = points[index];
+                const stopEl = document.createElement('div');
+                stopEl.className = 'stk-route-stop';
+                stopEl.style.left = `${(point.x / width) * 100}%`;
+                stopEl.style.top = `${(point.y / height) * 100}%`;
+                stopEl.appendChild(buildRouteNode(stop));
+                if (stop.type !== 'future') {
+                    const labelEl = document.createElement('span');
+                    labelEl.className = 'stk-route-label';
+                    labelEl.style.color = routeNodeInk(stop.type);
+                    labelEl.textContent = stop.label;
+                    stopEl.appendChild(labelEl);
+                }
+                stopsEl.appendChild(stopEl);
+            });
+
+            positionRouteCards(routeModel, { width, height, points });
+        }
+
+        // Floating cards are anchored to real stop coordinates (not fixed corners)
+        // so they never sit on top of a node regardless of how many stops the
+        // route has: EN CURSO tracks the current stop, FALTA sits in the gap
+        // right before the goal pin (nodes are 150 viewBox units apart, cards
+        // are ~76 units tall, so the midpoint is always clear).
+        function positionRouteCards(routeModel, layout) {
+            const encursoCard = document.getElementById('home-encurso-card');
+            const faltaCard = document.getElementById('home-falta-card');
+            if (!encursoCard || !faltaCard) return;
+            const { width, height, points } = layout;
+
+            function placeCard(card, xUnits, yUnits) {
+                const leftPct = (xUnits / width) * 100;
+                const topPct = Math.max(2, Math.min(92, (yUnits / height) * 100));
+                if (leftPct < 50) {
+                    card.style.left = '4%';
+                    card.style.right = 'auto';
+                } else {
+                    card.style.right = '4%';
+                    card.style.left = 'auto';
+                }
+                card.style.top = `${topPct}%`;
+                card.style.bottom = 'auto';
+            }
+
+            const anchorIndex = routeModel.allCompleted ? 0 : routeModel.currentStopIndex;
+            const anchorPoint = points[anchorIndex] || points[0];
+            placeCard(encursoCard, width - anchorPoint.x, Math.max(0, anchorPoint.y - 55));
+
+            const goalIndex = points.length - 1;
+            const goalPoint = points[goalIndex];
+            const beforeGoalPoint = points[Math.max(0, goalIndex - 1)];
+            const faltaY = (beforeGoalPoint.y + goalPoint.y) / 2;
+            placeCard(faltaCard, width - goalPoint.x, faltaY);
+        }
+
+        function renderHomeEncursoList(enrolledSubjects) {
+            const maxShown = 3;
+            const shown = enrolledSubjects.slice(0, maxShown);
+            const overflow = enrolledSubjects.length - shown.length;
+            let html = shown.map((subject) => `<div class="text-[12px] font-bold leading-snug truncate" style="color:var(--stk-text-1)">${escapeHtml(subject.name || 'Materia')}</div>`).join('');
+            if (overflow > 0) html += `<div class="text-[11px] font-bold mt-0.5" style="color:var(--stk-text-2)">+${overflow} más</div>`;
+            return html;
+        }
+
         function renderHomeView(summary = null) {
             renderHomeMotivation();
             if (!currentCurriculum || !document.getElementById('home-view')) return;
@@ -571,21 +790,41 @@
                 scheduleData,
                 canTakeSubject: (subject) => checkPrerequisites(subject.prerequisites)
             });
+            const routeModel = buildRouteModel(currentCurriculum, userProgress);
 
             const roundedProgress = Math.round(academic.progress);
-            const progressDegrees = Math.round(academic.progress * 3.6);
-            const ring = document.getElementById('home-progress-ring');
-            if (ring) ring.style.background = `conic-gradient(var(--stk-accent-approved) ${progressDegrees}deg, var(--stk-surface-2) ${progressDegrees}deg)`;
+            const studentName = getStudentName();
+            document.getElementById('home-greeting').textContent = studentName ? `Tu ruta, ${studentName}` : 'Tu ruta';
+            const nextStopText = routeModel.allCompleted
+                ? '¡Completaste tu plan!'
+                : `próxima parada: ${routeModel.currentState?.period?.name || formatPeriodShortLabel(routeModel.currentState?.period?.period_number)}`;
+            document.getElementById('home-context').textContent = `${roundedProgress}% recorrido · ${nextStopText}`;
 
-            document.getElementById('home-progress-value').textContent = `${roundedProgress}%`;
-            document.getElementById('home-greeting').textContent = roundedProgress >= 70 ? 'Vas muy bien' : roundedProgress >= 35 ? 'Buen avance' : 'Listo para avanzar';
-            document.getElementById('home-context').textContent = academic.remaining > 0 ? `Te quedan ${formatCountLabel(academic.remaining, 'materia', 'materias')} para completar la ruta.` : 'Tu plan académico está completo.';
-            document.getElementById('home-earned-credits').textContent = academic.earned;
-            document.getElementById('home-index').textContent = academic.hasGrades ? academic.globalAvg.toFixed(1) : 'N/A';
-            document.getElementById('home-remaining').textContent = academic.remaining;
-            document.getElementById('home-enrolled-count').textContent = insights.enrolled.length;
-            document.getElementById('home-schedule-count').textContent = `${insights.scheduleSummary.scheduled}/${insights.scheduleSummary.enrolled}`;
-            document.getElementById('home-available-count').textContent = insights.available.length;
+            document.getElementById('home-stat-approved').textContent = academic.completed;
+            document.getElementById('home-stat-index').textContent = academic.hasGrades ? academic.globalAvg.toFixed(1) : 'N/A';
+            document.getElementById('home-stat-credits').textContent = academic.earned;
+
+            renderHomeRouteMap(routeModel);
+
+            const encursoListEl = document.getElementById('home-encurso-list');
+            const encursoEmptyEl = document.getElementById('home-encurso-empty');
+            if (insights.enrolled.length) {
+                encursoListEl.innerHTML = renderHomeEncursoList(insights.enrolled);
+                encursoListEl.classList.remove('hidden');
+                encursoEmptyEl.classList.add('hidden');
+            } else {
+                encursoListEl.innerHTML = '';
+                encursoListEl.classList.add('hidden');
+                encursoEmptyEl.classList.remove('hidden');
+            }
+            const currentPeriodNumber = routeModel.currentState?.period?.period_number;
+            const termProgress = currentPeriodNumber !== undefined
+                ? StudyTrackInsights.getPeriodProgress(currentCurriculum, userProgress, currentPeriodNumber).completionRatio * 100
+                : (routeModel.allCompleted ? 100 : 0);
+            document.getElementById('home-encurso-progress-bar').style.width = `${Math.round(termProgress)}%`;
+
+            document.getElementById('home-falta-count').textContent = academic.remaining;
+            document.getElementById('home-falta-detail').textContent = `materias · ${formatCountLabel(routeModel.remainingPeriods, 'período', 'períodos')}`;
 
             const action = insights.nextAction;
             const actionButton = document.getElementById('home-next-action');
@@ -603,18 +842,6 @@
             document.getElementById('home-recommended-list').innerHTML = recommended.length
                 ? recommended.map((subject) => renderHomeRecommendationRow(subject)).join('')
                 : renderHomeEmpty('fas fa-check-circle', 'Sin recomendaciones pendientes', 'Cuando haya materias disponibles aparecerán aquí.');
-
-            const enrolled = insights.enrolled.slice(0, 4);
-            const missing = insights.missingGrades.slice(0, 2);
-            const enrolledHtml = enrolled.map((subject) => {
-                const blocks = scheduleData?.[subject.id] || [];
-                const meta = blocks.length ? `${blocks.length} bloque${blocks.length === 1 ? '' : 's'} de horario` : 'Falta agregar horario';
-                return renderHomeSubjectRow(subject, meta);
-            }).join('');
-            const missingHtml = missing.map((subject) => renderHomeSubjectRow(subject, 'Falta registrar nota')).join('');
-            document.getElementById('home-enrolled-list').innerHTML = enrolledHtml || missingHtml
-                ? enrolledHtml + missingHtml
-                : renderHomeEmpty('fas fa-calendar-plus', 'Nada en curso todavía', 'Inscribe materias para construir tu semana.');
         }
 
         function handleHomeAction(target) {
@@ -626,47 +853,14 @@
             if (['all', 'enrolled', 'completed', 'pending'].includes(target)) setFilter(target);
         }
         function findSubjectLocation(id) { if (!currentCurriculum) return null; for (let i = 0; i < currentCurriculum.periods.length; i++) { const s = currentCurriculum.periods[i].subjects.find(s => s.id === id); if (s) return { subject: s, period: currentCurriculum.periods[i], periodIndex: i }; } return null; }
-        function reRenderSubjectCardDOM(s, pn) { const el = document.getElementById(`subject-card-${s.id}`); if (el) el.outerHTML = renderSubjectCardString(s, pn); }
+        function reRenderSubjectCardDOM(s) { const el = document.getElementById(`subject-card-${s.id}`); if (el) el.outerHTML = renderSubjectCardString(s); }
 
-        function createPeriodBadge(icon, text, marginClass) {
-            const badge = document.createElement('span');
-            badge.className = `badge-stat hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 ${marginClass}`;
-            const badgeIcon = document.createElement('i');
-            badgeIcon.className = `fas fa-${icon} mr-1 text-slate-400`;
-            badge.appendChild(badgeIcon);
-            badge.appendChild(document.createTextNode(text));
-            return badge;
-        }
-
+        // Patches a single period header in place (called after a subject inside it
+        // changes) instead of re-rendering the whole periods list.
         function updatePeriodHeaderDOM(i) {
-            const el = document.getElementById(`period-header-stats-${i}`);
-            if (el) {
-                const p = currentCurriculum.periods[i];
-                const avg = calculatePeriodAverage(p);
-                const gpa4 = calculatePeriodGPA4(p);
-                let statsHtml = renderPeriodStatsHTML(calculatePeriodStats(p), p.subjects.length);
-                if (avg) statsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-2">Prom: ${avg}</span>`;
-                if (gpa4) statsHtml += `<span class="sm:hidden text-[10px] font-bold text-slate-500 ml-1">• GPA: ${gpa4}</span>`;
-                el.innerHTML = statsHtml;
-            }
-            // Update desktop Average badge if exists
-            const titleContainer = document.querySelector(`#period-header-stats-${i}`).parentElement.querySelector('h3').parentElement;
-            if (titleContainer) {
-                // Remove existing badges
-                titleContainer.querySelectorAll('.badge-stat').forEach(b => b.remove());
-
-                const p = currentCurriculum.periods[i];
-                const avg = calculatePeriodAverage(p);
-                const gpa4 = calculatePeriodGPA4(p);
-
-                if (avg) titleContainer.appendChild(createPeriodBadge('chart-line', avg, 'ml-2'));
-                if (gpa4) titleContainer.appendChild(createPeriodBadge('star', gpa4, 'ml-1'));
-            }
-            // Update Badge Color
-            const badge = document.querySelector(`div[data-action="togglePeriod" data-args="${actionArgs(i)}"] .shadow-lg`);
-            if (badge) {
-                badge.className = `shrink-0 w-8 h-8 sm:w-10 sm:h-10 ${getPeriodStatusColor(currentCurriculum.periods[i])} text-white rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition-colors duration-500`;
-            }
+            const el = document.getElementById(`period-header-content-${i}`);
+            if (!el) return;
+            el.innerHTML = renderPeriodHeaderHTML(currentCurriculum.periods[i]);
         }
         function togglePeriod(i) { if (APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); StudyTrackStorage.setJson(StudyTrackStorage.KEYS.collapsedPeriods, [...APP_CONFIG.collapsedPeriods]); renderPeriods(document.getElementById('search-input').value); updateToggleAllButton(); }
 
@@ -706,17 +900,15 @@
                 if (!subs.length) return;
 
                 const div = document.createElement('div');
-                div.className = 'bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm animate-fade-in transition-all duration-300 hover:shadow-md';
+                div.className = 'space-y-2 sm:space-y-3 animate-fade-in';
                 div.innerHTML = StudyTrackPeriods.renderPeriodCardHTML({
-                    period: p,
                     periodIndex: idx,
+                    periodNumber: p.period_number,
+                    headerHtml: renderPeriodHeaderHTML(p),
                     visibleSubjects: subs,
                     open: StudyTrackPeriods.isPeriodOpen(idx, APP_CONFIG.collapsedPeriods, filter, currentFilter),
-                    stats: calculatePeriodStats(p),
-                    average: calculatePeriodAverage(p),
-                    gpa4: calculatePeriodGPA4(p),
-                    statusColor: getPeriodStatusColor(p),
                     escapeHtml,
+                    actionArgs,
                     renderSubject: renderSubjectCardString
                 });
                 c.appendChild(div);
@@ -724,7 +916,7 @@
         }
         function animateSubjectEntrance() {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            const cards = document.querySelectorAll('#subjects-view .stk-card');
+            const cards = document.querySelectorAll('#subjects-view .stk-subject-card');
             if (!cards.length) return;
             cards.forEach(card => card.classList.remove('stk-anim-in'));
             void document.body.offsetWidth; // single reflow to allow re-trigger
@@ -937,21 +1129,6 @@
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
         function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
         function showToast(msg, type = 'info') { const t = document.createElement('div'); const c = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-slate-800' }; t.className = `${c[type]} text-white px-4 py-3 rounded-lg shadow-xl fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
-        // Helper for Period Status Color
-        function getPeriodStatusColor(p) {
-            let total = 0, approved = 0, enrolled = 0;
-            p.subjects.forEach(s => {
-                total++;
-                const st = userProgress[s.id];
-                if (st?.status === 'approved') approved++;
-                else if (st?.status === 'enrolled') enrolled++;
-            });
-
-            if (total > 0 && approved === total) return 'bg-emerald-500 shadow-emerald-500/30'; // Completado
-            if (approved > 0 || enrolled > 0) return 'bg-blue-600 shadow-blue-500/30'; // En progreso
-            return 'bg-slate-400 dark:bg-slate-600 shadow-slate-500/30'; // No iniciado/Default
-        }
-
         function calculatePeriodAverage(p) { return StudyTrackAcademics.calculatePeriodAverage(p, userProgress); }
 
         function calculatePeriodGPA4(p) { return StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints); }
@@ -993,29 +1170,48 @@
         }
         function renderProfileAvatar() {
             const el = document.getElementById('profile-avatar');
-            if (!el) return;
             const photo = getStudentPhoto();
+            if (el) {
+                el.innerHTML = '';
+                if (photo) {
+                    const img = document.createElement('img');
+                    img.src = photo; img.alt = 'Foto de perfil';
+                    img.className = 'w-full h-full object-cover';
+                    el.appendChild(img);
+                } else {
+                    const initials = profileInitials(getStudentName());
+                    if (initials) {
+                        const s = document.createElement('span');
+                        s.className = 'text-2xl font-black'; s.style.color = 'var(--stk-tint)';
+                        s.textContent = initials;
+                        el.appendChild(s);
+                    } else {
+                        const i = document.createElement('i');
+                        i.className = 'fas fa-user text-2xl'; i.style.color = 'var(--stk-text-3)';
+                        el.appendChild(i);
+                    }
+                }
+                const rm = document.getElementById('profile-photo-remove');
+                if (rm) rm.classList.toggle('hidden', !photo);
+            }
+            renderCarneBandsAvatar(photo);
+        }
+        // The carné's white-band variant carries its own small avatar tile (decorative,
+        // photo-only — no initials fallback, unlike the main profile avatar). Kept in
+        // sync from renderProfileAvatar() so every photo add/remove path updates it too.
+        function renderCarneBandsAvatar(photo) {
+            const el = document.getElementById('carne-bands-avatar');
+            if (!el) return;
             el.innerHTML = '';
             if (photo) {
                 const img = document.createElement('img');
                 img.src = photo; img.alt = 'Foto de perfil';
-                img.className = 'w-full h-full object-cover';
                 el.appendChild(img);
             } else {
-                const initials = profileInitials(getStudentName());
-                if (initials) {
-                    const s = document.createElement('span');
-                    s.className = 'text-2xl font-black'; s.style.color = 'var(--stk-tint)';
-                    s.textContent = initials;
-                    el.appendChild(s);
-                } else {
-                    const i = document.createElement('i');
-                    i.className = 'fas fa-user text-2xl'; i.style.color = 'var(--stk-text-3)';
-                    el.appendChild(i);
-                }
+                const i = document.createElement('i');
+                i.className = 'fas fa-user-graduate';
+                el.appendChild(i);
             }
-            const rm = document.getElementById('profile-photo-remove');
-            if (rm) rm.classList.toggle('hidden', !photo);
         }
         function refreshProfileIdentity() { renderProfileAvatar(); }
 
@@ -1144,27 +1340,69 @@
                 container.appendChild(row);
             });
         }
+        // ── Carné universitario (student ID card) ──────────────────────────
+        // Two visual variants (navy / bands) share the same underlying data;
+        // the chosen variant is a persisted UI preference, like scheduleViewType.
+        let carneVariant = StudyTrackStorage.getItem(StudyTrackStorage.KEYS.carneVariant) || 'navy';
+        // Shows/hides the two variant elements to match `carneVariant`. When `animate`
+        // is true, replays the flip keyframe on the variant becoming visible (skipped
+        // under prefers-reduced-motion via the CSS media query on .stk-carne-flip-anim).
+        function applyCarneVariant(animate) {
+            const navyEl = document.getElementById('profile-carne-navy');
+            const bandsEl = document.getElementById('profile-carne-bands');
+            if (!navyEl || !bandsEl) return;
+            navyEl.classList.toggle('hidden', carneVariant !== 'navy');
+            bandsEl.classList.toggle('hidden', carneVariant !== 'bands');
+            if (animate) {
+                const active = carneVariant === 'navy' ? navyEl : bandsEl;
+                active.classList.remove('stk-carne-flip-anim');
+                void active.offsetWidth; // restart the animation
+                active.classList.add('stk-carne-flip-anim');
+            }
+        }
+        function flipCarneVariant() {
+            carneVariant = carneVariant === 'navy' ? 'bands' : 'navy';
+            StudyTrackStorage.setItem(StudyTrackStorage.KEYS.carneVariant, carneVariant);
+            notifySyncChange();
+            applyCarneVariant(true);
+        }
         function renderProfileView() {
             renderProfileAvatar();
             renderMilestones();
             const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
             const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-            setVal('profile-name', getStudentName());
+            const name = getStudentName();
+            setVal('profile-name', name);
             setVal('profile-id', getStudentId());
             setVal('profile-status', getStudentStatus());
             setVal('profile-goal', getStudentGoal());
+            setTxt('profile-greeting', name ? `¡Hola, ${name}! 👋` : '¡Hola! 👋');
+
+            const studentId = getStudentId() || '—';
+            const status = getStudentStatus() || 'Activo';
+            setTxt('carne-navy-status', status);
+            setTxt('carne-navy-id', studentId);
+            setTxt('carne-bands-name', name || 'Sin nombre');
+            setTxt('carne-bands-status', status);
+            setTxt('carne-bands-id', studentId);
+            applyCarneVariant(false);
+
             if (!currentCurriculum) {
                 setTxt('profile-career', 'Sin carrera seleccionada');
                 setTxt('profile-institution', '');
+                setTxt('carne-bands-career', 'Sin carrera seleccionada');
                 return;
             }
             const card = collectStudentCard();
             setTxt('profile-career', card.career || 'Sin carrera');
             setTxt('profile-institution', card.institution || '');
+            setTxt('carne-bands-career', card.career || 'Sin carrera');
             const pct = Math.round(card.progress || 0);
             const ring = document.getElementById('profile-ring');
             if (ring) ring.style.background = `conic-gradient(var(--stk-accent-approved) ${pct * 3.6}deg, var(--stk-surface-2) ${pct * 3.6}deg)`;
             setTxt('profile-progress-value', pct + '%');
+            const bar = document.getElementById('profile-progress-bar');
+            if (bar) bar.style.width = pct + '%';
             setTxt('profile-approved', `${card.subjectsApproved}/${card.subjectsTotal}`);
             setTxt('profile-credits', card.creditsEarned);
             setTxt('profile-index', Number.isFinite(card.average) ? card.average.toFixed(1) : 'N/A');
@@ -1650,7 +1888,7 @@
 
         function toggleScheduleView(type) { scheduleViewType = type; StudyTrackStorage.setItem(StudyTrackStorage.KEYS.scheduleViewType, type); notifySyncChange(); updateScheduleViewButtons(); const listContainer = document.getElementById('weekly-schedule-list'); const gridContainer = document.getElementById('weekly-schedule-table'); if (type === 'list') { listContainer.classList.remove('hidden'); gridContainer.classList.add('hidden'); } else { listContainer.classList.add('hidden'); gridContainer.classList.remove('hidden'); } renderScheduleView(); }
 
-        function updateScheduleViewButtons() { const btnList = document.getElementById('view-btn-list'); const btnGrid = document.getElementById('view-btn-grid'); if (scheduleViewType === 'list') { btnList.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all'; btnGrid.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all'; } else { btnGrid.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all'; btnList.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all'; } }
+        function updateScheduleViewButtons() { const btnList = document.getElementById('view-btn-list'); const btnGrid = document.getElementById('view-btn-grid'); if (scheduleViewType === 'list') { btnList.className = 'stk-sched-pill stk-sched-pill--active'; btnGrid.className = 'stk-sched-pill'; } else { btnGrid.className = 'stk-sched-pill stk-sched-pill--active'; btnList.className = 'stk-sched-pill'; } }
 
         function updateScheduleSummary(enrolled) {
             const scheduledCount = enrolled.filter(subject => (scheduleData[subject.id] || []).length > 0).length;
@@ -1660,6 +1898,12 @@
             document.getElementById('schedule-summary-pending').textContent = pendingCount;
             document.getElementById('unscheduled-count').textContent = pendingCount;
             document.getElementById('unscheduled-count').classList.toggle('hidden', pendingCount === 0);
+            const subtitle = document.getElementById('schedule-week-subtitle');
+            if (subtitle) {
+                subtitle.textContent = enrolled.length === 0
+                    ? 'Aún no tienes materias inscritas.'
+                    : `${enrolled.length} ${enrolled.length === 1 ? 'materia inscrita' : 'materias inscritas'} · ${scheduledCount} con horario · ${pendingCount} pendiente${pendingCount === 1 ? '' : 's'}`;
+            }
         }
 
         function renderScheduleView() { const enrolled = getEnrolledSubjects(); const emptyEl = document.getElementById('schedule-empty'); const unscheduledSection = document.getElementById('unscheduled-section'); const unscheduledList = document.getElementById('unscheduled-list'); document.querySelector('#unscheduled-section h3').innerHTML = '<i class="fas fa-edit text-primary-500"></i> Gestionar Horarios'; updateScheduleSummary(enrolled); if (enrolled.length === 0) { emptyEl.classList.remove('hidden'); unscheduledSection.classList.add('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.add('hidden'); return; } emptyEl.classList.add('hidden'); unscheduledSection.classList.remove('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.remove('hidden'); unscheduledList.innerHTML = StudyTrackSchedule.renderEnrolledScheduleHTML(enrolled, scheduleData, { escapeHtml, escapeJsString }); updateScheduleViewButtons(); if (scheduleViewType === 'list') { document.getElementById('weekly-schedule-list').classList.remove('hidden'); document.getElementById('weekly-schedule-table').classList.add('hidden'); renderWeeklySchedule(enrolled); } else { document.getElementById('weekly-schedule-list').classList.add('hidden'); document.getElementById('weekly-schedule-table').classList.remove('hidden'); renderTableSchedule(enrolled); } }
@@ -1669,12 +1913,14 @@
         function renderTableSchedule(enrolled) {
             const container = document.getElementById('visual-schedule-grid');
             const noClasses = document.getElementById('schedule-no-classes');
+            const legend = document.getElementById('schedule-color-legend');
             const allBlocks = StudyTrackSchedule.collectScheduleBlocks(enrolled, scheduleData);
-            if (allBlocks.length === 0) { container.innerHTML = ''; noClasses.classList.remove('hidden'); return; }
+            if (allBlocks.length === 0) { container.innerHTML = ''; if (legend) legend.innerHTML = ''; noClasses.classList.remove('hidden'); return; }
             noClasses.classList.add('hidden');
             const rendered = StudyTrackSchedule.renderVisualScheduleHTML(allBlocks, { escapeHtml, escapeJsString });
             container.style.height = `${rendered.height}px`;
             container.innerHTML = rendered.html;
+            if (legend) legend.innerHTML = StudyTrackSchedule.renderScheduleLegendHTML(enrolled, scheduleData, { escapeHtml });
         }
 
         function renderWeeklySchedule(enrolled) {
@@ -1754,6 +2000,10 @@
             saveScheduleData();
             closeScheduleModal();
             renderScheduleView();
+            // The enrolled subject card (Subjects view) shows a schedule summary line
+            // once a block exists, so refresh it in place if it's currently rendered.
+            const scheduledLoc = findSubjectLocation(subjectId);
+            if (scheduledLoc) reRenderSubjectCardDOM(scheduledLoc.subject);
         }
 
         function deleteScheduleBlock(subjectId, blockId) {
@@ -1764,6 +2014,8 @@
             saveScheduleData();
             renderScheduleView();
             showToast('Bloque eliminado', 'info');
+            const scheduledLoc = findSubjectLocation(subjectId);
+            if (scheduledLoc) reRenderSubjectCardDOM(scheduledLoc.subject);
         }
 
         // ── CSP-safe event delegation ──────────────────────────────────────

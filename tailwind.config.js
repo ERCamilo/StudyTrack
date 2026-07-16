@@ -5,15 +5,18 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
-      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+      fontFamily: {
+        sans: ['Outfit', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'Outfit', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: {
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          500: '#6366F1',
-          600: '#4F46E5',
-          700: '#4338CA',
-          900: '#312E81',
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          500: '#3B82F6',
+          600: '#1D4ED8',
+          700: '#1E40AF',
+          900: '#1E3A8A',
         },
       },
     },
