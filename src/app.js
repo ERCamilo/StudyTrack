@@ -1128,7 +1128,7 @@
         }
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
         function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
-        function showToast(msg, type = 'info') { const t = document.createElement('div'); const c = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-slate-800' }; t.className = `${c[type]} text-white px-4 py-3 rounded-lg shadow-xl fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        function showToast(msg, type = 'info') { const t = document.createElement('div'); const s = { success: 'background:var(--stk-surface);color:var(--stk-ink-approved);border-left:4px solid var(--stk-accent-approved);box-shadow:var(--stk-shadow-hover)', error: 'background:var(--stk-surface);color:var(--stk-ink-goal);border-left:4px solid var(--stk-accent-goal);box-shadow:var(--stk-shadow-hover)', info: 'background:var(--stk-navy);color:#fff;box-shadow:var(--stk-shadow-hover)' }; t.className = 'px-4 py-3 rounded-lg fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm'; t.style.cssText = s[type] || s.info; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
         function calculatePeriodAverage(p) { return StudyTrackAcademics.calculatePeriodAverage(p, userProgress); }
 
         function calculatePeriodGPA4(p) { return StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints); }
@@ -1450,27 +1450,30 @@
             modal.id = modalId;
 
             const panel = document.createElement('div');
-            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up text-center';
+            panel.className = 'stk-surface-card w-full max-w-md p-6 animate-scale-up text-center';
 
             const spinner = document.createElement('div');
-            spinner.className = 'w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center bg-primary-500/10 text-primary-500 animate-pulse';
+            spinner.className = 'w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center animate-pulse';
+            spinner.style.cssText = 'background:var(--stk-tint-soft);color:var(--stk-tint)';
             const iconEl = document.createElement('i');
             iconEl.className = `${icon} text-2xl`;
             spinner.appendChild(iconEl);
 
             const titleEl = document.createElement('h3');
-            titleEl.className = 'text-lg font-extrabold text-slate-900 dark:text-white mb-2';
+            titleEl.className = 'text-lg font-extrabold mb-2';
+            titleEl.style.color = 'var(--stk-text-1)';
             titleEl.textContent = title;
 
             const messageEl = document.createElement('p');
-            messageEl.className = 'text-sm text-slate-500 dark:text-slate-400 mb-5 leading-normal';
+            messageEl.className = 'text-sm mb-5 leading-normal';
+            messageEl.style.color = 'var(--stk-text-2)';
             messageEl.textContent = message;
 
             const close = () => modal.remove();
 
             const cancel = document.createElement('button');
             cancel.type = 'button';
-            cancel.className = 'w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors';
+            cancel.className = 'stk-settings-row w-full py-2.5 font-bold text-xs';
             cancel.textContent = 'Cancelar';
             cancel.onclick = close;
 
@@ -1544,14 +1547,16 @@
             modal.id = modalId;
 
             const panel = document.createElement('div');
-            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up';
+            panel.className = 'stk-surface-card w-full max-w-md p-6 animate-scale-up';
 
             const header = document.createElement('div');
-            header.className = 'flex items-center gap-3 text-primary-500 mb-4';
+            header.className = 'flex items-center gap-3 mb-4';
+            header.style.color = 'var(--stk-tint)';
             const headerIcon = document.createElement('i');
             headerIcon.className = 'fas fa-id-card text-2xl';
             const headerTitle = document.createElement('h3');
-            headerTitle.className = 'text-lg font-extrabold text-slate-900 dark:text-white';
+            headerTitle.className = 'text-lg font-extrabold';
+            headerTitle.style.color = 'var(--stk-text-1)';
             headerTitle.textContent = 'Carné de estudiante';
             header.append(headerIcon, headerTitle);
 
@@ -1560,12 +1565,15 @@
 
             const addRow = (label, value) => {
                 const row = document.createElement('div');
-                row.className = 'flex items-baseline justify-between gap-3 text-sm border-b border-slate-100 dark:border-slate-800 pb-2';
+                row.className = 'flex items-baseline justify-between gap-3 text-sm pb-2';
+                row.style.borderBottom = '1px solid var(--stk-hairline)';
                 const labelEl = document.createElement('span');
-                labelEl.className = 'text-slate-400 dark:text-slate-500 font-medium shrink-0';
+                labelEl.className = 'font-medium shrink-0';
+                labelEl.style.color = 'var(--stk-text-3)';
                 labelEl.textContent = label;
                 const valueEl = document.createElement('span');
-                valueEl.className = 'font-bold text-slate-700 dark:text-slate-200 text-right';
+                valueEl.className = 'font-bold text-right';
+                valueEl.style.color = 'var(--stk-text-1)';
                 valueEl.textContent = value;
                 row.append(labelEl, valueEl);
                 list.appendChild(row);
@@ -1588,7 +1596,7 @@
 
             const footer = document.createElement('button');
             footer.type = 'button';
-            footer.className = 'w-full py-2.5 bg-primary-500 text-white font-bold text-sm rounded-lg hover:bg-primary-600 transition-colors';
+            footer.className = 'stk-btn-primary w-full py-2.5 text-sm';
             footer.textContent = 'Cerrar';
             footer.onclick = () => modal.remove();
 
@@ -1616,24 +1624,27 @@
             const close = () => modal.remove();
 
             const panel = document.createElement('div');
-            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-xs rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up';
+            panel.className = 'stk-surface-card w-full max-w-xs p-6 animate-scale-up';
 
             const title = document.createElement('h3');
-            title.className = 'text-lg font-extrabold text-slate-900 dark:text-white mb-1 text-center';
+            title.className = 'text-lg font-extrabold mb-1 text-center';
+            title.style.color = 'var(--stk-text-1)';
             title.textContent = 'Carné por QR';
             const hint = document.createElement('p');
-            hint.className = 'text-sm text-slate-500 dark:text-slate-400 mb-5 text-center leading-normal';
+            hint.className = 'text-sm mb-5 text-center leading-normal';
+            hint.style.color = 'var(--stk-text-2)';
             hint.textContent = '¿Querés mostrar tu carné o leer el de alguien?';
 
             const makeChoice = (icon, label, sub, onClick) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-primary-500 dark:hover:border-primary-500 transition-all flex items-center gap-3 mb-3';
+                btn.className = 'stk-settings-row w-full text-left p-4 rounded-xl transition-all flex items-center gap-3 mb-3';
                 const ic = document.createElement('i');
-                ic.className = 'fas ' + icon + ' text-xl text-primary-500 shrink-0 w-6 text-center';
+                ic.className = 'fas ' + icon + ' text-xl shrink-0 w-6 text-center';
+                ic.style.color = 'var(--stk-tint)';
                 const box = document.createElement('div');
-                const t = document.createElement('div'); t.className = 'text-sm font-bold text-slate-700 dark:text-slate-200'; t.textContent = label;
-                const s = document.createElement('div'); s.className = 'text-[11px] text-slate-400 dark:text-slate-500'; s.textContent = sub;
+                const t = document.createElement('div'); t.className = 'text-sm font-bold'; t.style.color = 'var(--stk-text-1)'; t.textContent = label;
+                const s = document.createElement('div'); s.className = 'text-[11px]'; s.style.color = 'var(--stk-text-3)'; s.textContent = sub;
                 box.append(t, s);
                 btn.append(ic, box);
                 btn.onclick = () => { close(); onClick(); };
@@ -1642,7 +1653,7 @@
 
             const cancel = document.createElement('button');
             cancel.type = 'button';
-            cancel.className = 'w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors';
+            cancel.className = 'stk-settings-row w-full py-2.5 font-bold text-xs';
             cancel.textContent = 'Cancelar';
             cancel.onclick = close;
 
@@ -1752,22 +1763,27 @@
             modal.id = modalId;
 
             const panel = document.createElement('div');
-            panel.className = 'bg-white dark:bg-slate-900 w-full max-w-xs rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-scale-up text-center';
+            panel.className = 'stk-surface-card w-full max-w-xs p-6 animate-scale-up text-center';
 
             const title = document.createElement('h3');
-            title.className = 'text-lg font-extrabold text-slate-900 dark:text-white mb-1';
+            title.className = 'text-lg font-extrabold mb-1';
+            title.style.color = 'var(--stk-text-1)';
             title.textContent = 'Compartir carné';
             const hint = document.createElement('p');
-            hint.className = 'text-sm text-slate-500 dark:text-slate-400 mb-4 leading-normal';
+            hint.className = 'text-sm mb-4 leading-normal';
+            hint.style.color = 'var(--stk-text-2)';
             hint.textContent = 'Escaneá este código con la cámara de otro teléfono.';
 
+            // Fixed white frame (theme-independent, not a token): the QR canvas is
+            // drawn white-on-black with its own quiet zone baked in, so the halo
+            // around it must stay white in dark mode too or the scanner loses contrast.
             const frame = document.createElement('div');
             frame.className = 'bg-white p-3 rounded-xl inline-block mb-4';
             frame.appendChild(canvas);
 
             const close = document.createElement('button');
             close.type = 'button';
-            close.className = 'w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors';
+            close.className = 'stk-settings-row w-full py-2.5 font-bold text-xs';
             close.textContent = 'Cerrar';
             close.onclick = () => modal.remove();
 

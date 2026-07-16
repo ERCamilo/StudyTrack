@@ -610,6 +610,15 @@
         }
         .settings-quick-link:hover { background: var(--stk-hairline); }
         .settings-quick-link:active { transform: scale(.95); }
+        /* Settings action rows (Data / Share / Career sub-actions) */
+        .stk-settings-row {
+            background: var(--stk-surface-2); color: var(--stk-text-1);
+            border-radius: var(--stk-radius-sm);
+            transition: background-color .2s var(--stk-ease);
+        }
+        .stk-settings-row:hover { background: var(--stk-hairline); }
+        .stk-settings-row--danger { color: var(--stk-accent-goal); }
+        .stk-settings-row--warning { color: var(--stk-ink-warning); }
         /* Desktop sidebar nav rows */
         .side-tab {
             display: flex; align-items: center; gap: 12px; width: 100%;
@@ -785,7 +794,7 @@
             .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .stk-orb.stk-pop, .stk-orb-tile::after,
             .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
             .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-action-btn, .stk-btn-primary,
-            .settings-quick-link, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,
+            .settings-quick-link, .stk-settings-row, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,
             .stk-route-pulse, .stk-sched-pill, .stk-sched-add-btn, .stk-sched-chip, .stk-class-block,
             .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim {
                 transition: none !important; animation: none !important;
@@ -1523,12 +1532,12 @@
             class="w-full sm:w-[500px] max-h-[90vh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
             <div style="background:var(--stk-surface);border-bottom:1px solid var(--stk-hairline)"
                 class="sticky top-0 px-6 py-5 flex items-center justify-between shrink-0 z-10">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Configuración</h2>
+                <h2 class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Configuración</h2>
                 <button data-action="closeSettings" class="stk-icon-btn" aria-label="Cerrar"><i
                         class="fas fa-times"></i></button>
             </div>
 
-            <div class="px-4 sm:px-6 pt-3 pb-0 border-b border-slate-100 dark:border-slate-800 overflow-x-auto shrink-0">
+            <div class="px-4 sm:px-6 pt-3 pb-0 overflow-x-auto shrink-0" style="border-bottom:1px solid var(--stk-hairline)">
                 <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
                     <button data-action="scrollSettingsSection" data-args='["settings-section-career"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
@@ -1545,61 +1554,59 @@
                 <section id="settings-section-career" class="settings-section scroll-mt-4">
                     <div class="flex items-center justify-between mb-3">
                         <h3
-                            class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                            class="text-xs font-bold uppercase flex items-center gap-2" style="color:var(--stk-text-3)">
                             <i class="fas fa-book"></i> Cambiar Carrera
                         </h3>
                         <button data-action="updateLibraryFromCloud"
-                            class="text-xs text-primary-500 font-bold hover:underline"><i
+                            class="text-xs font-bold hover:underline" style="color:var(--stk-tint)"><i
                                 class="fas fa-sync-alt mr-1"></i> Actualizar</button>
                     </div>
 
                     <div id="library-loading" class="hidden py-4 text-center">
                         <div class="loading-spinner mx-auto mb-2"></div>
-                        <span class="text-xs text-slate-400">Buscando en la nube...</span>
+                        <span class="text-xs" style="color:var(--stk-text-3)">Buscando en la nube...</span>
                     </div>
 
                     <!-- Settings Selectors -->
                     <div
-                        class="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
                         <div>
                             <label
-                                class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Universidad</label>
-                            <select id="settings-uni-select"
-                                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Universidad</label>
+                            <select id="settings-uni-select" class="stk-input text-sm">
                                 <option value="" disabled selected>Selecciona...</option>
                             </select>
                         </div>
                         <div>
                             <label
-                                class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Carrera</label>
-                            <select id="settings-career-select"
-                                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Carrera</label>
+                            <select id="settings-career-select" class="stk-input text-sm"
                                 disabled>
                                 <option value="" disabled selected>Elige universidad primero...</option>
                             </select>
                         </div>
                         <button id="settings-load-btn" data-action="startAppFromSettings"
-                            class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-sm shadow-md transition-all opacity-50 pointer-events-none">
+                            class="stk-btn-primary w-full py-2.5 text-sm opacity-50 pointer-events-none">
                             Cargar Carrera Seleccionada
                         </button>
                     </div>
 
                     <!-- Advanced Import -->
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div class="mt-4 pt-4" style="border-top:1px solid var(--stk-hairline)">
                         <label for="import-file"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-2 border border-dashed border-slate-300 dark:border-slate-600 text-slate-500">
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold cursor-pointer flex items-center justify-center gap-2 border border-dashed" style="border-color:var(--stk-hairline)">
                             <i class="fas fa-file-import"></i> Importar Archivo JSON
                         </label>
                         <input type="file" id="import-file" class="hidden" accept=".json" data-change="importData" data-args='["$this"]'>
 
                         <button data-action="toggleCustomJson"
-                            class="mt-3 text-xs text-primary-600 font-bold flex items-center gap-1 hover:underline w-full justify-center"><i
+                            class="mt-3 text-xs font-bold flex items-center gap-1 hover:underline w-full justify-center" style="color:var(--stk-tint)"><i
                                 class="fas fa-code"></i> Avanzado: JSON Manual</button>
                         <div id="custom-json-area" class="hidden mt-3">
                             <textarea id="custom-json-input" placeholder='Pegar JSON aquí...'
-                                class="w-full h-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs font-mono outline-none"></textarea>
+                                class="stk-input w-full h-24 text-xs font-mono"></textarea>
                             <button data-action="loadCustomJSON"
-                                class="mt-2 w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold text-xs">Cargar</button>
+                                class="stk-btn-primary mt-2 w-full py-2 text-xs">Cargar</button>
                         </div>
                     </div>
                 </section>
@@ -1607,68 +1614,68 @@
                 <!-- REQUIREMENTS & DATA SECTIONS (Same as before) -->
                 <section id="settings-section-requirements" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-list-check"></i> Requisitos
                     </h3>
                     <div class="space-y-2" id="settings-requirements-list"></div>
                     <div class="mt-3">
                         <div id="new-req-form" class="hidden flex gap-2 mb-2 animate-fade-in">
                             <input type="text" id="new-req-name" placeholder="Nombre (ej. Tesis)"
-                                class="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none">
+                                class="stk-input flex-1 text-sm">
                             <button data-action="confirmAddRequirement"
-                                class="px-3 bg-primary-600 text-white rounded-lg"><i class="fas fa-check"></i></button>
-                            <button data-action="toggleAddReqForm" class="px-3 bg-slate-200 text-slate-500 rounded-lg"><i
+                                class="stk-btn-primary px-3"><i class="fas fa-check"></i></button>
+                            <button data-action="toggleAddReqForm" class="px-3 rounded-lg" style="background:var(--stk-surface-2);color:var(--stk-text-2)"><i
                                     class="fas fa-times"></i></button>
                         </div>
                         <button data-action="toggleAddReqForm" id="add-req-btn"
-                            class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary-500 hover:border-primary-200 font-bold text-sm flex items-center justify-center gap-2"><i
+                            class="w-full py-3 border-2 border-dashed rounded-xl font-bold text-sm flex items-center justify-center gap-2" style="border-color:var(--stk-hairline);color:var(--stk-text-3)"><i
                                 class="fas fa-plus"></i> Agregar Requisito</button>
                     </div>
                 </section>
                 <section id="settings-section-data" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
+                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
                             class="fas fa-shield-halved"></i> Datos</h3>
                     <div class="space-y-2">
                         <button data-action="exportProgress"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-download mr-2 text-primary-500"></i> Exportar / Compartir</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
                         <button data-action="forceAppRefresh"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-sync-alt mr-2 text-primary-500"></i> Actualizar app (limpiar caché)</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
                         <button data-action="resetProgress"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-orange-600"><i
+                            class="stk-settings-row stk-settings-row--warning w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-rotate-left mr-2"></i> Reiniciar Notas</button>
                         <button data-action="deleteAllData"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600"><i
+                            class="stk-settings-row stk-settings-row--danger w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
                     </div>
                 </section>
 
                 <!-- NFC STUDENT CARD SECTION -->
                 <section id="settings-section-share" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
+                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
                             class="fas fa-id-card"></i> Compartir carné</h3>
                     <div class="space-y-2">
                         <div>
                             <label for="student-name-input"
-                                class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 mb-1">Nombre del
+                                class="block text-[11px] font-bold mb-1" style="color:var(--stk-text-3)">Nombre del
                                 estudiante</label>
                             <input type="text" id="student-name-input" placeholder="Tu nombre"
                                 data-change="setStudentName" data-args='["$value"]'
-                                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none">
+                                class="stk-input text-sm font-bold">
                         </div>
                         <button data-action="shareStudentCardViaNfc"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-share-nodes mr-2 text-primary-500"></i> Compartir carné por NFC</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-share-nodes mr-2" style="color:var(--stk-tint)"></i> Compartir carné por NFC</button>
                         <button data-action="readStudentCardViaNfc"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-wifi mr-2 text-primary-500"></i> Leer carné NFC</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-wifi mr-2" style="color:var(--stk-tint)"></i> Leer carné NFC</button>
                         <button data-action="openQrShareModal"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-qrcode mr-2 text-primary-500"></i> Compartir o leer carné (QR)</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-qrcode mr-2" style="color:var(--stk-tint)"></i> Compartir o leer carné (QR)</button>
                         <input type="file" id="qr-scan-input" accept="image/*" class="hidden"
                             data-change="onQrPhotoSelected" data-args='["$this"]'>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500">NFC requiere Chrome en Android. El QR
+                        <p class="text-[11px]" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
                             funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
                     </div>
                 </section>
@@ -1676,16 +1683,16 @@
                 <!-- PREFERENCES SECTION -->
                 <section id="settings-section-preferences" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-sliders"></i> Preferencias
                     </h3>
                     <div
-                        class="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
                         <div class="flex items-center justify-between gap-3">
                             <div class="flex-1">
-                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Permitir saltar
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Permitir saltar
                                     prerrequisitos</p>
-                                <p class="text-[11px] text-slate-400 dark:text-slate-500">Marcar materias sin cumplir
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">Marcar materias sin cumplir
                                     requisitos (⚠️ amarillo)</p>
                             </div>
                             <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites"
@@ -1694,15 +1701,15 @@
 
                         <!-- Enrollment limit setting -->
                         <div
-                            class="flex items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            class="flex items-center justify-between gap-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
                             <div class="flex-1">
-                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Límite de inscritas</p>
-                                <p class="text-[11px] text-slate-400 dark:text-slate-500">Máx. materias en curso al
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Límite de inscritas</p>
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">Máx. materias en curso al
                                     mismo tiempo</p>
                             </div>
                             <input type="number" id="enrollment-limit-input" min="1" max="20" value="10"
                                 data-change="updateEnrollmentLimit" data-args='["$value"]'
-                                class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
                         </div>
                     </div>
                 </section>
@@ -1710,29 +1717,29 @@
                 <!-- GRADE SCALE SECTION -->
                 <section id="settings-section-grades" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-medal"></i> Escala de Calificaciones
                     </h3>
                     <div
-                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-3">Define los rangos para asignar
+                        class="p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-[10px] mb-3" style="color:var(--stk-text-3)">Define los rangos para asignar
                             letras a tus notas.</p>
                         <div id="grade-scale-settings-list" class="space-y-2 mb-3"></div>
                         <button data-action="addGradeRange"
-                            class="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            class="w-full py-2 border-2 border-dashed rounded-lg text-xs font-bold transition-colors" style="border-color:var(--stk-hairline);color:var(--stk-text-2)">
                             <i class="fas fa-plus mr-1"></i> Agregar Rango
                         </button>
                         <div
-                            class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            class="flex items-center justify-between gap-3 mt-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
                             <div class="flex-1">
-                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Nota mínima para aprobar
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Nota mínima para aprobar
                                 </p>
-                                <p class="text-[11px] text-slate-400 dark:text-slate-500">A partir de esta nota una
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">A partir de esta nota una
                                     materia se marca como aprobada</p>
                             </div>
                             <input type="number" id="passing-grade-input" min="0" max="100" step="any" value="70"
                                 data-change="updatePassingGrade" data-args='["$value"]'
-                                class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
                         </div>
                     </div>
                 </section>
@@ -1740,32 +1747,32 @@
                 <!-- CLOUD SYNC SECTION (FIREBASE) -->
                 <section id="settings-section-cloud" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-cloud"></i> Sincronización en la Nube
                     </h3>
                     <div
-                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
-                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                        class="p-4 rounded-xl space-y-4" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-xs" style="color:var(--stk-text-2)">
                             Resguarda tu progreso académico en la nube de Google. Al iniciar sesión, tus datos se guardarán y sincronizarán automáticamente.
                         </p>
 
                         <!-- Firebase Configuration State -->
                         <div id="firebase-config-setup-box" class="space-y-3 hidden">
-                            <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-400 text-xs">
+                            <div class="p-3 rounded-lg text-xs" style="background:var(--stk-soft-warning);border:1px solid var(--stk-soft-warning);color:var(--stk-ink-warning)">
                                 <i class="fas fa-exclamation-triangle mr-1"></i> Requiere configuración de Firebase. Pega las credenciales del SDK Web de tu proyecto.
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Configuración del SDK de Firebase (JSON/Objeto)</label>
+                                <label class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Configuración del SDK de Firebase (JSON/Objeto)</label>
                                 <textarea id="firebase-config-input" rows="5"
                                     placeholder='{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'
-                                    class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary-500"></textarea>
+                                    class="stk-input p-2.5 text-xs font-mono"></textarea>
                             </div>
                             <button data-action="saveFirebaseConfig"
-                                class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs shadow transition-all">
+                                class="stk-btn-primary w-full py-2 text-xs shadow">
                                 Guardar y Conectar
                             </button>
-                            <div class="text-[10px] text-slate-400 dark:text-slate-500 leading-normal">
-                                <a href="https://console.firebase.google.com/" target="_blank" class="text-primary-500 hover:underline font-bold">1. Crea un proyecto en Firebase Console</a><br>
+                            <div class="text-[10px] leading-normal" style="color:var(--stk-text-3)">
+                                <a href="https://console.firebase.google.com/" target="_blank" class="hover:underline font-bold" style="color:var(--stk-tint)">1. Crea un proyecto en Firebase Console</a><br>
                                 2. Habilita <strong>Google Sign-In</strong> en Authentication.<br>
                                 3. Habilita <strong>Cloud Firestore</strong> en modo de prueba o producción.<br>
                                 4. Crea una App Web y copia el objeto <code>firebaseConfig</code>.
@@ -1775,25 +1782,25 @@
                         <!-- Firebase Active Session State -->
                         <div id="firebase-session-box" class="space-y-3 hidden">
                             <!-- User info card -->
-                            <div class="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-105 dark:border-slate-800">
-                                <div id="firebase-user-avatar" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                                    <i class="fas fa-user text-slate-400 text-lg"></i>
+                            <div class="flex items-center gap-3 p-3 rounded-lg" style="background:var(--stk-surface);border:1px solid var(--stk-hairline)">
+                                <div id="firebase-user-avatar" class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                                    <i class="fas fa-user text-lg" style="color:var(--stk-text-3)"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p id="firebase-user-name" class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">Usuario No Identificado</p>
-                                    <p id="firebase-user-email" class="text-[11px] text-slate-400 dark:text-slate-500 truncate font-medium">correo@gmail.com</p>
+                                    <p id="firebase-user-name" class="text-sm font-bold truncate" style="color:var(--stk-text-1)">Usuario No Identificado</p>
+                                    <p id="firebase-user-email" class="text-[11px] truncate font-medium" style="color:var(--stk-text-3)">correo@gmail.com</p>
                                 </div>
                             </div>
 
                             <!-- Sync Status Indicators -->
                             <div class="flex items-center justify-between text-xs py-1 px-1">
-                                <span class="text-slate-400 font-medium">Estado:</span>
-                                <span id="firebase-sync-status" class="font-bold text-slate-500">No autenticado</span>
+                                <span class="font-medium" style="color:var(--stk-text-3)">Estado:</span>
+                                <span id="firebase-sync-status" class="font-bold" style="color:var(--stk-text-2)">No autenticado</span>
                             </div>
 
                             <div class="flex gap-2">
                                 <button id="firebase-login-btn" data-action="loginWithGoogle"
-                                    class="flex-1 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all">
+                                    class="flex-1 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all" style="background:var(--stk-surface);border:1px solid var(--stk-hairline);color:var(--stk-text-1)">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.72 5.72 0 0 1-2.48 3.76v3.12h3.99c2.33-2.14 3.54-5.3 3.54-8.73Z"/>
                                         <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.99-3.12c-1.1.74-2.52 1.18-3.97 1.18-3.05 0-5.63-2.06-6.55-4.83H1.31v3.23A12 12 0 0 0 12 24Z"/>
@@ -1803,19 +1810,19 @@
                                     Iniciar sesión con Google
                                 </button>
                                 <button id="firebase-sync-now-btn" data-action="forceSyncCloud"
-                                    class="hidden px-3 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all">
+                                    class="stk-btn-primary hidden px-3 py-2.5 text-xs flex items-center justify-center gap-1.5 shadow">
                                     <i class="fas fa-sync-alt"></i> Sincronizar
                                 </button>
                                 <button id="firebase-logout-btn" data-action="logoutFirebase"
-                                    class="hidden px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg font-bold text-xs transition-all">
+                                    class="hidden px-3 py-2.5 rounded-lg font-bold text-xs transition-all" style="background:var(--stk-soft-goal);color:var(--stk-ink-goal)">
                                     Cerrar Sesión
                                 </button>
                             </div>
                         </div>
 
                         <!-- Reset Firebase credentials option -->
-                        <div id="firebase-reset-box" class="hidden text-right border-t border-slate-100 dark:border-slate-800 pt-2">
-                            <button data-action="clearFirebaseConfig" class="text-[10px] text-red-500 hover:underline font-bold">
+                        <div id="firebase-reset-box" class="hidden text-right pt-2" style="border-top:1px solid var(--stk-hairline)">
+                            <button data-action="clearFirebaseConfig" class="text-[10px] hover:underline font-bold" style="color:var(--stk-accent-goal)">
                                 <i class="fas fa-trash-alt mr-1"></i> Borrar credenciales de Firebase
                             </button>
                         </div>
@@ -1825,7 +1832,7 @@
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
                     <button data-action="closeSettings"
-                        class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-base">
+                        class="w-full py-4 rounded-xl font-bold text-base" style="background:var(--stk-navy);color:#fff">
                         <i class="fas fa-times mr-2"></i> Cerrar Configuración
                     </button>
                 </div>
