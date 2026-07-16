@@ -1,6 +1,6 @@
-# StudyTrack Pro
+# MiRuta
 
-StudyTrack Pro es una app academica estatica para seguir materias, progreso, notas, requisitos y horario.
+MiRuta (anteriormente StudyTrack Pro) es una app academica estatica para seguir materias, progreso, notas, requisitos y horario.
 
 ## Ejecutar localmente
 

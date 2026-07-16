@@ -16,9 +16,9 @@
     <link rel="apple-touch-icon" href="icons/studytrack-icon.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="StudyTrack">
+    <meta name="apple-mobile-web-app-title" content="MiRuta">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>StudyTrack Pro - Tu Copiloto Académico</title>
+    <title>MiRuta - Tu Copiloto Académico</title>
     <!-- Tailwind compiled locally (see tailwind.config.js + npm/binary build). Replaces the Play CDN. -->
     <link rel="stylesheet" href="dist/tailwind.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
@@ -820,7 +820,7 @@
                     <circle cx="71" cy="28.5" r="6" fill="#fff"></circle>
                     <path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path>
                 </svg>
-                <h1 class="stk-welcome-title">StudyTrack <span style="color:var(--stk-tint)">Pro</span></h1>
+                <h1 class="stk-welcome-title"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></h1>
                 <p class="text-sm max-w-xs mx-auto" style="color:var(--stk-text-2)">Tu carrera es un camino. Míralo completo, parada por parada.</p>
             </div>
 
@@ -870,16 +870,14 @@
     <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 w-60 z-[60] px-3 py-4"
         style="background:var(--stk-surface);border-right:1px solid var(--stk-hairline)">
         <div class="flex items-center gap-3 px-2 py-2 mb-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30 shrink-0">
-                <i class="fas fa-graduation-cap"></i>
-            </div>
+            <svg width="34" height="34" viewBox="0 0 100 100" class="shrink-0" aria-hidden="true"><path d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="var(--stk-tint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path><path d="M72 48 Q76 56 76 84" fill="none" stroke="#E63946" stroke-width="14" stroke-linecap="round"></path><path d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#E63946"></path><circle cx="71" cy="28.5" r="6" fill="#fff"></circle><path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path></svg>
             <div class="min-w-0">
-                <div class="font-extrabold text-sm leading-tight" style="color:var(--stk-text-1)">StudyTrack <span style="color:var(--stk-tint)">Pro</span></div>
+                <div class="font-extrabold text-sm leading-tight"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></div>
                 <div class="text-xs" style="color:var(--stk-text-2)">Tu copiloto académico</div>
             </div>
         </div>
         <nav class="flex flex-col gap-1" aria-label="Navegación principal">
-            <button data-action="switchView" data-args='["home"]' id="side-home" class="side-tab active"><i class="fas fa-house"></i><span>Inicio</span></button>
+            <button data-action="switchView" data-args='["home"]' id="side-home" class="side-tab active"><i class="fas fa-map"></i><span>Ruta</span></button>
             <button data-action="switchView" data-args='["subjects"]' id="side-subjects" class="side-tab"><i class="fas fa-book"></i><span>Materias</span></button>
             <button data-action="switchView" data-args='["schedule"]' id="side-schedule" class="side-tab"><i class="fas fa-calendar-alt"></i><span>Horario</span></button>
             <button data-action="showProfile" id="side-progress" class="side-tab"><i class="fas fa-id-card"></i><span>Perfil</span></button>
@@ -896,17 +894,14 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
             <div class="flex items-center justify-between mb-2 sm:mb-3">
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <div
-                        class="w-9 h-9 sm:w-12 sm:h-12 lg:hidden bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
-                        <i class="fas fa-graduation-cap text-base sm:text-xl"></i>
-                    </div>
+                    <svg viewBox="0 0 100 100" class="w-9 h-9 sm:w-12 sm:h-12 lg:hidden shrink-0" aria-hidden="true"><path d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="var(--stk-tint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path><path d="M72 48 Q76 56 76 84" fill="none" stroke="#E63946" stroke-width="14" stroke-linecap="round"></path><path d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#E63946"></path><circle cx="71" cy="28.5" r="6" fill="#fff"></circle><path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path></svg>
                     <div>
                         <h1 id="header-career"
                             class="font-extrabold text-sm sm:text-base leading-tight text-slate-900 dark:text-white line-clamp-1">
                             Cargando...</h1>
                         <p id="header-institution"
                             class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                            StudyTrack Pro</p>
+                            MiRuta</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2">
@@ -1257,7 +1252,7 @@
             <div id="profile-carne-navy" class="stk-carne stk-carne--navy">
                 <div class="stk-carne-navy-panel">
                     <div>
-                        <div class="stk-carne-brand-chip"><span>StudyTrack</span></div>
+                        <div class="stk-carne-brand-chip"><span>MiRuta</span></div>
                         <div class="stk-carne-eyebrow-inv">Carné universitario</div>
                     </div>
                     <span id="carne-navy-status" class="stk-carne-status-pill"><i class="fas fa-check-circle" style="font-size:9px"></i>Activo</span>
@@ -1274,7 +1269,7 @@
                     <div id="carne-bands-avatar" class="stk-carne-avatar-tile"><i class="fas fa-user-graduate"></i></div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-1.5">
-                            <span style="font-family:var(--stk-font-display);font-size:14px;font-weight:800"><span style="color:var(--stk-text-1)">Study</span><span style="color:var(--stk-tint)">Track</span></span>
+                            <span style="font-family:var(--stk-font-display);font-size:14px;font-weight:800"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></span>
                             <span class="stk-carne-eyebrow" style="border-left:1px solid var(--stk-hairline);padding-left:6px">Carné universitario</span>
                         </div>
                         <div id="carne-bands-name" class="stk-carne-bands-name truncate">Sin nombre</div>
@@ -1498,8 +1493,8 @@
         <div class="max-w-lg mx-auto grid grid-cols-5 items-center gap-1 py-2 px-3">
             <button data-action="switchView" data-args='["home"]' id="nav-home"
                 class="nav-tab active flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
-                <i class="fas fa-house text-lg"></i>
-                <span class="text-[10px] font-bold">Inicio</span>
+                <i class="fas fa-map text-lg"></i>
+                <span class="text-[10px] font-bold">Ruta</span>
             </button>
             <button data-action="switchView" data-args='["subjects"]' id="nav-subjects"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
