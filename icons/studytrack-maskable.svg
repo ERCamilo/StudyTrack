@@ -1,8 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="StudyTrack">
-  <rect width="512" height="512" fill="#4f46e5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MiRuta">
+  <rect width="512" height="512" fill="#1d4ed8"/>
   <circle cx="256" cy="256" r="188" fill="#ffffff" opacity="0.12"/>
-  <path fill="#ffffff" d="M112 174 256 100l144 74-144 74-144-74Z"/>
-  <path fill="#c7d2fe" d="M166 220v92c0 48 40 86 90 86s90-38 90-86v-92l-90 48-90-48Z"/>
-  <path fill="#ffffff" d="M398 196v112a20 20 0 1 1-24 0v-99l24-13Z"/>
-  <path fill="#10b981" d="M214 311 245 342l63-76 30 25-91 109-63-64 30-25Z"/>
+  <g transform="translate(105,118) scale(2.82)">
+    <path d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M72 48 Q76 56 76 84" fill="none" stroke="#7fb0ff" stroke-width="14" stroke-linecap="round"/>
+    <path d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#e63946"/>
+    <circle cx="71" cy="28.5" r="6" fill="#ffffff"/>
+    <path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"/>
+  </g>
 </svg>

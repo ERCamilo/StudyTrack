@@ -8,21 +8,21 @@
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
-    <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#1E1B4B" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#1D4ED8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#15161C" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">
     <link rel="apple-touch-icon" href="icons/studytrack-icon.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="StudyTrack">
+    <meta name="apple-mobile-web-app-title" content="MiRuta">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>StudyTrack Pro - Tu Copiloto Académico</title>
+    <title>MiRuta - Tu Copiloto Académico</title>
     <!-- Tailwind compiled locally (see tailwind.config.js + npm/binary build). Replaces the Play CDN. -->
     <link rel="stylesheet" href="dist/tailwind.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap"
         rel="stylesheet">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -37,6 +37,7 @@
     <script src="./src/progress.js"></script>
     <script src="./src/prerequisites.js"></script>
     <script src="./src/periods.js"></script>
+    <script src="./src/cards.js"></script>
     <script src="./src/requirements.js"></script>
     <script src="./src/schedule.js"></script>
     <script src="./src/insights.js"></script>
@@ -50,7 +51,11 @@
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: var(--stk-font-body);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--stk-font-display);
         }
 
         body {
@@ -86,14 +91,21 @@
             background: rgba(15, 23, 42, 0.90);
         }
 
+        /* Period collapse: grid-rows keeps the speed even regardless of content
+           height (the old max-height:10000px made closing feel delayed). */
         .collapsible-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.45s var(--stk-ease);
         }
 
         .collapsible-content.open {
-            max-height: 10000px;
+            grid-template-rows: 1fr;
+        }
+
+        .collapsible-content > div {
+            overflow: hidden;
+            min-height: 0;
         }
 
         .badge-critical {
@@ -156,8 +168,8 @@
         }
 
         input[type="checkbox"]:checked {
-            background-color: #4F46E5;
-            border-color: #4F46E5;
+            background-color: #1D4ED8;
+            border-color: #1D4ED8;
         }
 
         input[type="checkbox"]:checked::after {
@@ -298,7 +310,7 @@
             background: #475569;
         }
 
-        /* Bottom Navigation Bar (Apple tab bar) */
+        /* Bottom Navigation Bar (MiRuta tab bar) */
         .stk-tabbar {
             background: var(--stk-surface);
             border-top: 1px solid var(--stk-hairline);
@@ -340,156 +352,211 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
 
         /* ============================================================
-           APPLE HIG DESIGN TOKENS (Capa 0)
+           MIRUTA DESIGN TOKENS (Capa 0)
            Estado = color + ícono + texto, todo derivado de tokens.
            Cero !important: el acento sale de la clase de estado.
            ============================================================ */
         :root {
+            --stk-font-body: 'Outfit', system-ui, sans-serif;
+            --stk-font-display: 'Sora', 'Outfit', system-ui, sans-serif;
+            --stk-font-numeric: 'Space Grotesk', 'Outfit', system-ui, sans-serif;
             --stk-surface: #ffffff;
-            --stk-surface-2: #f0f0f3;
-            --stk-text-1: #1d1d1f;
-            --stk-text-2: #6e6e73;
-            --stk-text-3: #a1a1a6;
-            --stk-hairline: rgba(0, 0, 0, 0.06);
-            --stk-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 18px rgba(0, 0, 0, .06);
-            --stk-radius: 16px;
-            --stk-radius-sm: 11px;
-            --stk-orb-radius: 13px;
+            --stk-surface-2: #edf1fb;
+            --stk-text-1: #111633;
+            --stk-text-2: #636b8c;
+            --stk-text-3: #a6adc2;
+            --stk-hairline: rgba(17, 22, 51, 0.08);
+            --stk-shadow: 0 1px 2px rgba(17, 22, 51, .04), 0 8px 22px rgba(17, 22, 51, .08);
+            --stk-radius: 18px;
+            --stk-radius-sm: 14px;
+            --stk-orb-radius: 14px;
             --stk-spring: cubic-bezier(.34, 1.56, .64, 1);
             --stk-ease: cubic-bezier(.4, 0, .2, 1);
-            --stk-accent-approved: #34c759;  --stk-soft-approved: rgba(52, 199, 89, .14);
-            --stk-accent-enrolled: #007aff;  --stk-soft-enrolled: rgba(0, 122, 255, .14);
-            --stk-accent-available: #ff9500; --stk-soft-available: rgba(255, 149, 0, .16);
+            --stk-accent-approved: #12A150;  --stk-soft-approved: rgba(18, 161, 80, .14);
+            --stk-accent-enrolled: #1D4ED8;  --stk-soft-enrolled: rgba(29, 78, 216, .14);
+            --stk-accent-available: #D97706; --stk-soft-available: rgba(217, 119, 6, .16);
             --stk-accent-warning: #ff9f0a;   --stk-soft-warning: rgba(255, 159, 10, .16);
-            --stk-accent-locked: #8e8e93;    --stk-soft-locked: rgba(142, 142, 147, .14);
-            --stk-tint: #4F46E5;             --stk-tint-soft: rgba(79, 70, 229, .12);
-            --stk-bg: #f2f2f7;
-            --stk-glass: rgba(255, 255, 255, 0.72);
-            --stk-shadow-hover: 0 2px 6px rgba(0, 0, 0, .06), 0 14px 32px rgba(0, 0, 0, .1);
+            --stk-accent-locked: #8a91a8;    --stk-soft-locked: rgba(138, 145, 168, .14);
+            --stk-tint: #1D4ED8;             --stk-tint-soft: rgba(29, 78, 216, .12);
+            --stk-bg: #e8e8ee;
+            --stk-glass: rgba(255, 255, 255, 0.85);
+            --stk-shadow-hover: 0 2px 6px rgba(17, 22, 51, .06), 0 14px 32px rgba(17, 22, 51, .12);
             /* AA-safe "ink" variants for text/glyphs on light surfaces (accents above are for bars/fills) */
-            --stk-ink-approved: #15803d; --stk-ink-enrolled: #1d4ed8; --stk-ink-available: #9a5b00;
-            --stk-ink-warning: #9a5b00;  --stk-ink-locked: #5e5e63;
-            --stk-enrolled-strong: #0a63c9;
+            --stk-ink-approved: #0f7a3d; --stk-ink-enrolled: #1d4ed8; --stk-ink-available: #9a5b00;
+            --stk-ink-warning: #9a5b00;  --stk-ink-locked: #5b6178;
+            --stk-enrolled-strong: #1E40AF;
+            --stk-accent-goal: #E63946;      --stk-ink-goal: #c81e2c;
+            /* MiRuta period/subject card system (Phase 3) */
+            --stk-navy: #1e2a78;             --stk-navy-soft: #E7EAF6;
+            --stk-watermark: #EEF3FC;        --stk-watermark-2: #E3E7F5;
+            --stk-soft-goal: #FDECEC;
+            --stk-period-completed-bg: #F4F6FC; --stk-period-completed-border: #ccd3ec;
         }
         .dark {
-            --stk-surface: #1c1c1e;
-            --stk-surface-2: #2c2c2e;
-            --stk-text-1: #f5f5f7;
-            --stk-text-2: #98989d;
-            --stk-text-3: #6e6e73;
+            --stk-surface: #262a38;
+            --stk-surface-2: #2e3244;
+            --stk-text-1: #f2f3f8;
+            --stk-text-2: #9199b8;
+            --stk-text-3: #6b7290;
             --stk-hairline: rgba(255, 255, 255, 0.08);
             --stk-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 22px rgba(0, 0, 0, .4);
-            --stk-accent-approved: #30d158;  --stk-soft-approved: rgba(48, 209, 88, .18);
-            --stk-accent-enrolled: #0a84ff;  --stk-soft-enrolled: rgba(10, 132, 255, .18);
-            --stk-accent-available: #ff9f0a; --stk-soft-available: rgba(255, 159, 10, .18);
-            --stk-tint: #818CF8;             --stk-tint-soft: rgba(129, 140, 248, .16);
-            --stk-bg: #000000;
-            --stk-glass: rgba(28, 28, 30, 0.72);
+            --stk-accent-approved: #34d399;  --stk-soft-approved: rgba(52, 211, 153, .18);
+            --stk-accent-enrolled: #60a5fa;  --stk-soft-enrolled: rgba(96, 165, 250, .18);
+            --stk-accent-available: #fbbf24; --stk-soft-available: rgba(251, 191, 36, .2);
+            --stk-tint: #60a5fa;             --stk-tint-soft: rgba(96, 165, 250, .16);
+            --stk-bg: #15161c;
+            --stk-glass: rgba(21, 22, 28, 0.85);
             --stk-shadow-hover: 0 2px 6px rgba(0, 0, 0, .35), 0 16px 36px rgba(0, 0, 0, .5);
             /* On dark surfaces the bright accents already pass AA, so ink = accent */
-            --stk-ink-approved: #30d158; --stk-ink-enrolled: #0a84ff; --stk-ink-available: #ff9f0a;
-            --stk-ink-warning: #ff9f0a;  --stk-ink-locked: #98989d;
+            --stk-ink-approved: #34d399; --stk-ink-enrolled: #60a5fa; --stk-ink-available: #fbbf24;
+            --stk-ink-warning: #ff9f0a;  --stk-ink-locked: #9199b8;
             --stk-accent-warning: #ff9f0a; --stk-soft-warning: rgba(255, 159, 10, .2);
-            --stk-accent-locked: #98989d;  --stk-soft-locked: rgba(142, 142, 147, .22);
+            --stk-accent-locked: #9199b8;  --stk-soft-locked: rgba(145, 153, 184, .22);
+            --stk-enrolled-strong: #2563EB;
+            --stk-accent-goal: #fb7185;      --stk-ink-goal: #fb7185;
+            /* MiRuta period/subject card system (Phase 3) */
+            --stk-navy: #3557c4;             --stk-navy-soft: #1c2440;
+            --stk-watermark: #3d466a;        --stk-watermark-2: #333d5f;
+            --stk-soft-goal: #3A1418;
+            --stk-period-completed-bg: #151B2E; --stk-period-completed-border: #28345c;
         }
 
-        /* ---- Subject card (Apple-style) ---- */
-        .stk-card {
-            position: relative; background: var(--stk-surface);
-            border-radius: var(--stk-radius); box-shadow: var(--stk-shadow);
-            overflow: hidden;
-            transition: transform .3s var(--stk-spring), box-shadow .3s var(--stk-ease);
+        /* ---- Period header card (Phase 3) ---- */
+        .stk-period-card { position: relative; border-radius: var(--stk-radius); padding: 16px 18px; overflow: hidden; }
+        .stk-period-card--active { background: var(--stk-surface); box-shadow: var(--stk-shadow); }
+        .stk-period-card--completed { background: var(--stk-period-completed-bg); border: 1px solid var(--stk-period-completed-border); padding: 14px 18px; }
+        .stk-period-watermark {
+            position: absolute; right: 6px; top: -16px; z-index: 0;
+            font-family: var(--stk-font-numeric); font-size: 104px; font-weight: 700; line-height: 1; letter-spacing: -.04em;
+            color: var(--stk-watermark);
         }
-        .stk-card::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-            background: var(--stk-accent); opacity: 0; transition: opacity .3s var(--stk-ease);
+        .stk-period-watermark--2 { top: -12px; font-size: 88px; color: var(--stk-watermark-2); }
+        .stk-period-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 15px; }
+        .stk-period-index {
+            font-family: var(--stk-font-numeric); font-size: 26px; font-weight: 700; line-height: 1;
+            color: var(--stk-tint); flex-shrink: 0; min-width: 24px; text-align: center; letter-spacing: -.02em;
         }
-        .stk-card:hover { transform: translateY(-2px); }
-        .stk-card:hover::before { opacity: 1; }
-        .stk-card { --stk-ink: var(--stk-text-2); }
-        .stk-card--approved  { --stk-accent: var(--stk-accent-approved);  --stk-soft: var(--stk-soft-approved);  --stk-ink: var(--stk-ink-approved); }
-        .stk-card--enrolled  { --stk-accent: var(--stk-accent-enrolled);  --stk-soft: var(--stk-soft-enrolled);  --stk-ink: var(--stk-ink-enrolled); }
-        .stk-card--available { --stk-accent: var(--stk-accent-available); --stk-soft: var(--stk-soft-available); --stk-ink: var(--stk-ink-available); }
-        .stk-card--warning   { --stk-accent: var(--stk-accent-warning);   --stk-soft: var(--stk-soft-warning);   --stk-ink: var(--stk-ink-warning); }
-        .stk-card--locked    { --stk-accent: var(--stk-accent-locked);    --stk-soft: var(--stk-soft-locked);    --stk-ink: var(--stk-ink-locked); }
+        .stk-period-card--completed .stk-period-index { color: var(--stk-navy); }
+        .stk-period-ring { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
+        .stk-period-ring-value {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-family: var(--stk-font-numeric); font-size: 14px; font-weight: 700; color: var(--stk-text-1);
+        }
+        .stk-period-check {
+            width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; background: var(--stk-navy); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: var(--stk-shadow);
+        }
+        .stk-period-text { min-width: 0; }
+        .stk-period-eyebrow { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--stk-tint); }
+        .stk-period-eyebrow--navy { color: var(--stk-navy); }
+        .stk-period-eyebrow--idle { color: var(--stk-text-2); }
+        .stk-period-title { font-family: var(--stk-font-display); font-size: 19px; font-weight: 800; color: var(--stk-text-1); margin-top: 2px; }
+        .stk-period-subtitle { font-size: 11.5px; color: var(--stk-text-2); margin-top: 1px; }
 
-        .stk-head { display: flex; align-items: center; gap: 13px; padding: 13px 14px; cursor: pointer; }
+        /* ---- Subject card (Phase 3) ---- */
+        .stk-subject-card { position: relative; background: var(--stk-surface); border-radius: 15px; --stk-ink: var(--stk-text-2); }
+        .stk-subject-card--enrolled  { box-shadow: var(--stk-shadow); border-left: 4px solid var(--stk-accent-enrolled); padding: 13px 14px; --stk-accent: var(--stk-accent-enrolled); --stk-soft: var(--stk-soft-enrolled); --stk-ink: var(--stk-ink-enrolled); }
+        .stk-subject-card--available { box-shadow: var(--stk-shadow); border: 1px dashed var(--stk-hairline); padding: 11px 14px; display: flex; align-items: center; gap: 11px; --stk-accent: var(--stk-accent-available); --stk-soft: var(--stk-soft-available); --stk-ink: var(--stk-ink-available); }
+        .stk-subject-card--locked    { box-shadow: var(--stk-shadow); padding: 11px 14px; display: flex; align-items: center; gap: 11px; transition: opacity .2s var(--stk-ease); --stk-accent: var(--stk-accent-locked); --stk-soft: var(--stk-soft-locked); --stk-ink: var(--stk-ink-locked); }
+        .stk-subject-card--dim { opacity: .6; }
+        .dark .stk-subject-card--dim { opacity: .55; }
+        .stk-subject-card--approved, .stk-subject-card--warning { box-shadow: var(--stk-shadow); border-radius: 14px; padding: 11px 14px; }
+        .stk-subject-card--approved { --stk-accent: var(--stk-navy); --stk-soft: var(--stk-navy-soft); --stk-ink: var(--stk-navy); }
+        .stk-subject-card--warning  { --stk-accent: var(--stk-accent-warning); --stk-soft: var(--stk-soft-warning); --stk-ink: var(--stk-ink-warning); }
+
+        .stk-subject-header, .stk-subject-row-head { display: flex; align-items: center; gap: 11px; cursor: pointer; }
+        .stk-subject-main { flex: 1; min-width: 0; }
+        .stk-subject-name { font-size: 13.5px; font-weight: 700; color: var(--stk-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stk-subject-card--available .stk-subject-name, .stk-subject-card--locked .stk-subject-name { font-size: 13px; }
+        .stk-subject-card--approved .stk-subject-name, .stk-subject-card--warning .stk-subject-name { font-size: 12.5px; }
+        .stk-subject-meta { font-size: 11px; color: var(--stk-text-2); margin-top: 1px; }
+        .stk-subject-meta--schedule { color: var(--stk-navy); font-weight: 700; }
+        .stk-subject-meta--schedule i { margin-right: 5px; }
+        .stk-subject-subtitle-link {
+            display: block; border: none; background: transparent; padding: 0; margin: 0; font: inherit; text-align: left;
+            font-size: 10.5px; color: var(--stk-text-3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
+        .stk-subject-subtitle-link--warning { color: var(--stk-ink-warning); font-size: 11px; font-weight: 700; margin-top: 2px; }
+        .stk-subject-subtitle-link--warning i { margin-right: 5px; font-size: 10px; }
+
+        .stk-subject-icon {
+            width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--stk-surface-2); color: var(--stk-text-3); font-size: 12px;
+        }
+
         .stk-orb {
-            position: relative;
-            width: 42px; height: 42px; border-radius: var(--stk-orb-radius); flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;
-            background: var(--stk-soft); color: var(--stk-ink); font-size: 17px;
+            position: relative; width: 42px; height: 42px; flex-shrink: 0; border: none; background: transparent; padding: 0;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .stk-orb:active .stk-orb-tile { transform: scale(.88); }
+        .stk-orb-tile {
+            position: relative; display: flex; align-items: center; justify-content: center; background: var(--stk-soft); color: var(--stk-ink);
             transition: transform .4s var(--stk-spring);
         }
-        .stk-orb:active { transform: scale(.88); }
-        .stk-main { flex: 1; min-width: 0; }
-        .stk-title {
-            font-size: 15px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25;
-            color: var(--stk-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .stk-sub { font-size: 12.5px; color: var(--stk-text-2); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .stk-sub .stk-sep { opacity: .4; }
-        .stk-sub .stk-sw { color: var(--stk-ink); font-weight: 600; }
-        .stk-chip {
-            display: inline-flex; align-items: center; gap: 4px; max-width: 150px;
-            font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 7px;
-            background: var(--stk-surface-2); color: var(--stk-text-2); border: none; cursor: pointer;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .stk-chip--lock { background: var(--stk-soft); color: var(--stk-ink); }
-        .stk-credits { flex-shrink: 0; text-align: right; padding-left: 4px; }
-        .stk-credits b { font-size: 15px; font-weight: 800; color: var(--stk-text-1); }
-        .stk-credits span { display: block; font-size: 10px; font-weight: 700; color: var(--stk-text-2); margin-top: -2px; letter-spacing: .03em; }
+        .stk-orb-tile--enrolled { width: 36px; height: 36px; border-radius: 10px; font-size: 14px; }
+        .stk-orb-tile--row { width: 28px; height: 28px; border-radius: 50%; font-size: 11px; }
+
+        .stk-pill { flex-shrink: 0; border: none; cursor: pointer; border-radius: 99px; font-weight: 800; }
+        .stk-pill--enrolled { padding: 5px 10px; background: var(--stk-accent-enrolled); color: #fff; font-size: 10px; }
+        .stk-pill--inscribir { padding: 7px 14px; background: var(--stk-soft-goal); color: var(--stk-accent-goal); font-size: 10.5px; }
+
         .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 36px; min-height: 36px; padding: 7px; margin: -4px -3px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .stk-chev { color: var(--stk-text-3); font-size: 12px; flex-shrink: 0; transition: transform .35s var(--stk-spring); }
-        .stk-card.open .stk-chev { transform: rotate(180deg); }
+        .stk-subject-card.open .stk-chev { transform: rotate(180deg); }
 
-        .stk-actions { display: flex; align-items: center; gap: 9px; padding: 0 14px 13px; }
-        .stk-enroll {
-            flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer;
-            border-radius: var(--stk-radius-sm); padding: 9px 13px; font-family: inherit; font-size: 13px; font-weight: 700;
-            transition: transform .2s var(--stk-spring), background .2s var(--stk-ease);
+        .stk-actions { display: flex; align-items: center; gap: 7px; margin-top: 11px; }
+        .stk-action-btn {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: none; cursor: pointer;
+            border-radius: var(--stk-radius-sm); padding: 8px 0; font-family: inherit; font-size: 11px; font-weight: 800;
+            transition: transform .2s var(--stk-spring);
         }
-        .stk-enroll:active { transform: scale(.95); }
-        .stk-enroll--on { background: var(--stk-enrolled-strong); color: #fff; }
-        .stk-enroll--off { background: var(--stk-surface-2); color: var(--stk-text-2); }
+        .stk-action-btn:active { transform: scale(.96); }
+        .stk-action-btn--tint { background: var(--stk-soft-enrolled); color: var(--stk-accent-enrolled); }
+        .stk-action-btn--navy { background: var(--stk-navy); color: #fff; }
         .stk-note {
-            flex: 1; display: flex; align-items: center; justify-content: space-between;
-            background: var(--stk-surface-2); border-radius: var(--stk-radius-sm); padding: 9px 13px;
-            border: 1.5px solid transparent; transition: border-color .2s var(--stk-ease); cursor: text;
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+            background: var(--stk-surface-2); border-radius: var(--stk-radius-sm); padding: 8px 0;
+            border: none; cursor: text;
         }
-        .stk-note--warn { border-color: var(--stk-accent-warning); background: var(--stk-soft-warning); }
-        .stk-note .stk-note-cap { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--stk-text-2); }
-        .stk-note input { width: 48px; text-align: right; border: none; background: transparent; outline: none; font-family: inherit; font-size: 16px; font-weight: 800; color: var(--stk-text-1); }
+        .stk-note-cap { font-size: 11px; font-weight: 800; color: var(--stk-text-2); }
+        .stk-note input { width: 34px; text-align: center; border: none; background: transparent; outline: none; font-family: inherit; font-size: 13px; font-weight: 800; color: var(--stk-text-1); }
+        .stk-note--navy { background: var(--stk-navy); }
+        .stk-note--navy .stk-note-cap { color: #fff; }
+        .stk-note--navy .stk-note-cap i { margin-right: 5px; font-size: 9px; }
+        .stk-note--navy input { color: #fff; }
+        .stk-note--navy input::placeholder { color: rgba(255, 255, 255, .7); }
+
         .stk-grade {
-            width: 44px; height: 40px; border-radius: var(--stk-radius-sm); flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            background: var(--stk-soft); color: var(--stk-ink); font-size: 16px; font-weight: 800;
+            width: 34px; flex-shrink: 0; text-align: right; border: none; background: transparent; outline: none; cursor: text;
+            font-family: var(--stk-font-numeric); font-size: 14px; font-weight: 700; color: var(--stk-navy);
         }
-        .stk-grade--empty { background: var(--stk-surface-2); color: var(--stk-text-2); }
-        .stk-warn-text { font-size: 11px; font-weight: 700; color: var(--stk-ink-warning); display: flex; align-items: center; gap: 5px; padding: 0 14px 12px; margin-top: -4px; }
+        .stk-grade::placeholder { color: var(--stk-text-3); font-family: var(--stk-font-body); font-weight: 700; font-size: 14px; }
+        .stk-subject-card--warning .stk-grade { color: var(--stk-ink-warning); }
+        .stk-warn-text { font-size: 11px; font-weight: 700; color: var(--stk-ink-warning); display: flex; align-items: center; gap: 5px; margin-top: 3px; }
 
         .stk-details { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--stk-ease); }
-        .stk-card.open .stk-details { grid-template-rows: 1fr; }
+        .stk-subject-card.open .stk-details { grid-template-rows: 1fr; }
         .stk-details-inner { overflow: hidden; }
-        .stk-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding: 14px; border-top: 1px solid var(--stk-hairline); }
+        .stk-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding: 14px 0 0; margin-top: 12px; border-top: 1px solid var(--stk-hairline); }
         .stk-field label { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--stk-text-2); margin-bottom: 5px; }
         .stk-field input { width: 100%; background: var(--stk-surface-2); border: none; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--stk-text-1); outline: none; transition: box-shadow .2s var(--stk-ease); }
         .stk-field input:focus { box-shadow: 0 0 0 2px var(--stk-accent, var(--stk-tint)); }
         .stk-field--wide { grid-column: span 2; }
 
-        /* Entrada escalonada de la lista (Capa 2) */
-        @keyframes stkEnter { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-        .stk-anim-in { animation: stkEnter .45s var(--stk-spring) both; }
+        /* Entrada escalonada de la lista — estilo "Enfoque": las tarjetas pasan
+           de desenfocadas a nítidas mientras asientan a su tamaño. */
+        @keyframes stkEnter { from { opacity: 0; transform: scale(1.05); filter: blur(9px); } to { opacity: 1; transform: none; filter: blur(0); } }
+        .stk-anim-in { animation: stkEnter .5s ease both; }
         /* Pop celebratorio al aprobar (Capa 2) */
         @keyframes stkPop { 0% { transform: scale(1); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
         @keyframes stkRing { from { box-shadow: 0 0 0 0 var(--stk-soft); opacity: 1; } to { box-shadow: 0 0 0 16px transparent; opacity: 0; } }
-        .stk-orb.stk-pop { animation: stkPop .5s var(--stk-spring); }
-        .stk-orb.stk-pop::after { content: ''; position: absolute; inset: 0; border-radius: inherit; animation: stkRing .5s var(--stk-spring); }
+        .stk-orb.stk-pop .stk-orb-tile { animation: stkPop .5s var(--stk-spring); }
+        .stk-orb.stk-pop .stk-orb-tile::after { content: ''; position: absolute; inset: 0; border-radius: inherit; animation: stkRing .5s var(--stk-spring); }
 
-        /* ---- Global Apple polish (Capa 3) ---- */
+        /* ---- Global polish (Capa 3) ---- */
         body { background: var(--stk-bg); }
-        /* Thin Apple focus ring on keyboard nav (not on mouse click) */
+        /* Thin focus ring on keyboard nav (not on mouse click) */
         button:focus-visible, a:focus-visible, select:focus-visible,
         input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
             outline: 2px solid var(--stk-tint); outline-offset: 2px;
@@ -497,7 +564,7 @@
         /* Reusable press feedback */
         .stk-press { transition: transform .2s var(--stk-spring); }
         .stk-press:active { transform: scale(.97); }
-        /* Standard Apple card surface */
+        /* Standard card surface */
         .stk-surface-card {
             background: var(--stk-surface);
             border: 1px solid var(--stk-hairline);
@@ -524,7 +591,7 @@
         }
         .stk-input:focus { box-shadow: 0 0 0 2px var(--stk-tint); }
         select.stk-input { padding-right: 2.5rem; }
-        /* Primary filled button (Apple tint) */
+        /* Primary filled button (brand tint) */
         .stk-btn-primary {
             background: var(--stk-tint); color: #fff; border: none; border-radius: var(--stk-radius-sm);
             font-weight: 700; cursor: pointer;
@@ -534,6 +601,54 @@
         .stk-btn-primary:active { transform: scale(.97); }
         /* On tint-filled buttons the global tint ring is invisible — use an inset white ring */
         .stk-btn-primary:focus-visible { outline: 2px solid rgba(255, 255, 255, .9); outline-offset: -5px; }
+        /* Onboarding / welcome (MiRuta) */
+        .stk-welcome-title { font-family: var(--stk-font-display); font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: var(--stk-text-1); }
+        .stk-welcome-route { position: relative; padding: 8px 0; }
+        .stk-welcome-stop {
+            position: absolute; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
+            border: 3px solid var(--stk-surface); box-shadow: var(--stk-shadow);
+        }
+        .stk-welcome-stop--goal { background: #E63946; }
+        .stk-welcome-label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--stk-text-2); margin: 0 0 6px 4px; }
+
+        /* ---- MiRuta splash + multi-step onboarding ---- */
+        @keyframes mrFadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes mrFadeUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+        @keyframes mrScaleIn { from { opacity: 0; transform: scale(.8) } to { opacity: 1; transform: scale(1) } }
+        @keyframes mrSpin { to { transform: rotate(360deg) } }
+        @keyframes mrPop { 0% { transform: scale(0); opacity: 0 } 55% { transform: scale(1.25) } 100% { transform: scale(1); opacity: 1 } }
+        @keyframes mrDraw { from { stroke-dashoffset: 240 } to { stroke-dashoffset: 0 } }
+        @keyframes mrPulse { 0%, 100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.12); opacity: .82 } }
+        @keyframes demoTap { 0%, 26% { opacity: 0; transform: scale(.4) } 30% { opacity: .85; transform: scale(1) } 38% { opacity: 0; transform: scale(1.9) } 100% { opacity: 0 } }
+        @keyframes demoA { 0%, 32% { opacity: 1 } 38%, 100% { opacity: 0 } }
+        @keyframes demoB { 0%, 32% { opacity: 0 } 38%, 90% { opacity: 1 } 96%, 100% { opacity: 0 } }
+        @keyframes demoTapB { 0%, 54% { opacity: 0; transform: scale(.4) } 58% { opacity: .85; transform: scale(1) } 66% { opacity: 0; transform: scale(1.9) } 100% { opacity: 0 } }
+        @keyframes demoP1 { 0%, 28% { opacity: 1 } 33%, 100% { opacity: 0 } }
+        @keyframes demoP2 { 0%, 28% { opacity: 0 } 33%, 56% { opacity: 1 } 61%, 100% { opacity: 0 } }
+        @keyframes demoP3 { 0%, 56% { opacity: 0 } 61%, 94% { opacity: 1 } 100% { opacity: 0 } }
+
+        #splash-screen { background: var(--stk-bg); }
+        .loading-spinner, .stk-spinner {
+            width: 26px; height: 26px; border-radius: 50%; margin: 0 auto;
+            border: 3px solid var(--stk-hairline); border-top-color: var(--stk-tint);
+            animation: mrSpin .8s linear infinite;
+        }
+        .stk-splash-pulse { animation: mrPulse 1.8s ease-in-out .7s infinite; }
+        .stk-splash-draw-a { stroke-dasharray: 240; animation: mrDraw .7s ease .05s both; }
+        .stk-splash-draw-b { stroke-dasharray: 240; animation: mrDraw .5s ease .5s both; }
+        .stk-splash-pin { animation: mrPop .5s cubic-bezier(.2, .9, .3, 1.5) .7s both; transform-origin: 71px 32px; }
+        .stk-splash-detail { animation: mrFadeIn .3s ease .95s both; }
+        .stk-splash-word { animation: mrFadeIn .6s ease .1s both; }
+
+        .ob-step { animation: mrFadeUp .4s cubic-bezier(.2, .8, .3, 1) both; }
+        .ob-scale-in { animation: mrScaleIn .4s cubic-bezier(.2, .9, .3, 1.3) both; }
+        .ob-trophy { animation: mrScaleIn .55s cubic-bezier(.2, .9, .3, 1.4) both; }
+        .ob-award-card { animation: mrFadeUp .4s ease both; }
+        .ob-award-card:nth-child(1) { animation-delay: .2s; }
+        .ob-award-card:nth-child(2) { animation-delay: .35s; }
+        .ob-award-card:nth-child(3) { animation-delay: .5s; }
+
         /* Settings quick-nav chips */
         .settings-quick-link {
             background: var(--stk-surface-2); color: var(--stk-text-2);
@@ -542,6 +657,15 @@
         }
         .settings-quick-link:hover { background: var(--stk-hairline); }
         .settings-quick-link:active { transform: scale(.95); }
+        /* Settings action rows (Data / Share / Career sub-actions) */
+        .stk-settings-row {
+            background: var(--stk-surface-2); color: var(--stk-text-1);
+            border-radius: var(--stk-radius-sm);
+            transition: background-color .2s var(--stk-ease);
+        }
+        .stk-settings-row:hover { background: var(--stk-hairline); }
+        .stk-settings-row--danger { color: var(--stk-accent-goal); }
+        .stk-settings-row--warning { color: var(--stk-ink-warning); }
         /* Desktop sidebar nav rows */
         .side-tab {
             display: flex; align-items: center; gap: 12px; width: 100%;
@@ -568,11 +692,161 @@
         @keyframes stkScale { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
         .animate-scale-up { animation: stkScale .3s var(--stk-spring); }
 
+        /* ---- MiRuta home route map (Capa 4) ---- */
+        .stk-route-map { position: relative; }
+        .stk-route-stop {
+            position: absolute; transform: translate(-50%, -50%);
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+        .stk-route-node {
+            position: relative; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            border: 3px solid var(--stk-surface); box-shadow: var(--stk-shadow);
+        }
+        .stk-route-node--completed { width: 44px; height: 44px; background: var(--stk-accent-approved); color: #fff; font-size: 15px; }
+        .stk-route-node--current { width: 52px; height: 52px; background: var(--stk-tint); color: #fff; font-size: 19px; box-shadow: 0 8px 22px var(--stk-tint-soft); }
+        .stk-route-node--future {
+            width: 40px; height: 40px; background: var(--stk-surface); border: 3px solid var(--stk-hairline);
+            color: var(--stk-text-2); font-weight: 800; font-size: 12px; font-family: var(--stk-font-body);
+        }
+        .stk-route-node--goal { width: 52px; height: 52px; background: var(--stk-accent-goal); color: #fff; font-size: 20px; }
+        .stk-route-pulse {
+            position: absolute; inset: -9px; border-radius: 50%; border: 2px dashed var(--stk-tint); opacity: .45;
+            animation: stkRoutePulse 2.2s ease-in-out infinite;
+        }
+        @keyframes stkRoutePulse { 0%, 100% { transform: scale(1); opacity: .45; } 50% { transform: scale(1.14); opacity: .12; } }
+        .stk-route-label {
+            font-size: 10px; font-weight: 800; padding: 2px 9px; border-radius: 99px;
+            background: var(--stk-surface); box-shadow: var(--stk-shadow); white-space: nowrap;
+        }
+        .stk-route-card {
+            position: absolute; width: 44%; max-width: 190px; min-width: 128px; padding: 12px; z-index: 2;
+        }
+
+        /* ---- Horario / Schedule view (Phase 4) ---- */
+        .stk-sched-heading { font-family: var(--stk-font-display); font-size: 22px; font-weight: 800; color: var(--stk-text-1); letter-spacing: -.02em; }
+        .stk-sched-subtitle { font-size: 13px; color: var(--stk-text-2); margin-top: 2px; }
+        .stk-sched-eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--stk-text-2); margin-bottom: 8px; }
+
+        .stk-sched-pill-track { display: flex; padding: 4px; gap: 4px; background: var(--stk-surface-2); border-radius: 99px; }
+        .stk-sched-pill {
+            appearance: none; -webkit-appearance: none;
+            cursor: pointer; padding: 6px 14px; font-size: 11px; font-weight: 800; border-radius: 99px; border: none;
+            background: transparent; color: var(--stk-text-2); font-family: inherit;
+            transition: background-color .2s var(--stk-ease), color .2s var(--stk-ease), box-shadow .2s var(--stk-ease);
+        }
+        .stk-sched-pill--active { background: var(--stk-surface); color: var(--stk-text-1); box-shadow: var(--stk-shadow); }
+        .stk-sched-pill i { margin-right: 4px; }
+
+        .stk-sched-row { background: var(--stk-surface); border-radius: var(--stk-radius-sm); padding: 11px 14px; display: flex; align-items: center; gap: 10px; box-shadow: var(--stk-shadow); }
+        .stk-sched-icon { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; }
+        .stk-sched-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; background: var(--stk-surface-2); color: var(--stk-text-2); border: none; cursor: pointer; transition: background-color .2s var(--stk-ease); }
+        .stk-sched-chip:hover { background: var(--stk-hairline); }
+        .stk-sched-chip--warn { background: var(--stk-soft-warning); color: var(--stk-ink-warning); cursor: default; }
+        .stk-sched-chip--warn i { margin-right: 4px; font-size: 9px; }
+        .stk-sched-add-btn {
+            flex-shrink: 0; border: none; cursor: pointer; border-radius: 99px; padding: 9px 14px; font-size: 10.5px; font-weight: 800;
+            background: var(--stk-tint); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            font-family: inherit; transition: transform .2s var(--stk-spring);
+        }
+        .stk-sched-add-btn:active { transform: scale(.94); }
+        .stk-sched-add-btn i { font-size: 9px; }
+
+        .stk-week-rail { position: relative; }
+        .stk-week-rail::before { content: ''; position: absolute; left: 19px; top: 19px; bottom: 19px; width: 3px; background: var(--stk-hairline); border-radius: 99px; z-index: 0; }
+        .stk-day-row { display: flex; gap: 12px; align-items: flex-start; position: relative; z-index: 1; }
+        .stk-day-row + .stk-day-row { margin-top: 12px; }
+        .stk-day-col { width: 40px; flex-shrink: 0; display: flex; justify-content: center; padding-top: 4px; }
+        .stk-day-circle {
+            width: 38px; height: 38px; border-radius: 50%; background: var(--stk-surface); border: 3px solid var(--stk-hairline);
+            display: flex; align-items: center; justify-content: center; color: var(--stk-text-2); font-weight: 800; font-size: 10px;
+            font-family: var(--stk-font-numeric); flex-shrink: 0; box-shadow: var(--stk-shadow);
+        }
+        .stk-day-circle--active { border-color: var(--stk-tint); color: var(--stk-tint); }
+        .stk-day-blocks { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+        .stk-day-empty { flex: 1; padding: 12px 0; font-size: 12px; color: var(--stk-text-3); font-weight: 600; }
+        .stk-class-block { border: none; text-align: left; width: 100%; border-radius: 16px; padding: 12px 14px; color: #fff; box-shadow: var(--stk-shadow); cursor: pointer; font-family: inherit; transition: transform .15s var(--stk-spring); }
+        .stk-class-block:hover { transform: scale(1.01); }
+        .stk-class-block-title { font-size: 13.5px; font-weight: 800; }
+        .stk-class-block-meta { font-size: 11px; opacity: .88; margin-top: 2px; }
+        .stk-class-block-meta i { margin-right: 5px; }
+
+        .stk-grid-block { border: none; margin: 0; font-family: inherit; border-radius: 10px; box-shadow: 0 3px 8px rgba(17, 22, 51, .2); }
+        .stk-sched-table-head { color: var(--stk-text-2); font-family: var(--stk-font-numeric); }
+        .stk-sched-table-time { color: var(--stk-text-2); font-family: var(--stk-font-numeric); }
+        .stk-sched-legend-row { display: flex; align-items: center; gap: 8px; padding: 11px 12px; background: var(--stk-surface); border-radius: var(--stk-radius-sm); box-shadow: var(--stk-shadow); }
+        .stk-sched-legend-swatch { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+        .stk-sched-legend-name { font-size: 12px; font-weight: 700; color: var(--stk-text-1); }
+        .stk-sched-legend-meta { font-weight: 600; color: var(--stk-text-2); }
+
+        /* ---- Perfil / Carné universitario (Phase 5) ---- */
+        .stk-carne { border-radius: var(--stk-radius); overflow: hidden; box-shadow: 0 14px 32px rgba(30, 42, 120, .2); }
+        .stk-carne.hidden { display: none; }
+
+        .stk-carne--navy { display: flex; background: var(--stk-surface); }
+        .stk-carne-navy-panel {
+            width: 132px; flex-shrink: 0; background: var(--stk-navy); position: relative;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 14px 12px;
+        }
+        .stk-carne-brand-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, .14); border-radius: 10px; padding: 6px 8px; width: max-content; }
+        .stk-carne-brand-chip span { font-family: var(--stk-font-display); font-size: 13px; font-weight: 800; color: #fff; }
+        .stk-carne-eyebrow-inv { font-size: 8.5px; font-weight: 800; color: rgba(255, 255, 255, .78); letter-spacing: .14em; margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, .22); padding-top: 8px; text-transform: uppercase; }
+        /* Fixed (theme-independent) dark green so white text keeps AA contrast on the navy panel in both themes */
+        .stk-carne-status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px; background: #0f7a3d; color: #fff; font-size: 10px; font-weight: 800; width: max-content; }
+        .stk-carne-status-pill--soft { background: var(--stk-soft-approved); color: var(--stk-ink-approved); font-size: 9.5px; padding: 4px 9px; }
+        .stk-carne-navy-body { flex: 1; min-width: 0; padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .stk-carne-label { font-size: 8.5px; font-weight: 800; color: var(--stk-text-2); letter-spacing: .12em; text-transform: uppercase; }
+        .stk-carne-id-box {
+            font-family: var(--stk-font-numeric); font-size: 15px; font-weight: 700; color: var(--stk-text-1);
+            border: 1.5px solid var(--stk-hairline); border-radius: 8px; padding: 5px 7px; background: var(--stk-surface-2); width: max-content;
+        }
+
+        .stk-carne--bands { background: var(--stk-surface); border: 1px solid var(--stk-hairline); }
+        .stk-carne-band-top { height: 8px; background: var(--stk-tint); }
+        .stk-carne-band-bottom { height: 8px; background: var(--stk-accent-goal); }
+        .stk-carne-bands-header { padding: 15px 16px 14px; display: flex; align-items: flex-start; gap: 13px; }
+        .stk-carne-avatar-tile {
+            width: 52px; height: 52px; border-radius: 14px; background: var(--stk-tint-soft); color: var(--stk-tint);
+            display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden;
+        }
+        .stk-carne-avatar-tile img { width: 100%; height: 100%; object-fit: cover; }
+        .stk-carne-eyebrow { font-size: 7.5px; font-weight: 800; color: var(--stk-text-2); letter-spacing: .12em; text-transform: uppercase; }
+        .stk-carne-bands-name { font-size: 14px; font-weight: 800; color: var(--stk-text-1); margin-top: 6px; }
+        .stk-carne-bands-career { font-size: 11px; color: var(--stk-text-2); }
+        .stk-carne-bands-footer { padding: 0 16px 14px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+        .stk-carne-id-value { font-family: var(--stk-font-numeric); font-size: 16px; font-weight: 700; color: var(--stk-text-1); margin-top: 3px; }
+        .stk-carne-barcode { display: flex; gap: 2px; align-items: flex-end; height: 22px; }
+        .stk-carne-barcode span { display: block; width: 2px; height: 22px; background: var(--stk-text-1); }
+        .stk-carne-barcode span:nth-child(3n) { width: 1px; }
+        .stk-carne-barcode span:nth-child(4n) { width: 3px; }
+
+        .stk-carne-flip-btn {
+            cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 7px;
+            font-size: 11.5px; font-weight: 800; color: var(--stk-tint); padding: 8px 0; width: 100%;
+            background: none; border: none; font-family: inherit; transition: transform .12s var(--stk-ease);
+        }
+        .stk-carne-flip-btn:active { transform: scale(.97); }
+        .stk-carne-nfc-btn {
+            cursor: pointer; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 7px;
+            font-size: 11.5px; font-weight: 800; color: var(--stk-text-2); padding: 8px 0; width: 100%;
+            background: var(--stk-surface-2); border: none; border-radius: var(--stk-radius-sm); font-family: inherit;
+            transition: transform .15s var(--stk-spring), background-color .2s var(--stk-ease);
+        }
+        .stk-carne-nfc-btn:hover { background: var(--stk-hairline); }
+        .stk-carne-nfc-btn:active { transform: scale(.97); }
+
+        @keyframes stkCarneFlip { from { transform: rotateY(90deg); opacity: .35; } to { transform: rotateY(0deg); opacity: 1; } }
+        .stk-carne-flip-anim { animation: stkCarneFlip .5s var(--stk-ease) both; }
+
         @media (prefers-reduced-motion: reduce) {
-            .stk-card, .stk-orb, .stk-chev, .stk-details, .stk-anim-in, .stk-orb.stk-pop,
+            .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
             .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
-            .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-enroll, .stk-btn-primary,
-            .settings-quick-link, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab {
+            .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-action-btn, .stk-btn-primary,
+            .settings-quick-link, .stk-settings-row, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,
+            .stk-route-pulse, .stk-sched-pill, .stk-sched-add-btn, .stk-sched-chip, .stk-class-block,
+            .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim,
+            .loading-spinner, .stk-spinner, .stk-splash-pulse, .stk-splash-draw-a, .stk-splash-draw-b,
+            .stk-splash-pin, .stk-splash-detail, .stk-splash-word,
+            .ob-step, .ob-scale-in, .ob-trophy, .ob-award-card {
                 transition: none !important; animation: none !important;
             }
         }
@@ -581,76 +855,188 @@
 
 <body class="text-slate-900 dark:text-slate-100 overflow-x-hidden lg:pl-60">
 
-    <!-- WELCOME MODAL (ONBOARDING) -->
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="fixed inset-0 z-[250] flex flex-col items-center justify-center gap-4"
+        style="background:var(--stk-bg)">
+        <svg width="64" height="64" viewBox="0 0 100 100" class="stk-splash-pulse" aria-hidden="true">
+            <path class="stk-splash-draw-a" d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="var(--stk-tint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path class="stk-splash-draw-b" d="M72 48 Q76 56 76 84" fill="none" stroke="#E63946" stroke-width="14" stroke-linecap="round"></path>
+            <path class="stk-splash-pin" d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#E63946"></path>
+            <circle class="stk-splash-detail" cx="71" cy="28.5" r="6" fill="#fff"></circle>
+            <path class="stk-splash-detail" d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path>
+        </svg>
+        <div class="stk-splash-word" style="font-family:var(--stk-font-display);font-size:26px;font-weight:800;letter-spacing:-.02em"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></div>
+        <div class="stk-spinner"></div>
+    </div>
+
+    <!-- WELCOME MODAL (MULTI-STEP ONBOARDING) -->
     <div id="welcome-modal"
-        class="fixed inset-0 z-[200] bg-white dark:bg-slate-950 flex flex-col items-center justify-center p-6 hidden animate-fade-in">
-        <div class="w-full max-w-md space-y-8 text-center">
+        class="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 hidden overflow-y-auto"
+        style="background:var(--stk-bg)">
+        <div class="stk-welcome w-full max-w-md py-6">
 
-            <!-- Logo & Intro -->
-            <div class="space-y-4">
-                <div
-                    class="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-700 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-primary-500/40 mx-auto transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                    <i class="fas fa-graduation-cap text-4xl"></i>
+            <!-- Progress dots (steps: status / verify / grades / tour) -->
+            <div id="ob-progress" class="hidden mb-5">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="ob-progress-label" class="text-[11px] font-black uppercase" style="color:var(--stk-text-2);letter-spacing:.08em"></span>
+                    <span id="ob-progress-count" class="text-[11px] font-black" style="color:var(--stk-tint)"></span>
                 </div>
-                <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">StudyTrack <span
-                        style="color:var(--stk-tint)">Pro</span></h1>
-                <p class="text-slate-500 dark:text-slate-400 text-sm">Tu compañero inteligente para dominar tu carrera
-                    universitaria.</p>
-            </div>
-
-            <!-- Features -->
-            <div
-                class="grid grid-cols-3 gap-4 text-xs font-medium text-slate-600 dark:text-slate-400 py-4 border-y border-slate-100 dark:border-slate-800">
-                <div class="flex flex-col items-center gap-2">
-                    <div
-                        class="w-10 h-10 flex items-center justify-center text-lg" style="border-radius:var(--stk-orb-radius);background:var(--stk-soft-enrolled);color:var(--stk-accent-enrolled)">
-                        <i class="fas fa-map-signs"></i>
-                    </div>
-                    <span>Elige Camino</span>
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                    <div
-                        class="w-10 h-10 flex items-center justify-center text-lg" style="border-radius:var(--stk-orb-radius);background:var(--stk-soft-approved);color:var(--stk-accent-approved)">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <span>Marca Progreso</span>
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                    <div
-                        class="w-10 h-10 flex items-center justify-center text-lg" style="border-radius:var(--stk-orb-radius);background:var(--stk-soft-available);color:var(--stk-accent-available)">
-                        <i class="fas fa-award"></i>
-                    </div>
-                    <span>Gradúate</span>
+                <div class="h-1.5 rounded-full overflow-hidden" style="background:var(--stk-hairline)">
+                    <div id="ob-progress-bar" class="h-full rounded-full" style="background:var(--stk-tint);width:0%;transition:width .4s cubic-bezier(.2,.8,.3,1)"></div>
                 </div>
             </div>
 
-            <!-- Selectors -->
-            <div class="space-y-4 text-left">
+            <!-- STEP: welcome -->
+            <section id="ob-step-welcome" class="ob-step space-y-7 text-center">
+                <div class="space-y-3">
+                    <svg width="72" height="72" viewBox="0 0 100 100" class="mx-auto" aria-hidden="true">
+                        <path d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="var(--stk-tint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M72 48 Q76 56 76 84" fill="none" stroke="#E63946" stroke-width="14" stroke-linecap="round"></path>
+                        <path d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#E63946"></path>
+                        <circle cx="71" cy="28.5" r="6" fill="#fff"></circle>
+                        <path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path>
+                    </svg>
+                    <h1 class="stk-welcome-title"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></h1>
+                    <p class="text-sm max-w-xs mx-auto" style="color:var(--stk-text-2)">Tu carrera es un camino. Míralo completo, parada por parada.</p>
+                </div>
+
+                <div class="stk-welcome-route" aria-hidden="true">
+                    <svg width="100%" height="56" viewBox="0 0 337 56" preserveAspectRatio="none">
+                        <path d="M20 34 C 110 8, 220 52, 317 24" fill="none" stroke="var(--stk-hairline)" stroke-width="11" stroke-linecap="round"></path>
+                        <path d="M20 34 C 110 8, 220 52, 317 24" fill="none" stroke="var(--stk-surface)" stroke-width="2" stroke-dasharray="1 9" stroke-linecap="round"></path>
+                    </svg>
+                    <span class="stk-welcome-stop" style="left:8px;top:16px;background:var(--stk-tint)"><i class="fas fa-map-signs"></i></span>
+                    <span class="stk-welcome-stop" style="left:calc(50% - 15px);top:16px;background:var(--stk-accent-approved)"><i class="fas fa-check"></i></span>
+                    <span class="stk-welcome-stop stk-welcome-stop--goal" style="right:6px;top:6px"><i class="fas fa-location-dot"></i></span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-[11px] font-bold" style="color:var(--stk-text-2)">
+                    <span>Elige tu camino</span><span>Marca paradas</span><span>Llega a la meta</span>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="ob-welcome-continue-btn" data-action="goOnboardingStatus"
+                        class="stk-btn-primary w-full py-4 text-lg">
+                        Comenzar <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <button data-action="loginWithGoogle" class="stk-press text-[13px] font-bold w-full py-1.5" style="color:var(--stk-tint);background:transparent;border:none;cursor:pointer">
+                        Ya tengo una cuenta · Iniciar sesión
+                    </button>
+                </div>
+
+                <p class="text-[10px]" style="color:var(--stk-text-3)">Tus datos se guardan localmente en tu dispositivo.</p>
+            </section>
+
+            <!-- STEP: status -->
+            <section id="ob-step-status" class="ob-step hidden space-y-5 text-left">
                 <div>
-                    <label
-                        class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Universidad</label>
-                    <select id="welcome-uni-select"
-                        class="stk-input">
-                        <option value="" disabled selected>Selecciona una institución...</option>
-                    </select>
+                    <h2 class="stk-welcome-title" style="font-size:24px">¿Ya iniciaste tu carrera?</h2>
+                    <p class="text-sm mt-1.5 leading-relaxed" style="color:var(--stk-text-2)">Así sabremos desde qué parada arranca tu ruta.</p>
                 </div>
-
-                <div id="welcome-career-container" class="opacity-50 pointer-events-none transition-all duration-300">
-                    <label
-                        class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1">Carrera</label>
-                    <select id="welcome-career-select"
-                        class="stk-input">
-                        <option value="" disabled selected>Primero elige universidad...</option>
-                    </select>
-                </div>
-
-                <button id="welcome-start-btn" data-action="startAppFromWelcome"
-                    class="stk-btn-primary w-full py-4 text-lg opacity-50 pointer-events-none">
-                    Comenzar <i class="fas fa-arrow-right ml-2"></i>
+                <button data-action="chooseOnboardingStarted" class="stk-surface-card stk-press w-full flex items-center gap-3.5 p-4 text-left" style="border:none">
+                    <span class="flex items-center justify-center flex-shrink-0" style="width:46px;height:46px;border-radius:14px;background:var(--stk-tint-soft);color:var(--stk-tint);font-size:17px"><i class="fas fa-book-open"></i></span>
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-[15px] font-extrabold" style="color:var(--stk-text-1)">Ya llevo materias cursadas</span>
+                        <span class="block text-xs mt-0.5" style="color:var(--stk-text-2)">Marcaremos lo que ya aprobaste y sus notas</span>
+                    </span>
+                    <i class="fas fa-chevron-right text-xs" style="color:var(--stk-text-3)"></i>
                 </button>
-            </div>
+                <button data-action="chooseOnboardingNew" class="stk-surface-card stk-press w-full flex items-center gap-3.5 p-4 text-left" style="border:none">
+                    <span class="flex items-center justify-center flex-shrink-0" style="width:46px;height:46px;border-radius:14px;background:var(--stk-soft-approved);color:var(--stk-accent-approved);font-size:17px"><i class="fas fa-seedling"></i></span>
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-[15px] font-extrabold" style="color:var(--stk-text-1)">Aún no he iniciado</span>
+                        <span class="block text-xs mt-0.5" style="color:var(--stk-text-2)">Tu ruta empieza desde la primera parada</span>
+                    </span>
+                    <i class="fas fa-chevron-right text-xs" style="color:var(--stk-text-3)"></i>
+                </button>
+            </section>
 
-            <p class="text-[10px] text-slate-400">Tus datos se guardan localmente en tu dispositivo.</p>
+            <!-- STEP: verify (uni/career selectors) -->
+            <section id="ob-step-verify" class="ob-step hidden space-y-4 text-left">
+                <div>
+                    <h2 class="stk-welcome-title" style="font-size:24px">Verifica tu carrera</h2>
+                    <p class="text-sm mt-1.5 leading-relaxed" style="color:var(--stk-text-2)">Confirma que este sea tu plan de estudios.</p>
+                </div>
+
+                <div id="welcome-library-loading" class="hidden py-3 text-center">
+                    <div class="loading-spinner mb-2"></div>
+                    <span class="text-xs" style="color:var(--stk-text-3)">Buscando carreras...</span>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="stk-welcome-label">Universidad</label>
+                        <select id="welcome-uni-select" class="stk-input">
+                            <option value="" disabled selected>Selecciona una institución...</option>
+                        </select>
+                    </div>
+
+                    <div id="welcome-career-container" class="opacity-50 pointer-events-none transition-all duration-300">
+                        <label class="stk-welcome-label">Carrera</label>
+                        <select id="welcome-career-select" class="stk-input">
+                            <option value="" disabled selected>Primero elige universidad...</option>
+                        </select>
+                    </div>
+
+                    <div id="ob-verify-summary" class="hidden flex items-center gap-3 p-3.5 rounded-2xl" style="background:var(--stk-tint-soft)">
+                        <i class="fas fa-map text-sm" style="color:var(--stk-tint)"></i>
+                        <span data-ob-summary-text class="text-xs font-bold leading-snug" style="color:var(--stk-tint)"></span>
+                    </div>
+
+                    <button id="welcome-start-btn" data-action="startAppFromWelcome"
+                        class="stk-btn-primary w-full py-4 text-[15px] opacity-50 pointer-events-none">
+                        Confirmar mi plan
+                    </button>
+                    <button data-action="goOnboardingStatus" class="stk-press text-[13px] font-bold w-full py-1" style="color:var(--stk-text-2);background:transparent;border:none;cursor:pointer">
+                        <i class="fas fa-arrow-left mr-1.5 text-[11px]"></i>Atrás
+                    </button>
+                </div>
+            </section>
+
+            <!-- STEP: grades (only when hasHistory) -->
+            <section id="ob-step-grades" class="ob-step hidden space-y-4">
+                <div class="text-left">
+                    <h2 class="stk-welcome-title" style="font-size:24px">Marca lo que ya aprobaste</h2>
+                    <p class="text-sm mt-1.5 leading-relaxed" style="color:var(--stk-text-2)">Toca un período para marcarlo completado y asigna tu nota promedio. Podrás afinar materia por materia después.</p>
+                </div>
+                <div id="ob-grades-list"></div>
+                <div class="space-y-2">
+                    <button data-action="continueOnboardingGrades" class="stk-btn-primary w-full py-4 text-[15px]">Continuar</button>
+                    <button data-action="goOnboardingVerify" class="stk-press text-[13px] font-bold w-full py-1" style="color:var(--stk-text-2);background:transparent;border:none;cursor:pointer">
+                        <i class="fas fa-arrow-left mr-1.5 text-[11px]"></i>Atrás
+                    </button>
+                </div>
+            </section>
+
+            <!-- STEP: tour -->
+            <section id="ob-step-tour" class="ob-step hidden space-y-5">
+                <div id="ob-tour-icon" class="ob-scale-in mx-auto flex items-center justify-center" style="width:88px;height:88px;border-radius:28px;background:var(--stk-tint-soft);color:var(--stk-tint);font-size:34px"></div>
+                <div class="text-center">
+                    <h2 id="ob-tour-title" class="stk-welcome-title" style="font-size:23px"></h2>
+                    <p id="ob-tour-desc" class="text-[13.5px] mt-2 leading-relaxed max-w-xs mx-auto" style="color:var(--stk-text-2)"></p>
+                </div>
+                <div id="ob-tour-demos"></div>
+                <div id="ob-tour-dots" class="flex justify-center gap-1.5"></div>
+                <div class="space-y-2">
+                    <button id="ob-tour-next-btn" data-action="onboardingTourNext" class="stk-btn-primary w-full py-4 text-[15px]"></button>
+                    <button id="ob-tour-prev-btn" data-action="onboardingTourPrev" class="stk-press text-[13px] font-bold w-full py-1" style="color:var(--stk-text-2);background:transparent;border:none;cursor:pointer">
+                        <i class="fas fa-arrow-left mr-1.5 text-[11px]"></i>Anterior
+                    </button>
+                </div>
+            </section>
+
+            <!-- STEP: awards -->
+            <section id="ob-step-awards" class="ob-step hidden space-y-5">
+                <div class="ob-trophy mx-auto flex items-center justify-center" style="width:96px;height:96px;border-radius:50%;background:#FFF4E5;color:#D97706;font-size:38px;box-shadow:0 14px 34px rgba(217,119,6,.25)"><i class="fas fa-trophy"></i></div>
+                <div class="text-center">
+                    <h2 class="stk-welcome-title" style="font-size:24px">¡Entrenamiento completado!</h2>
+                    <p class="text-sm mt-1.5" style="color:var(--stk-text-2)">Desbloqueaste tus primeros logros:</p>
+                </div>
+                <div id="ob-awards-list" class="space-y-2.5"></div>
+                <button data-action="completeOnboarding" class="stk-btn-primary w-full py-4 text-lg">
+                    Ir a mi ruta <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </section>
         </div>
     </div>
 
@@ -658,16 +1044,14 @@
     <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 w-60 z-[60] px-3 py-4"
         style="background:var(--stk-surface);border-right:1px solid var(--stk-hairline)">
         <div class="flex items-center gap-3 px-2 py-2 mb-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30 shrink-0">
-                <i class="fas fa-graduation-cap"></i>
-            </div>
+            <svg width="34" height="34" viewBox="0 0 100 100" class="shrink-0" aria-hidden="true"><path d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="var(--stk-tint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path><path d="M72 48 Q76 56 76 84" fill="none" stroke="#E63946" stroke-width="14" stroke-linecap="round"></path><path d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#E63946"></path><circle cx="71" cy="28.5" r="6" fill="#fff"></circle><path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path></svg>
             <div class="min-w-0">
-                <div class="font-extrabold text-sm leading-tight" style="color:var(--stk-text-1)">StudyTrack <span style="color:var(--stk-tint)">Pro</span></div>
+                <div class="font-extrabold text-sm leading-tight"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></div>
                 <div class="text-xs" style="color:var(--stk-text-2)">Tu copiloto académico</div>
             </div>
         </div>
         <nav class="flex flex-col gap-1" aria-label="Navegación principal">
-            <button data-action="switchView" data-args='["home"]' id="side-home" class="side-tab active"><i class="fas fa-house"></i><span>Inicio</span></button>
+            <button data-action="switchView" data-args='["home"]' id="side-home" class="side-tab active"><i class="fas fa-map"></i><span>Ruta</span></button>
             <button data-action="switchView" data-args='["subjects"]' id="side-subjects" class="side-tab"><i class="fas fa-book"></i><span>Materias</span></button>
             <button data-action="switchView" data-args='["schedule"]' id="side-schedule" class="side-tab"><i class="fas fa-calendar-alt"></i><span>Horario</span></button>
             <button data-action="showProfile" id="side-progress" class="side-tab"><i class="fas fa-id-card"></i><span>Perfil</span></button>
@@ -684,17 +1068,14 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
             <div class="flex items-center justify-between mb-2 sm:mb-3">
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <div
-                        class="w-9 h-9 sm:w-12 sm:h-12 lg:hidden bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
-                        <i class="fas fa-graduation-cap text-base sm:text-xl"></i>
-                    </div>
+                    <svg viewBox="0 0 100 100" class="w-9 h-9 sm:w-12 sm:h-12 lg:hidden shrink-0" aria-hidden="true"><path d="M20 84 V44 Q20 34 28 40 L44 62 Q48 67 52 62 L66 42" fill="none" stroke="var(--stk-tint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path><path d="M72 48 Q76 56 76 84" fill="none" stroke="#E63946" stroke-width="14" stroke-linecap="round"></path><path d="M71 14 C62 14 55 20.5 55 29 C55 37.5 71 50 71 50 C71 50 87 37.5 87 29 C87 20.5 80 14 71 14 Z" fill="#E63946"></path><circle cx="71" cy="28.5" r="6" fill="#fff"></circle><path d="M58.5 23.5 L71 17.5 L83.5 23.5 L71 29.5 Z" fill="#1e2a78"></path></svg>
                     <div>
                         <h1 id="header-career"
                             class="font-extrabold text-sm sm:text-base leading-tight text-slate-900 dark:text-white line-clamp-1">
                             Cargando...</h1>
                         <p id="header-institution"
                             class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                            StudyTrack Pro</p>
+                            MiRuta</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-1 sm:gap-2">
@@ -714,7 +1095,7 @@
             <div id="desktop-summary-cards"
                 class="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory -mx-3 sm:-mx-4 px-3 sm:px-4">
                 <div class="snap-start shrink-0 w-48 sm:w-56 rounded-xl p-3 text-white flex flex-col justify-between"
-                    style="background:linear-gradient(135deg,#6366F1,#4F46E5);box-shadow:var(--stk-shadow)">
+                    style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:var(--stk-shadow)">
                     <div class="flex items-center justify-between">
                         <div class="text-[10px] uppercase font-bold opacity-80">Progreso</div>
                         <div class="text-xs font-bold bg-white/20 px-1.5 py-0.5 rounded-md">
@@ -745,105 +1126,89 @@
         </div>
     </header>
 
-    <!-- HOME VIEW -->
+    <!-- HOME VIEW (MiRuta: Ruta) -->
     <main id="home-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 space-y-4 sm:space-y-6">
-        <section class="grid gap-3 sm:grid-cols-[1.15fr_0.85fr] sm:gap-4">
-            <div class="stk-surface-card p-4 sm:p-5">
-                <div class="flex items-center gap-4">
-                    <div id="home-progress-ring" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-2 shrink-0"
-                        style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
-                        <div class="w-full h-full rounded-full flex flex-col items-center justify-center" style="background: var(--stk-surface)">
-                            <div id="home-progress-value" class="text-2xl sm:text-3xl font-black" style="color:var(--stk-ink-approved)">0%</div>
-                            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">avance</div>
+        <!-- OFFLINE STATUS BANNER -->
+        <div id="offline-banner" class="hidden">
+            <div class="flex items-center justify-center gap-2 py-1.5 px-3 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-400/10 rounded-lg text-amber-600 dark:text-amber-400 text-[11px] font-medium">
+                <span class="relative flex h-2 w-2 shrink-0">
+                    <span class="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                Sin conexion &mdash; tus datos se guardan localmente
+            </div>
+        </div>
+
+        <section class="lg:grid lg:grid-cols-[420px_1fr] lg:gap-6 lg:items-start">
+            <!-- ROUTE MAP COLUMN -->
+            <div class="mx-auto w-full max-w-[420px] lg:sticky lg:top-4 space-y-4">
+                <div class="px-1">
+                    <h1 id="home-greeting" class="text-xl sm:text-2xl font-black tracking-tight" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Tu ruta</h1>
+                    <p id="home-context" class="text-xs sm:text-sm font-semibold mt-0.5" style="color:var(--stk-text-2)">Cargando tu progreso&hellip;</p>
+                    <div id="home-motivation" class="hidden mt-2 rounded-lg px-3 py-2 space-y-1" style="background:var(--stk-tint-soft)"></div>
+                </div>
+
+                <div id="home-route-map" class="stk-route-map" style="aspect-ratio: 353 / 420">
+                    <svg id="home-route-svg" viewBox="0 0 353 420" class="block w-full h-full" aria-hidden="true"></svg>
+                    <div id="home-route-stops" class="absolute inset-0"></div>
+
+                    <button id="home-encurso-card" data-action="switchView" data-args='["subjects"]'
+                        class="stk-route-card stk-surface-card stk-press text-left" style="top:7%;left:4%">
+                        <div class="text-[10px] font-black uppercase tracking-wide" style="color:var(--stk-text-2)">En curso</div>
+                        <div id="home-encurso-list" class="hidden mt-1 space-y-0.5"></div>
+                        <div id="home-encurso-empty" class="mt-1 text-[11px] font-semibold leading-snug" style="color:var(--stk-text-2)">Sin materias en curso. Inscribe las de tu próxima parada.</div>
+                        <div class="mt-2 h-1.5 rounded-full overflow-hidden" style="background:var(--stk-surface-2)">
+                            <div id="home-encurso-progress-bar" class="h-full rounded-full" style="width:0%;background:var(--stk-tint);transition:width .7s var(--stk-ease)"></div>
                         </div>
+                    </button>
+
+                    <div id="home-falta-card" class="stk-route-card stk-surface-card" style="bottom:5%;right:4%">
+                        <div class="text-[10px] font-black uppercase tracking-wide" style="color:var(--stk-text-2)">Falta</div>
+                        <div id="home-falta-count" class="text-2xl font-black leading-none mt-1" style="font-family:var(--stk-font-display);color:var(--stk-accent-goal)">0</div>
+                        <div id="home-falta-detail" class="text-[11px] font-semibold mt-0.5" style="color:var(--stk-text-2)">materias</div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p id="home-greeting" class="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300">Listo para avanzar</p>
-                        <p id="home-context" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Tu ruta académica actualizada.</p>
-                        <div id="home-motivation" class="hidden mt-2 rounded-lg px-3 py-2 space-y-1" style="background:var(--stk-tint-soft)"></div>
-                        <div class="grid grid-cols-3 gap-2 mt-4">
-                            <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-approved)">
-                                <div id="home-earned-credits" class="text-base sm:text-lg font-black" style="color:var(--stk-ink-approved)">0</div>
-                                <div class="text-[10px] leading-tight" style="color:var(--stk-text-2)">créditos</div>
-                            </div>
-                            <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-soft-enrolled)">
-                                <div id="home-index" class="text-base sm:text-lg font-black" style="color:var(--stk-ink-enrolled)">N/A</div>
-                                <div class="text-[10px] leading-tight" style="color:var(--stk-text-2)">índice</div>
-                            </div>
-                            <div class="px-2 py-2 text-center" style="border-radius:var(--stk-radius-sm);background:var(--stk-surface-2)">
-                                <div id="home-remaining" class="text-base sm:text-lg font-black" style="color:var(--stk-text-1)">0</div>
-                                <div class="text-[10px] leading-tight" style="color:var(--stk-text-2)">faltantes</div>
-                            </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div class="stk-surface-card p-3 text-center">
+                        <div id="home-stat-approved" class="text-lg sm:text-xl font-black" style="font-family:var(--stk-font-display);color:var(--stk-ink-approved)">0</div>
+                        <div class="text-[10px] font-bold mt-0.5" style="color:var(--stk-text-2)">aprobadas</div>
+                    </div>
+                    <div class="stk-surface-card p-3 text-center">
+                        <div id="home-stat-index" class="text-lg sm:text-xl font-black" style="font-family:var(--stk-font-display);color:var(--stk-ink-enrolled)">N/A</div>
+                        <div class="text-[10px] font-bold mt-0.5" style="color:var(--stk-text-2)">índice</div>
+                    </div>
+                    <div class="stk-surface-card p-3 text-center">
+                        <div id="home-stat-credits" class="text-lg sm:text-xl font-black" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">0</div>
+                        <div class="text-[10px] font-bold mt-0.5" style="color:var(--stk-text-2)">créditos</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INSIGHTS COLUMN -->
+            <div class="mt-4 lg:mt-0 space-y-3 sm:space-y-4">
+                <button id="home-next-action" data-action="handleHomeAction" data-args='["subjects"]'
+                    class="stk-surface-card stk-press w-full p-4 sm:p-5 text-left">
+                    <div class="flex items-center gap-3">
+                        <div id="home-action-icon" class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                            <i class="fas fa-check-circle"></i>
                         </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500">Próximo paso</div>
+                            <div id="home-action-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white">Tu ruta está al día</div>
+                            <div id="home-action-detail" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">No hay acciones urgentes.</div>
+                        </div>
+                        <i class="fas fa-chevron-right text-slate-300 dark:text-slate-600"></i>
                     </div>
-                </div>
-            </div>
+                </button>
 
-            <!-- OFFLINE STATUS BANNER -->
-            <div id="offline-banner" class="hidden">
-                <div class="flex items-center justify-center gap-2 py-1.5 px-3 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-400/10 rounded-lg text-amber-600 dark:text-amber-400 text-[11px] font-medium">
-                    <span class="relative flex h-2 w-2 shrink-0">
-                        <span class="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                    </span>
-                    Sin conexion &mdash; tus datos se guardan localmente
-                </div>
-            </div>
-            <button id="home-next-action" data-action="handleHomeAction" data-args='["subjects"]'
-                class="stk-surface-card stk-press p-4 sm:p-5 text-left">
-                <div class="flex items-center gap-3">
-                    <div id="home-action-icon" class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
-                        <i class="fas fa-check-circle"></i>
+                <div class="stk-surface-card overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                        <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
+                        <button data-action="handleHomeAction" data-args='["pending"]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver materias</button>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-[10px] uppercase font-black text-slate-400 dark:text-slate-500">Próximo paso</div>
-                        <div id="home-action-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white">Tu ruta está al día</div>
-                        <div id="home-action-detail" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">No hay acciones urgentes.</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-300 dark:text-slate-600"></i>
+                    <div id="home-recommended-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
                 </div>
-            </button>
-        </section>
-
-        <section class="grid gap-3 sm:grid-cols-3 sm:gap-4">
-            <button data-action="handleHomeAction" data-args='["enrolled"]' class="stk-surface-card stk-press p-4 text-left">
-                <div class="flex items-center justify-between">
-                    <div class="text-xs font-black text-slate-500 dark:text-slate-400">Materias inscritas</div>
-                    <i class="fas fa-book-open text-emerald-500"></i>
-                </div>
-                <div id="home-enrolled-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0</div>
-            </button>
-            <button data-action="switchView" data-args='["schedule"]' class="stk-surface-card stk-press p-4 text-left">
-                <div class="flex items-center justify-between">
-                    <div class="text-xs font-black text-slate-500 dark:text-slate-400">Horario semanal</div>
-                    <i class="fas fa-calendar-week text-blue-500"></i>
-                </div>
-                <div id="home-schedule-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0/0</div>
-            </button>
-            <button data-action="handleHomeAction" data-args='["pending"]' class="stk-surface-card stk-press p-4 text-left">
-                <div class="flex items-center justify-between">
-                    <div class="text-xs font-black text-slate-500 dark:text-slate-400">Disponibles</div>
-                    <i class="fas fa-route text-amber-500"></i>
-                </div>
-                <div id="home-available-count" class="text-2xl font-black text-slate-900 dark:text-white mt-2">0</div>
-            </button>
-        </section>
-
-        <section class="grid gap-3 lg:grid-cols-[1fr_1fr] lg:gap-4">
-            <div class="stk-surface-card overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                    <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
-                    <button data-action="handleHomeAction" data-args='["pending"]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver materias</button>
-                </div>
-                <div id="home-recommended-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
-            </div>
-
-            <div class="stk-surface-card overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                    <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-calendar-check text-blue-500"></i> En curso y pendientes</h3>
-                    <button data-action="switchView" data-args='["schedule"]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Horario</button>
-                </div>
-                <div id="home-enrolled-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
             </div>
         </section>
     </main>
@@ -873,9 +1238,9 @@
                                 <div id="mobile-index" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
                                 <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
                             </div>
-                            <div class="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 text-center">
-                                <div id="mobile-letter" class="text-sm font-black text-indigo-700 dark:text-indigo-300">N/A</div>
-                                <div class="text-[9px] leading-tight text-indigo-700/70 dark:text-indigo-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
+                            <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5 text-center">
+                                <div id="mobile-letter" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
+                                <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
                             </div>
                             <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 px-2 py-1.5 text-center">
                                 <div id="mobile-remaining-subjects" class="text-sm font-black text-slate-700 dark:text-slate-200">0</div>
@@ -964,6 +1329,11 @@
     <!-- SCHEDULE VIEW (hidden by default) -->
     <main id="schedule-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 hidden">
         <div class="space-y-4">
+            <div class="px-1 sm:px-2">
+                <h2 class="stk-sched-heading">Tu semana</h2>
+                <p id="schedule-week-subtitle" class="stk-sched-subtitle">&nbsp;</p>
+            </div>
+
             <section id="schedule-summary"
                 class="grid grid-cols-3 gap-2 sm:gap-3 stk-surface-card p-3 sm:p-4">
                 <div class="p-3" style="border-radius:var(--stk-radius-sm);background:var(--stk-surface-2)">
@@ -1001,26 +1371,29 @@
                     <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
                         <i class="fas fa-calendar-week text-primary-500"></i> Horario Semanal
                     </h3>
-                    <div class="flex p-1 gap-1" style="background:var(--stk-surface-2);border-radius:var(--stk-radius-sm)">
+                    <div class="stk-sched-pill-track">
                         <button data-action="toggleScheduleView" data-args='["list"]' id="view-btn-list"
-                            class="px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow-sm transition-all"><i
-                                class="fas fa-list mr-1"></i> Lista</button>
+                            class="stk-sched-pill stk-sched-pill--active"><i
+                                class="fas fa-list"></i>Lista</button>
                         <button data-action="toggleScheduleView" data-args='["grid"]' id="view-btn-grid"
-                            class="px-3 py-1 text-xs font-bold rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all"><i
-                                class="fas fa-th mr-1"></i> Tabla</button>
+                            class="stk-sched-pill"><i
+                                class="fas fa-th"></i>Tabla</button>
                     </div>
                 </div>
                 <!-- LIST VIEW -->
                 <div id="weekly-schedule-list" class="p-3 sm:p-4 overflow-x-auto">
-                    <div id="schedule-grid" class="space-y-2"></div>
+                    <div class="stk-sched-eyebrow">Vista semanal</div>
+                    <div id="schedule-grid"></div>
                 </div>
                 <!-- GRID VIEW (TABLE) -->
                 <div id="weekly-schedule-table" class="p-3 sm:p-4 overflow-x-auto hidden">
+                    <div class="stk-sched-eyebrow">Vista semanal</div>
                     <div class="min-w-[600px]">
                         <div id="visual-schedule-grid" class="relative bg-white dark:bg-slate-800 select-none">
                             <!-- Grid will be rendered here via JS -->
                         </div>
                     </div>
+                    <div id="schedule-color-legend" class="space-y-2 mt-4"></div>
                 </div>
 
                 <div id="schedule-no-classes" class="py-8 text-center text-slate-400 dark:text-slate-500 hidden">
@@ -1042,7 +1415,59 @@
     <main id="profile-view" class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 lg:pb-10 space-y-4 sm:space-y-6 hidden">
         <input type="file" id="profile-photo-input" accept="image/*" class="hidden" data-change="onProfilePhotoSelected" data-args='["$this"]'>
 
-        <!-- Identity -->
+        <!-- Greeting -->
+        <div class="px-1">
+            <h1 id="profile-greeting" class="text-xl sm:text-2xl font-black tracking-tight" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">¡Hola! 👋</h1>
+            <p class="text-xs sm:text-sm font-semibold mt-0.5" style="color:var(--stk-text-2)">Estás construyendo tu futuro, un paso a la vez.</p>
+        </div>
+
+        <!-- Carné universitario -->
+        <div class="max-w-sm mx-auto lg:max-w-none lg:mx-0">
+            <div id="profile-carne-navy" class="stk-carne stk-carne--navy">
+                <div class="stk-carne-navy-panel">
+                    <div>
+                        <div class="stk-carne-brand-chip"><span>MiRuta</span></div>
+                        <div class="stk-carne-eyebrow-inv">Carné universitario</div>
+                    </div>
+                    <span id="carne-navy-status" class="stk-carne-status-pill"><i class="fas fa-check-circle" style="font-size:9px"></i>Activo</span>
+                </div>
+                <div class="stk-carne-navy-body">
+                    <div class="stk-carne-label">ID de estudiante</div>
+                    <div id="carne-navy-id" class="stk-carne-id-box">—</div>
+                </div>
+            </div>
+
+            <div id="profile-carne-bands" class="stk-carne stk-carne--bands hidden">
+                <div class="stk-carne-band-top"></div>
+                <div class="stk-carne-bands-header">
+                    <div id="carne-bands-avatar" class="stk-carne-avatar-tile"><i class="fas fa-user-graduate"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span style="font-family:var(--stk-font-display);font-size:14px;font-weight:800"><span style="color:var(--stk-navy)">Mi</span><span style="color:#E63946">Ruta</span></span>
+                            <span class="stk-carne-eyebrow" style="border-left:1px solid var(--stk-hairline);padding-left:6px">Carné universitario</span>
+                        </div>
+                        <div id="carne-bands-name" class="stk-carne-bands-name truncate">Sin nombre</div>
+                        <div id="carne-bands-career" class="stk-carne-bands-career truncate">Sin carrera</div>
+                    </div>
+                    <span id="carne-bands-status" class="stk-carne-status-pill stk-carne-status-pill--soft shrink-0"><i class="fas fa-check-circle" style="font-size:8px"></i>Activo</span>
+                </div>
+                <div class="stk-carne-bands-footer">
+                    <div>
+                        <div class="stk-carne-label">ID de estudiante</div>
+                        <div id="carne-bands-id" class="stk-carne-id-value">—</div>
+                    </div>
+                    <div class="stk-carne-barcode" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+                <div class="stk-carne-band-bottom"></div>
+            </div>
+
+            <button type="button" data-action="flipCarneVariant" class="stk-carne-flip-btn"><i class="fas fa-rotate" style="font-size:11px"></i>Cambiar diseño del carné</button>
+            <button type="button" data-action="shareStudentCardViaNfc" class="stk-carne-nfc-btn"><i class="fas fa-share-nodes" style="font-size:11px"></i>Compartir por NFC</button>
+        </div>
+
+        <!-- Identidad -->
         <section class="stk-surface-card p-5 sm:p-6">
             <div class="flex items-center gap-4 sm:gap-5">
                 <div class="relative shrink-0">
@@ -1081,20 +1506,26 @@
                 class="w-full resize-none" style="background-color:var(--stk-surface-2);border:1px solid var(--stk-hairline);border-radius:var(--stk-radius-sm);padding:10px 12px;font-size:14px;color:var(--stk-text-1);outline:none"></textarea>
         </section>
 
-        <!-- Progress -->
+        <!-- Recorrido -->
         <section class="stk-surface-card p-5">
             <div class="flex items-center gap-4">
-                <div id="profile-ring" class="w-20 h-20 rounded-full p-1.5 shrink-0" style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
+                <div id="profile-ring" class="w-16 h-16 rounded-full p-1.5 shrink-0" style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
                     <div class="w-full h-full rounded-full flex items-center justify-center" style="background:var(--stk-surface)">
-                        <span id="profile-progress-value" class="text-lg font-black" style="color:var(--stk-ink-approved)">0%</span>
+                        <span id="profile-progress-value" class="text-sm font-black" style="font-family:var(--stk-font-numeric);color:var(--stk-ink-approved)">0%</span>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-x-4 gap-y-2 flex-1">
-                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-approved">0/0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Materias aprobadas</div></div>
-                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-credits">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Créditos</div></div>
-                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-index">N/A</div><div class="text-[11px]" style="color:var(--stk-text-2)">Índice</div></div>
-                    <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-periods">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Períodos cursados</div></div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs font-black uppercase tracking-wide mb-1.5" style="color:var(--stk-text-2)">Recorrido</div>
+                    <div class="relative h-3 rounded-full" style="background:var(--stk-surface-2)">
+                        <div id="profile-progress-bar" class="absolute inset-y-0 left-0 rounded-full" style="width:0%;background:var(--stk-tint);transition:width .7s var(--stk-ease)"></div>
+                    </div>
                 </div>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 mt-5">
+                <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-approved">0/0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Materias aprobadas</div></div>
+                <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-credits">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Créditos</div></div>
+                <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-index">N/A</div><div class="text-[11px]" style="color:var(--stk-text-2)">Índice</div></div>
+                <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-periods">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Períodos cursados</div></div>
             </div>
         </section>
 
@@ -1236,8 +1667,8 @@
         <div class="max-w-lg mx-auto grid grid-cols-5 items-center gap-1 py-2 px-3">
             <button data-action="switchView" data-args='["home"]' id="nav-home"
                 class="nav-tab active flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
-                <i class="fas fa-house text-lg"></i>
-                <span class="text-[10px] font-bold">Inicio</span>
+                <i class="fas fa-map text-lg"></i>
+                <span class="text-[10px] font-bold">Ruta</span>
             </button>
             <button data-action="switchView" data-args='["subjects"]' id="nav-subjects"
                 class="nav-tab flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all min-w-0">
@@ -1270,12 +1701,12 @@
             class="w-full sm:w-[500px] max-h-[90vh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
             <div style="background:var(--stk-surface);border-bottom:1px solid var(--stk-hairline)"
                 class="sticky top-0 px-6 py-5 flex items-center justify-between shrink-0 z-10">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Configuración</h2>
+                <h2 class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Configuración</h2>
                 <button data-action="closeSettings" class="stk-icon-btn" aria-label="Cerrar"><i
                         class="fas fa-times"></i></button>
             </div>
 
-            <div class="px-4 sm:px-6 pt-3 pb-0 border-b border-slate-100 dark:border-slate-800 overflow-x-auto shrink-0">
+            <div class="px-4 sm:px-6 pt-3 pb-0 overflow-x-auto shrink-0" style="border-bottom:1px solid var(--stk-hairline)">
                 <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
                     <button data-action="scrollSettingsSection" data-args='["settings-section-career"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
@@ -1292,61 +1723,59 @@
                 <section id="settings-section-career" class="settings-section scroll-mt-4">
                     <div class="flex items-center justify-between mb-3">
                         <h3
-                            class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                            class="text-xs font-bold uppercase flex items-center gap-2" style="color:var(--stk-text-3)">
                             <i class="fas fa-book"></i> Cambiar Carrera
                         </h3>
                         <button data-action="updateLibraryFromCloud"
-                            class="text-xs text-primary-500 font-bold hover:underline"><i
+                            class="text-xs font-bold hover:underline" style="color:var(--stk-tint)"><i
                                 class="fas fa-sync-alt mr-1"></i> Actualizar</button>
                     </div>
 
                     <div id="library-loading" class="hidden py-4 text-center">
                         <div class="loading-spinner mx-auto mb-2"></div>
-                        <span class="text-xs text-slate-400">Buscando en la nube...</span>
+                        <span class="text-xs" style="color:var(--stk-text-3)">Buscando en la nube...</span>
                     </div>
 
                     <!-- Settings Selectors -->
                     <div
-                        class="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
                         <div>
                             <label
-                                class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Universidad</label>
-                            <select id="settings-uni-select"
-                                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500">
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Universidad</label>
+                            <select id="settings-uni-select" class="stk-input text-sm">
                                 <option value="" disabled selected>Selecciona...</option>
                             </select>
                         </div>
                         <div>
                             <label
-                                class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Carrera</label>
-                            <select id="settings-career-select"
-                                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500"
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Carrera</label>
+                            <select id="settings-career-select" class="stk-input text-sm"
                                 disabled>
                                 <option value="" disabled selected>Elige universidad primero...</option>
                             </select>
                         </div>
                         <button id="settings-load-btn" data-action="startAppFromSettings"
-                            class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-sm shadow-md transition-all opacity-50 pointer-events-none">
+                            class="stk-btn-primary w-full py-2.5 text-sm opacity-50 pointer-events-none">
                             Cargar Carrera Seleccionada
                         </button>
                     </div>
 
                     <!-- Advanced Import -->
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div class="mt-4 pt-4" style="border-top:1px solid var(--stk-hairline)">
                         <label for="import-file"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-2 border border-dashed border-slate-300 dark:border-slate-600 text-slate-500">
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold cursor-pointer flex items-center justify-center gap-2 border border-dashed" style="border-color:var(--stk-hairline)">
                             <i class="fas fa-file-import"></i> Importar Archivo JSON
                         </label>
                         <input type="file" id="import-file" class="hidden" accept=".json" data-change="importData" data-args='["$this"]'>
 
                         <button data-action="toggleCustomJson"
-                            class="mt-3 text-xs text-primary-600 font-bold flex items-center gap-1 hover:underline w-full justify-center"><i
+                            class="mt-3 text-xs font-bold flex items-center gap-1 hover:underline w-full justify-center" style="color:var(--stk-tint)"><i
                                 class="fas fa-code"></i> Avanzado: JSON Manual</button>
                         <div id="custom-json-area" class="hidden mt-3">
                             <textarea id="custom-json-input" placeholder='Pegar JSON aquí...'
-                                class="w-full h-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs font-mono outline-none"></textarea>
+                                class="stk-input w-full h-24 text-xs font-mono"></textarea>
                             <button data-action="loadCustomJSON"
-                                class="mt-2 w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold text-xs">Cargar</button>
+                                class="stk-btn-primary mt-2 w-full py-2 text-xs">Cargar</button>
                         </div>
                     </div>
                 </section>
@@ -1354,68 +1783,68 @@
                 <!-- REQUIREMENTS & DATA SECTIONS (Same as before) -->
                 <section id="settings-section-requirements" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-list-check"></i> Requisitos
                     </h3>
                     <div class="space-y-2" id="settings-requirements-list"></div>
                     <div class="mt-3">
                         <div id="new-req-form" class="hidden flex gap-2 mb-2 animate-fade-in">
                             <input type="text" id="new-req-name" placeholder="Nombre (ej. Tesis)"
-                                class="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none">
+                                class="stk-input flex-1 text-sm">
                             <button data-action="confirmAddRequirement"
-                                class="px-3 bg-primary-600 text-white rounded-lg"><i class="fas fa-check"></i></button>
-                            <button data-action="toggleAddReqForm" class="px-3 bg-slate-200 text-slate-500 rounded-lg"><i
+                                class="stk-btn-primary px-3"><i class="fas fa-check"></i></button>
+                            <button data-action="toggleAddReqForm" class="px-3 rounded-lg" style="background:var(--stk-surface-2);color:var(--stk-text-2)"><i
                                     class="fas fa-times"></i></button>
                         </div>
                         <button data-action="toggleAddReqForm" id="add-req-btn"
-                            class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary-500 hover:border-primary-200 font-bold text-sm flex items-center justify-center gap-2"><i
+                            class="w-full py-3 border-2 border-dashed rounded-xl font-bold text-sm flex items-center justify-center gap-2" style="border-color:var(--stk-hairline);color:var(--stk-text-3)"><i
                                 class="fas fa-plus"></i> Agregar Requisito</button>
                     </div>
                 </section>
                 <section id="settings-section-data" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
+                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
                             class="fas fa-shield-halved"></i> Datos</h3>
                     <div class="space-y-2">
                         <button data-action="exportProgress"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-download mr-2 text-primary-500"></i> Exportar / Compartir</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
                         <button data-action="forceAppRefresh"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-sync-alt mr-2 text-primary-500"></i> Actualizar app (limpiar caché)</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
                         <button data-action="resetProgress"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-orange-600"><i
+                            class="stk-settings-row stk-settings-row--warning w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-rotate-left mr-2"></i> Reiniciar Notas</button>
                         <button data-action="deleteAllData"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600"><i
+                            class="stk-settings-row stk-settings-row--danger w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
                     </div>
                 </section>
 
                 <!-- NFC STUDENT CARD SECTION -->
                 <section id="settings-section-share" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3"><i
+                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
                             class="fas fa-id-card"></i> Compartir carné</h3>
                     <div class="space-y-2">
                         <div>
                             <label for="student-name-input"
-                                class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 mb-1">Nombre del
+                                class="block text-[11px] font-bold mb-1" style="color:var(--stk-text-3)">Nombre del
                                 estudiante</label>
                             <input type="text" id="student-name-input" placeholder="Tu nombre"
                                 data-change="setStudentName" data-args='["$value"]'
-                                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none">
+                                class="stk-input text-sm font-bold">
                         </div>
                         <button data-action="shareStudentCardViaNfc"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-share-nodes mr-2 text-primary-500"></i> Compartir carné por NFC</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-share-nodes mr-2" style="color:var(--stk-tint)"></i> Compartir carné por NFC</button>
                         <button data-action="readStudentCardViaNfc"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-wifi mr-2 text-primary-500"></i> Leer carné NFC</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-wifi mr-2" style="color:var(--stk-tint)"></i> Leer carné NFC</button>
                         <button data-action="openQrShareModal"
-                            class="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-left text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700"><i
-                                class="fas fa-qrcode mr-2 text-primary-500"></i> Compartir o leer carné (QR)</button>
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-qrcode mr-2" style="color:var(--stk-tint)"></i> Compartir o leer carné (QR)</button>
                         <input type="file" id="qr-scan-input" accept="image/*" class="hidden"
                             data-change="onQrPhotoSelected" data-args='["$this"]'>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500">NFC requiere Chrome en Android. El QR
+                        <p class="text-[11px]" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
                             funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
                     </div>
                 </section>
@@ -1423,16 +1852,16 @@
                 <!-- PREFERENCES SECTION -->
                 <section id="settings-section-preferences" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-sliders"></i> Preferencias
                     </h3>
                     <div
-                        class="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
                         <div class="flex items-center justify-between gap-3">
                             <div class="flex-1">
-                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Permitir saltar
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Permitir saltar
                                     prerrequisitos</p>
-                                <p class="text-[11px] text-slate-400 dark:text-slate-500">Marcar materias sin cumplir
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">Marcar materias sin cumplir
                                     requisitos (⚠️ amarillo)</p>
                             </div>
                             <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites"
@@ -1441,15 +1870,15 @@
 
                         <!-- Enrollment limit setting -->
                         <div
-                            class="flex items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            class="flex items-center justify-between gap-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
                             <div class="flex-1">
-                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Límite de inscritas</p>
-                                <p class="text-[11px] text-slate-400 dark:text-slate-500">Máx. materias en curso al
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Límite de inscritas</p>
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">Máx. materias en curso al
                                     mismo tiempo</p>
                             </div>
                             <input type="number" id="enrollment-limit-input" min="1" max="20" value="10"
                                 data-change="updateEnrollmentLimit" data-args='["$value"]'
-                                class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
                         </div>
                     </div>
                 </section>
@@ -1457,29 +1886,29 @@
                 <!-- GRADE SCALE SECTION -->
                 <section id="settings-section-grades" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-medal"></i> Escala de Calificaciones
                     </h3>
                     <div
-                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-3">Define los rangos para asignar
+                        class="p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-[10px] mb-3" style="color:var(--stk-text-3)">Define los rangos para asignar
                             letras a tus notas.</p>
                         <div id="grade-scale-settings-list" class="space-y-2 mb-3"></div>
                         <button data-action="addGradeRange"
-                            class="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            class="w-full py-2 border-2 border-dashed rounded-lg text-xs font-bold transition-colors" style="border-color:var(--stk-hairline);color:var(--stk-text-2)">
                             <i class="fas fa-plus mr-1"></i> Agregar Rango
                         </button>
                         <div
-                            class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            class="flex items-center justify-between gap-3 mt-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
                             <div class="flex-1">
-                                <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Nota mínima para aprobar
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Nota mínima para aprobar
                                 </p>
-                                <p class="text-[11px] text-slate-400 dark:text-slate-500">A partir de esta nota una
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">A partir de esta nota una
                                     materia se marca como aprobada</p>
                             </div>
                             <input type="number" id="passing-grade-input" min="0" max="100" step="any" value="70"
                                 data-change="updatePassingGrade" data-args='["$value"]'
-                                class="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-sm font-bold text-center focus:ring-2 focus:ring-primary-500 outline-none">
+                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
                         </div>
                     </div>
                 </section>
@@ -1487,32 +1916,32 @@
                 <!-- CLOUD SYNC SECTION (FIREBASE) -->
                 <section id="settings-section-cloud" class="settings-section scroll-mt-4">
                     <h3
-                        class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
                         <i class="fas fa-cloud"></i> Sincronización en la Nube
                     </h3>
                     <div
-                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
-                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                        class="p-4 rounded-xl space-y-4" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-xs" style="color:var(--stk-text-2)">
                             Resguarda tu progreso académico en la nube de Google. Al iniciar sesión, tus datos se guardarán y sincronizarán automáticamente.
                         </p>
 
                         <!-- Firebase Configuration State -->
                         <div id="firebase-config-setup-box" class="space-y-3 hidden">
-                            <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-400 text-xs">
+                            <div class="p-3 rounded-lg text-xs" style="background:var(--stk-soft-warning);border:1px solid var(--stk-soft-warning);color:var(--stk-ink-warning)">
                                 <i class="fas fa-exclamation-triangle mr-1"></i> Requiere configuración de Firebase. Pega las credenciales del SDK Web de tu proyecto.
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Configuración del SDK de Firebase (JSON/Objeto)</label>
+                                <label class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Configuración del SDK de Firebase (JSON/Objeto)</label>
                                 <textarea id="firebase-config-input" rows="5"
                                     placeholder='{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'
-                                    class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-xs font-mono outline-none focus:ring-2 focus:ring-primary-500"></textarea>
+                                    class="stk-input p-2.5 text-xs font-mono"></textarea>
                             </div>
                             <button data-action="saveFirebaseConfig"
-                                class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs shadow transition-all">
+                                class="stk-btn-primary w-full py-2 text-xs shadow">
                                 Guardar y Conectar
                             </button>
-                            <div class="text-[10px] text-slate-400 dark:text-slate-500 leading-normal">
-                                <a href="https://console.firebase.google.com/" target="_blank" class="text-primary-500 hover:underline font-bold">1. Crea un proyecto en Firebase Console</a><br>
+                            <div class="text-[10px] leading-normal" style="color:var(--stk-text-3)">
+                                <a href="https://console.firebase.google.com/" target="_blank" class="hover:underline font-bold" style="color:var(--stk-tint)">1. Crea un proyecto en Firebase Console</a><br>
                                 2. Habilita <strong>Google Sign-In</strong> en Authentication.<br>
                                 3. Habilita <strong>Cloud Firestore</strong> en modo de prueba o producción.<br>
                                 4. Crea una App Web y copia el objeto <code>firebaseConfig</code>.
@@ -1522,25 +1951,25 @@
                         <!-- Firebase Active Session State -->
                         <div id="firebase-session-box" class="space-y-3 hidden">
                             <!-- User info card -->
-                            <div class="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-105 dark:border-slate-800">
-                                <div id="firebase-user-avatar" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                                    <i class="fas fa-user text-slate-400 text-lg"></i>
+                            <div class="flex items-center gap-3 p-3 rounded-lg" style="background:var(--stk-surface);border:1px solid var(--stk-hairline)">
+                                <div id="firebase-user-avatar" class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                                    <i class="fas fa-user text-lg" style="color:var(--stk-text-3)"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p id="firebase-user-name" class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">Usuario No Identificado</p>
-                                    <p id="firebase-user-email" class="text-[11px] text-slate-400 dark:text-slate-500 truncate font-medium">correo@gmail.com</p>
+                                    <p id="firebase-user-name" class="text-sm font-bold truncate" style="color:var(--stk-text-1)">Usuario No Identificado</p>
+                                    <p id="firebase-user-email" class="text-[11px] truncate font-medium" style="color:var(--stk-text-3)">correo@gmail.com</p>
                                 </div>
                             </div>
 
                             <!-- Sync Status Indicators -->
                             <div class="flex items-center justify-between text-xs py-1 px-1">
-                                <span class="text-slate-400 font-medium">Estado:</span>
-                                <span id="firebase-sync-status" class="font-bold text-slate-500">No autenticado</span>
+                                <span class="font-medium" style="color:var(--stk-text-3)">Estado:</span>
+                                <span id="firebase-sync-status" class="font-bold" style="color:var(--stk-text-2)">No autenticado</span>
                             </div>
 
                             <div class="flex gap-2">
                                 <button id="firebase-login-btn" data-action="loginWithGoogle"
-                                    class="flex-1 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all">
+                                    class="flex-1 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all" style="background:var(--stk-surface);border:1px solid var(--stk-hairline);color:var(--stk-text-1)">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.72 5.72 0 0 1-2.48 3.76v3.12h3.99c2.33-2.14 3.54-5.3 3.54-8.73Z"/>
                                         <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.99-3.12c-1.1.74-2.52 1.18-3.97 1.18-3.05 0-5.63-2.06-6.55-4.83H1.31v3.23A12 12 0 0 0 12 24Z"/>
@@ -1550,19 +1979,19 @@
                                     Iniciar sesión con Google
                                 </button>
                                 <button id="firebase-sync-now-btn" data-action="forceSyncCloud"
-                                    class="hidden px-3 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all">
+                                    class="stk-btn-primary hidden px-3 py-2.5 text-xs flex items-center justify-center gap-1.5 shadow">
                                     <i class="fas fa-sync-alt"></i> Sincronizar
                                 </button>
                                 <button id="firebase-logout-btn" data-action="logoutFirebase"
-                                    class="hidden px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg font-bold text-xs transition-all">
+                                    class="hidden px-3 py-2.5 rounded-lg font-bold text-xs transition-all" style="background:var(--stk-soft-goal);color:var(--stk-ink-goal)">
                                     Cerrar Sesión
                                 </button>
                             </div>
                         </div>
 
                         <!-- Reset Firebase credentials option -->
-                        <div id="firebase-reset-box" class="hidden text-right border-t border-slate-100 dark:border-slate-800 pt-2">
-                            <button data-action="clearFirebaseConfig" class="text-[10px] text-red-500 hover:underline font-bold">
+                        <div id="firebase-reset-box" class="hidden text-right pt-2" style="border-top:1px solid var(--stk-hairline)">
+                            <button data-action="clearFirebaseConfig" class="text-[10px] hover:underline font-bold" style="color:var(--stk-accent-goal)">
                                 <i class="fas fa-trash-alt mr-1"></i> Borrar credenciales de Firebase
                             </button>
                         </div>
@@ -1572,7 +2001,7 @@
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
                     <button data-action="closeSettings"
-                        class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-base">
+                        class="w-full py-4 rounded-xl font-bold text-base" style="background:var(--stk-navy);color:#fff">
                         <i class="fas fa-times mr-2"></i> Cerrar Configuración
                     </button>
                 </div>

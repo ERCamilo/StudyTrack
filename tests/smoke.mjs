@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 
 const html = fs.readFileSync('index.html', 'utf8');
 const appJs = fs.readFileSync('src/app.js', 'utf8');
+const cardsJs = fs.readFileSync('src/cards.js', 'utf8');
 const readme = fs.readFileSync('README.md', 'utf8');
 
-// The controller now lives in src/app.js. JS-content assertions search `code`
-// (markup + extracted controller); structural checks (ids, meta, CSP, duplicate
+// The controller now lives in src/app.js, and the period/subject card templates
+// live in src/cards.js. JS-content assertions search `code` (markup + extracted
+// controller + card templates); structural checks (ids, meta, CSP, duplicate
 // ids, inline-script absence) stay on `html` only.
-const code = html + '\n' + appJs;
+const code = html + '\n' + appJs + '\n' + cardsJs;
 
 const scripts = [];
 let position = 0;
@@ -59,6 +61,7 @@ assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));
 assert.ok(serviceWorker.includes('./src/insights.js'));
+assert.ok(serviceWorker.includes('./src/cards.js'), 'Service worker should cache the period/subject card templates module');
 assert.ok(serviceWorker.includes('./src/nfc.js'));
 assert.ok(serviceWorker.includes('./src/milestones.js'), 'Service worker should cache the milestones module');
 assert.ok(serviceWorker.includes('./src/vendor/qrcode.min.js'), 'Service worker should cache the vendored QR library');
@@ -79,7 +82,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -108,6 +111,36 @@ assert.ok(code.includes('id="qr-scan-input"') && code.includes('function onQrPho
 assert.ok(code.includes('data-action="forceAppRefresh"') && code.includes('function forceAppRefresh('), 'App cache-refresh button must be wired');
 assert.ok(code.includes('id="profile-milestones"') && code.includes('function renderMilestones()'), 'Profile milestones timeline must be wired');
 assert.ok(code.includes('id="home-motivation"') && code.includes('function renderHomeMotivation()'), 'Home motivational layer must be wired');
+
+// ── MiRuta splash + multi-step onboarding ───────────────────────────────────
+assert.ok(code.includes('id="splash-screen"'), 'Splash overlay must exist');
+assert.ok(code.includes('function scheduleSplashDismiss()'), 'Splash must dismiss itself on a timer');
+const storageJs = fs.readFileSync('src/storage.js', 'utf8');
+assert.ok(code.includes('StudyTrackStorage.KEYS.onboarded'), 'Onboarding must read/write through the shared storage key');
+assert.ok(storageJs.includes("onboarded: 'studytrack_onboarded_v1'"), 'Onboarded flag must be declared in the storage KEYS map');
+// The verify step must keep exactly these ids/behavior so setupSelectors('welcome') and
+// startAppFromWelcome keep resolving regardless of how the surrounding flow changes.
+for (const id of ['welcome-uni-select', 'welcome-career-select', 'welcome-career-container', 'welcome-start-btn']) {
+  assert.ok(code.includes(`id="${id}"`), `Welcome selector id must be preserved: ${id}`);
+}
+assert.ok(code.includes('data-action="startAppFromWelcome"'), 'Verify step confirm button must still trigger startAppFromWelcome');
+for (const id of ['ob-step-welcome', 'ob-step-status', 'ob-step-verify', 'ob-step-grades', 'ob-step-tour', 'ob-step-awards']) {
+  assert.ok(code.includes(`id="${id}"`), `Onboarding step section missing: ${id}`);
+}
+assert.ok(code.includes('function renderOnboardingStep()'), 'Onboarding must have a step renderer');
+assert.ok(code.includes('function goOnboardingStep(step)'), 'Onboarding must expose a step-transition function');
+assert.ok(code.includes('function resetOnboardingState()'), 'Onboarding state must be resettable for a fresh new-user run');
+assert.ok(code.includes("data-action=\"chooseOnboardingStarted\"") && code.includes("data-action=\"chooseOnboardingNew\""), 'Status step must wire both branches');
+assert.ok(code.includes('function advanceOnboardingAfterVerify()') && code.includes("onboardingHasHistory ? 'grades' : 'tour'"), 'Verify step must branch on hasHistory');
+assert.ok(code.includes('function toggleOnboardingPeriod(periodNumber)') && code.includes('function pickOnboardingGrade(periodNumber, grade)'), 'Grades step interactions must be wired');
+assert.ok(code.includes('StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades)'), 'Grades step must bulk-apply through the pure progress module, not ad-hoc mutation');
+assert.ok(code.includes('function onboardingTourNext()') && code.includes('function onboardingTourPrev()'), 'Tour navigation must be wired');
+assert.ok(code.includes("data-action=\"loginWithGoogle\""), '"Ya tengo cuenta" must call the real Google sign-in, not a fake login step');
+assert.ok(!code.includes('correo@ejemplo.com') && !code.includes('••••••••'), 'Onboarding must not include a fake email/password login step');
+assert.ok(code.includes('data-action="completeOnboarding"') && code.includes('function completeOnboarding()'), 'Final "Ir a mi ruta" must complete onboarding');
+assert.ok(code.includes("StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.onboarded, true)"), 'Completing onboarding must persist the onboarded flag');
+// Migration: existing users (curriculum on disk, flag unset) must never be trapped in onboarding.
+assert.ok(code.includes('if (storedCurriculum && !StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.onboarded, false))'), 'initApp must migrate existing users to onboarded=true');
 assert.ok(code.includes('id="settings-section-cloud"'));
 assert.ok(code.includes('id="auth-header-btn"'));
 assert.ok(code.includes('id="mobile-academic-hub"'));
@@ -134,6 +167,14 @@ assert.ok(code.includes('id="profile-view"'), 'Profile must be its own view, not
 assert.ok(code.includes('function renderProfileView()'), 'Profile view should have a renderer');
 assert.ok(code.includes('id="profile-photo-input"') && code.includes('function onProfilePhotoSelected(input)'), 'Profile photo picker must be wired');
 assert.ok(code.includes('data-action="showProfile"'), 'Nav must route the Perfil tab to the profile view');
+assert.ok(code.includes('id="profile-greeting"'), 'Profile view should greet the student by name');
+assert.ok(code.includes('id="profile-carne-navy"') && code.includes('id="profile-carne-bands"'), 'Profile view should render both carné variants');
+assert.ok(code.includes('data-action="flipCarneVariant"') && code.includes('function flipCarneVariant()'), 'Carné flip toggle must be wired');
+assert.ok(code.includes('function applyCarneVariant(') && code.includes("StudyTrackStorage.KEYS.carneVariant"), 'Carné variant preference must persist like other UI prefs');
+assert.ok(code.includes('id="carne-navy-id"') && code.includes('id="carne-navy-status"'), 'Navy carné must show the student id and status');
+assert.ok(code.includes('id="carne-bands-name"') && code.includes('id="carne-bands-career"') && code.includes('id="carne-bands-id"'), 'Bands carné must show name, career and id');
+assert.ok(code.includes('id="carne-bands-avatar"') && code.includes('function renderCarneBandsAvatar('), 'Bands carné avatar tile must stay in sync with the profile photo');
+assert.ok(code.includes('id="profile-progress-bar"'), 'Recorrido card should render a progress bar alongside the ring');
 assert.ok(code.includes('function openMobileMore()'));
 assert.ok(code.includes('id="settings-quick-nav"'), 'Settings modal should expose quick navigation on mobile');
 for (const id of ['settings-section-career', 'settings-section-preferences', 'settings-section-requirements', 'settings-section-grades', 'settings-section-data']) {
@@ -148,6 +189,7 @@ assert.ok(code.includes('const escapeHtml = StudyTrackSanitize.escapeHtml;'));
 assert.ok(code.includes('const sanitizeCssClasses = StudyTrackSanitize.sanitizeCssClasses;'));
 assert.ok(code.includes('const safeColor = sanitizeCssClasses(g.color);'));
 assert.ok(code.includes('<script src="./src/periods.js"></script>'));
+assert.ok(code.includes('<script src="./src/cards.js"></script>'), 'index.html must load the period/subject card templates module');
 assert.ok(code.includes('StudyTrackPeriods.getVisibleSubjects(p, userProgress, filter, currentFilter)'));
 assert.ok(code.includes('StudyTrackPeriods.renderPeriodCardHTML({'));
 assert.ok(code.includes('<script src="./src/requirements.js"></script>'));
@@ -209,7 +251,7 @@ assert.ok(code.includes('userProgress = StudyTrackProgress.normalizeUserProgress
 assert.ok(code.includes('function refreshAffectedSubjects(subjectId)'));
 assert.ok(code.includes('StudyTrackProgress.getAffectedSubjectIds(subjectId, dependencyGraph)'));
 assert.ok(code.includes('StudyTrackProgress.toggleSubjectApproval(userProgress[id])'));
-assert.ok(code.includes("const safeGrade = escapeHtml(st.grade ?? '');"), 'Grade input must preserve zero values');
+assert.ok(code.includes("const safeGrade = escapeHtml(data.grade ?? '');"), 'Grade input must preserve zero values');
 assert.ok(code.includes('const isApprovedWithoutGrade ='), 'Subject cards must detect approved subjects without grade');
 assert.ok(code.includes('function showPrerequisitePopover(event, subjectId)'));
 assert.ok(code.includes('function navigateToSubject(subjectId)'));
@@ -217,7 +259,7 @@ assert.ok(code.includes('id = \'prerequisite-popover\'') || code.includes('id="p
 assert.ok(code.includes('data-action="showPrerequisitePopover"'), 'Prerequisite chips should open a contextual popover via delegated action');
 assert.ok(!code.includes('showToast(`Requisitos:'), 'Prerequisites should not use toast-only feedback');
 assert.ok(code.includes('Materia completada sin nota registrada'), 'Grade input must expose the missing-grade warning state');
-assert.ok(code.includes('stk-card--warning'), 'Missing-grade cards should own their warning accent via state class');
+assert.ok(code.includes('stk-subject-card--warning'), 'Missing-grade cards should own their warning accent via state class');
 assert.ok(code.includes('stk-warn-text'), 'Missing-grade cards should show a visible warning');
 assert.ok(code.includes('Falta registrar la nota'), 'Missing-grade cards should explain the pending action');
 assert.ok(code.includes('stk-grade'), 'Subject actions should keep the literal grade control scannable');
@@ -235,7 +277,7 @@ assert.equal((code.match(/careerSelect\.addEventListener\('change'/g) || []).len
 assert.ok(html.indexOf('id="search-input"') < html.indexOf('id="filter-bar"'), 'Filter bar should sit after search');
 
 // ── CSP hardening: no inline event handlers; everything is delegated ───────
-const delegationFiles = ['index.html', 'src/app.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js'];
+const delegationFiles = ['index.html', 'src/app.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js'];
 const inlineHandlerPattern = /on(?:click|change|input|submit|keyup|keydown|keypress|focus|blur|mousedown|mouseup|mouseover|mouseout|touchstart|touchend|load|error|scroll|wheel|contextmenu|dblclick)="/g;
 for (const file of delegationFiles) {
   const src = fs.readFileSync(file, 'utf8');
@@ -251,7 +293,7 @@ assert.ok(appJs.includes("document.addEventListener('change'"), 'A delegated cha
 // defined function (catches typos and orphaned actions). "stop" is a reserved no-op.
 const allJs = [
   'src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js',
-  'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/requirements.js', 'src/schedule.js',
+  'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js',
   'src/insights.js', 'src/nfc.js', 'src/firebase-sync.js', 'src/app.js'
 ].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 const declaredActions = new Set();
