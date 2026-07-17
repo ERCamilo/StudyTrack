@@ -769,6 +769,16 @@
             const card = document.getElementById(`subject-card-${id}`);
             if (card) card.classList.toggle('open');
         }
+        function prepareSubjectReport(subjectId) {
+            const loc = findSubjectLocation(subjectId);
+            if (!loc || !window.StudyTrackReportEntry) { showToast('No se pudo preparar el reporte', 'error'); return; }
+            const draft = window.StudyTrackReportEntry.createReportDraft({ curriculum: currentCurriculum, subject: loc.subject, period: loc.period });
+            StudyTrackStorage.setJson('studytrack:pending-curriculum-report', draft);
+            const serialized = JSON.stringify(draft.payload, null, 2);
+            if (navigator.clipboard?.writeText) navigator.clipboard.writeText(serialized).catch(() => {});
+            showToast('Reporte preparado y copiado para enviar al Control Center', 'success');
+        }
+
         function updateSubjectExtra(id, field, val) {
             if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null, section: '', classroom: '', teacher: '' };
             userProgress[id][field] = val;

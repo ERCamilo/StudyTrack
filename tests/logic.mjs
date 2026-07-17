@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -141,6 +141,21 @@ const validCurriculum = {
 
 assert.equal(StudyTrackCurriculum.validateCurriculum(validCurriculum).valid, true);
 assert.equal(StudyTrackCurriculum.validateCurriculum({}).valid, false);
+
+const reportPayload = StudyTrackReportEntry.buildCurriculumReportPayload({
+  curriculum: { metadata: { career_name: 'Industrial Engineering', institution: 'Demo U', version: '2026.1.0' } },
+  subject: { id: 'MAT-101', name: 'Calculus I', code: 'MAT-101' },
+  period: { period_number: 1 },
+  issueType: 'credits'
+});
+assert.equal(reportPayload.careerId, 'Industrial Engineering');
+assert.equal(reportPayload.careerVersion, '2026.1.0');
+assert.equal(reportPayload.subject.subjectId, 'MAT-101');
+assert.equal(reportPayload.issueType, 'credits');
+assert.equal(reportPayload.status, 'new');
+const reportDraft = StudyTrackReportEntry.createReportDraft({ curriculum: { metadata: {} }, subject: { name: 'Unknown' }, period: {} });
+assert.equal(reportDraft.target, 'StudyTrack-ControlCenter.CreateCurriculumReportInput');
+assert.equal(reportDraft.payload.issueType, 'other');
 
 const catalogIndex = JSON.parse(fs.readFileSync('library/index.json', 'utf8'));
 assert.ok(catalogIndex.length > 0, 'Local catalog index must include careers');

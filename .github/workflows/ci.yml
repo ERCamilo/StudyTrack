@@ -1,0 +1,35 @@
+﻿name: StudyTrack CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Logic checks
+        run: node tests/logic.mjs
+
+      - name: Smoke checks
+        run: node tests/smoke.mjs
+
+      - name: Firebase sync checks
+        run: node tests/firebase-sync.mjs
+
+      - name: NFC checks
+        run: node tests/nfc.mjs
+
+      - name: QR share checks
+        run: node tests/qr-share.mjs
