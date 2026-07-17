@@ -90,14 +90,21 @@
             background: rgba(15, 23, 42, 0.90);
         }
 
+        /* Period collapse: grid-rows keeps the speed even regardless of content
+           height (the old max-height:10000px made closing feel delayed). */
         .collapsible-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.45s var(--stk-ease);
         }
 
         .collapsible-content.open {
-            max-height: 10000px;
+            grid-template-rows: 1fr;
+        }
+
+        .collapsible-content > div {
+            overflow: hidden;
+            min-height: 0;
         }
 
         .badge-critical {
@@ -536,9 +543,10 @@
         .stk-field input:focus { box-shadow: 0 0 0 2px var(--stk-accent, var(--stk-tint)); }
         .stk-field--wide { grid-column: span 2; }
 
-        /* Entrada escalonada de la lista (Capa 2) */
-        @keyframes stkEnter { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-        .stk-anim-in { animation: stkEnter .45s var(--stk-spring) both; }
+        /* Entrada escalonada de la lista — estilo "Enfoque": las tarjetas pasan
+           de desenfocadas a nítidas mientras asientan a su tamaño. */
+        @keyframes stkEnter { from { opacity: 0; transform: scale(1.05); filter: blur(9px); } to { opacity: 1; transform: none; filter: blur(0); } }
+        .stk-anim-in { animation: stkEnter .5s ease both; }
         /* Pop celebratorio al aprobar (Capa 2) */
         @keyframes stkPop { 0% { transform: scale(1); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
         @keyframes stkRing { from { box-shadow: 0 0 0 0 var(--stk-soft); opacity: 1; } to { box-shadow: 0 0 0 16px transparent; opacity: 0; } }
@@ -829,7 +837,7 @@
         .stk-carne-flip-anim { animation: stkCarneFlip .5s var(--stk-ease) both; }
 
         @media (prefers-reduced-motion: reduce) {
-            .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .stk-orb.stk-pop, .stk-orb-tile::after,
+            .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
             .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
             .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-action-btn, .stk-btn-primary,
             .settings-quick-link, .stk-settings-row, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,

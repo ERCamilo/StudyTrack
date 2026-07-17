@@ -1208,7 +1208,26 @@
             if (!el) return;
             el.innerHTML = renderPeriodHeaderHTML(currentCurriculum.periods[i]);
         }
-        function togglePeriod(i) { if (APP_CONFIG.collapsedPeriods.has(i)) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i); StudyTrackStorage.setJson(StudyTrackStorage.KEYS.collapsedPeriods, [...APP_CONFIG.collapsedPeriods]); renderPeriods(document.getElementById('search-input').value); updateToggleAllButton(); }
+        function togglePeriod(i) {
+            const willOpen = APP_CONFIG.collapsedPeriods.has(i);
+            if (willOpen) APP_CONFIG.collapsedPeriods.delete(i); else APP_CONFIG.collapsedPeriods.add(i);
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.collapsedPeriods, [...APP_CONFIG.collapsedPeriods]);
+            const textFilter = document.getElementById('search-input').value;
+            const headerContent = document.getElementById(`period-header-content-${i}`);
+            const content = headerContent ? headerContent.parentElement.nextElementSibling : null;
+            // Toggle the live DOM so the collapse transition and the focus-in
+            // entrance can actually play; active filters force periods open, so
+            // in that case fall back to the full re-render (previous behavior).
+            if (!textFilter && currentFilter === 'all' && content && content.classList.contains('collapsible-content')) {
+                content.classList.toggle('open', willOpen);
+                const chev = headerContent.parentElement.querySelector('.stk-chev');
+                if (chev) chev.style.transform = willOpen ? 'rotate(180deg)' : '';
+                if (willOpen) staggerCardsIn(content.querySelectorAll('.stk-subject-card'));
+            } else {
+                renderPeriods(textFilter);
+            }
+            updateToggleAllButton();
+        }
 
         function toggleAllPeriods() {
             const allIndices = currentCurriculum.periods.map((_, i) => i);
@@ -1260,20 +1279,22 @@
                 c.appendChild(div);
             });
         }
-        function animateSubjectEntrance() {
+        function staggerCardsIn(cards) {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            const cards = document.querySelectorAll('#subjects-view .stk-subject-card');
             if (!cards.length) return;
             cards.forEach(card => card.classList.remove('stk-anim-in'));
             void document.body.offsetWidth; // single reflow to allow re-trigger
             cards.forEach((card, i) => {
-                card.style.animationDelay = Math.min(i, 12) * 35 + 'ms';
+                card.style.animationDelay = Math.min(i, 12) * 45 + 'ms';
                 card.classList.add('stk-anim-in');
                 card.addEventListener('animationend', () => {
                     card.classList.remove('stk-anim-in');
                     card.style.animationDelay = '';
                 }, { once: true });
             });
+        }
+        function animateSubjectEntrance() {
+            staggerCardsIn(document.querySelectorAll('#subjects-view .stk-period-card, #subjects-view .stk-subject-card'));
         }
         function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
         function updateFilterCounts() { if (!currentCurriculum) return; const counts = StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress); document.getElementById('count-all').textContent = counts.all; document.getElementById('count-enrolled').textContent = counts.enrolled; document.getElementById('count-completed').textContent = counts.completed; document.getElementById('count-pending').textContent = counts.pending; }
