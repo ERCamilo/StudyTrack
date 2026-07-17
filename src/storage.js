@@ -17,7 +17,8 @@
     studentGoal: 'studytrack_student_goal',
     studentStatus: 'studytrack_student_status',
     milestones: 'studytrack_milestones',
-    carneVariant: 'studytrack_carne_variant'
+    carneVariant: 'studytrack_carne_variant',
+    onboarded: 'studytrack_onboarded_v1'
   };
 
   function getStorage() {

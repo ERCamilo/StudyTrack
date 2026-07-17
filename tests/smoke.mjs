@@ -111,6 +111,36 @@ assert.ok(code.includes('id="qr-scan-input"') && code.includes('function onQrPho
 assert.ok(code.includes('data-action="forceAppRefresh"') && code.includes('function forceAppRefresh('), 'App cache-refresh button must be wired');
 assert.ok(code.includes('id="profile-milestones"') && code.includes('function renderMilestones()'), 'Profile milestones timeline must be wired');
 assert.ok(code.includes('id="home-motivation"') && code.includes('function renderHomeMotivation()'), 'Home motivational layer must be wired');
+
+// ── MiRuta splash + multi-step onboarding ───────────────────────────────────
+assert.ok(code.includes('id="splash-screen"'), 'Splash overlay must exist');
+assert.ok(code.includes('function scheduleSplashDismiss()'), 'Splash must dismiss itself on a timer');
+const storageJs = fs.readFileSync('src/storage.js', 'utf8');
+assert.ok(code.includes('StudyTrackStorage.KEYS.onboarded'), 'Onboarding must read/write through the shared storage key');
+assert.ok(storageJs.includes("onboarded: 'studytrack_onboarded_v1'"), 'Onboarded flag must be declared in the storage KEYS map');
+// The verify step must keep exactly these ids/behavior so setupSelectors('welcome') and
+// startAppFromWelcome keep resolving regardless of how the surrounding flow changes.
+for (const id of ['welcome-uni-select', 'welcome-career-select', 'welcome-career-container', 'welcome-start-btn']) {
+  assert.ok(code.includes(`id="${id}"`), `Welcome selector id must be preserved: ${id}`);
+}
+assert.ok(code.includes('data-action="startAppFromWelcome"'), 'Verify step confirm button must still trigger startAppFromWelcome');
+for (const id of ['ob-step-welcome', 'ob-step-status', 'ob-step-verify', 'ob-step-grades', 'ob-step-tour', 'ob-step-awards']) {
+  assert.ok(code.includes(`id="${id}"`), `Onboarding step section missing: ${id}`);
+}
+assert.ok(code.includes('function renderOnboardingStep()'), 'Onboarding must have a step renderer');
+assert.ok(code.includes('function goOnboardingStep(step)'), 'Onboarding must expose a step-transition function');
+assert.ok(code.includes('function resetOnboardingState()'), 'Onboarding state must be resettable for a fresh new-user run');
+assert.ok(code.includes("data-action=\"chooseOnboardingStarted\"") && code.includes("data-action=\"chooseOnboardingNew\""), 'Status step must wire both branches');
+assert.ok(code.includes('function advanceOnboardingAfterVerify()') && code.includes("onboardingHasHistory ? 'grades' : 'tour'"), 'Verify step must branch on hasHistory');
+assert.ok(code.includes('function toggleOnboardingPeriod(periodNumber)') && code.includes('function pickOnboardingGrade(periodNumber, grade)'), 'Grades step interactions must be wired');
+assert.ok(code.includes('StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades)'), 'Grades step must bulk-apply through the pure progress module, not ad-hoc mutation');
+assert.ok(code.includes('function onboardingTourNext()') && code.includes('function onboardingTourPrev()'), 'Tour navigation must be wired');
+assert.ok(code.includes("data-action=\"loginWithGoogle\""), '"Ya tengo cuenta" must call the real Google sign-in, not a fake login step');
+assert.ok(!code.includes('correo@ejemplo.com') && !code.includes('••••••••'), 'Onboarding must not include a fake email/password login step');
+assert.ok(code.includes('data-action="completeOnboarding"') && code.includes('function completeOnboarding()'), 'Final "Ir a mi ruta" must complete onboarding');
+assert.ok(code.includes("StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.onboarded, true)"), 'Completing onboarding must persist the onboarded flag');
+// Migration: existing users (curriculum on disk, flag unset) must never be trapped in onboarding.
+assert.ok(code.includes('if (storedCurriculum && !StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.onboarded, false))'), 'initApp must migrate existing users to onboarded=true');
 assert.ok(code.includes('id="settings-section-cloud"'));
 assert.ok(code.includes('id="auth-header-btn"'));
 assert.ok(code.includes('id="mobile-academic-hub"'));

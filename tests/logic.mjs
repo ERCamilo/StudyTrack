@@ -47,6 +47,36 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({ status: 'approved'
 assert.equal(StudyTrackProgress.toggleSubjectApproval({ status: 'pending', grade: 95 }).status, 'approved');
 assert.equal(StudyTrackProgress.toggleSubjectApproval({ status: 'approved', grade: 95 }).status, 'pending');
 
+// Onboarding bulk-approval: marks every subject in the given periods as approved
+// with the period's chosen grade; periods absent from periodGrades stay untouched.
+const bulkCurriculum = {
+  periods: [
+    { period_number: 1, subjects: [{ id: 'S1' }, { id: 'S2' }] },
+    { period_number: 2, subjects: [{ id: 'S3' }] }
+  ]
+};
+const bulkResult = StudyTrackProgress.applyBulkApprovalForPeriods(bulkCurriculum, {}, { 1: 90 });
+assert.equal(bulkResult.S1.status, 'approved');
+assert.equal(bulkResult.S1.grade, 90);
+assert.equal(bulkResult.S2.status, 'approved');
+assert.equal(bulkResult.S2.grade, 90);
+assert.equal(bulkResult.S3, undefined, 'Period 2 was not marked done, so its subjects must stay untouched');
+// Existing progress on an untouched subject is preserved; existing progress on a
+// bulk-approved subject is overwritten (status/grade) but other fields survive.
+const bulkWithExisting = StudyTrackProgress.applyBulkApprovalForPeriods(
+  bulkCurriculum,
+  { S1: { status: 'enrolled', grade: null, section: 'A' }, S3: { status: 'enrolled' } },
+  { 1: 85 }
+);
+assert.equal(bulkWithExisting.S1.status, 'approved');
+assert.equal(bulkWithExisting.S1.grade, 85);
+assert.equal(bulkWithExisting.S1.section, 'A');
+assert.equal(bulkWithExisting.S3.status, 'enrolled', 'Untouched period must not be mutated');
+// Pure: does not mutate the input progress object.
+const bulkInput = { S1: { status: 'pending' } };
+StudyTrackProgress.applyBulkApprovalForPeriods(bulkCurriculum, bulkInput, { 1: 95 });
+assert.equal(bulkInput.S1.status, 'pending', 'Input progress object must not be mutated');
+
 assert.equal(StudyTrackSanitize.escapeHtml(`<img src=x onerror='bad'>`), '&lt;img src=x onerror=&#39;bad&#39;&gt;');
 assert.equal(StudyTrackSanitize.escapeJsString(`a'b"c`), 'a\\&#39;b&quot;c');
 assert.equal(

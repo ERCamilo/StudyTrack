@@ -72,6 +72,34 @@
     };
   }
 
+  // Onboarding's "I already have history" step: the student marks whole periods as
+  // completed and picks one average grade per period, instead of grading every
+  // subject one by one. periodGrades is { [period_number]: grade }; only periods
+  // present there are bulk-approved (a period the student didn't mark done is left
+  // untouched). Pure and immutable so it's directly testable without a curriculum
+  // JSON fixture beyond the minimal { periods: [{ period_number, subjects }] } shape.
+  function applyBulkApprovalForPeriods(curriculum, progress, periodGrades) {
+    const next = { ...(progress && typeof progress === 'object' ? progress : {}) };
+    const grades = periodGrades && typeof periodGrades === 'object' ? periodGrades : {};
+
+    (curriculum?.periods || []).forEach((period) => {
+      const grade = grades[period.period_number];
+      if (grade === undefined || grade === null) return;
+
+      (period.subjects || []).forEach((subject) => {
+        if (!subject?.id) return;
+        next[subject.id] = {
+          ...createDefaultSubjectProgress(),
+          ...(next[subject.id] || {}),
+          status: 'approved',
+          grade: Number(grade)
+        };
+      });
+    });
+
+    return next;
+  }
+
   function normalizeUserProgress(progress, curriculum) {
     if (!progress || typeof progress !== 'object' || Array.isArray(progress)) return {};
 
@@ -87,6 +115,7 @@
   }
 
   global.StudyTrackProgress = {
+    applyBulkApprovalForPeriods,
     applyGradeToSubjectProgress,
     createDefaultSubjectProgress,
     getAffectedSubjectIds,

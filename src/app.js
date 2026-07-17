@@ -69,12 +69,22 @@
         // ============================================================
 
         async function initApp() {
+            scheduleSplashDismiss(); // the splash overlay dismisses itself on a short timer, independent of init work below
             milestonesReady = false; // silence celebrations during (re)init — incl. cloud-pull re-runs
             loadSettings(); // refresh cloud-synced settings (so a sync pull applies without reload)
             if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
 
             // Check persistence first
             const storedCurriculum = StudyTrackStorage.getJson(APP_CONFIG.storageKeys.curriculum, null);
+
+            // Migration: a curriculum already on disk means this is an existing user (or
+            // onboarding got far enough to load one) — never force them through the
+            // onboarding flow, even if they predate the "onboarded" flag. This also
+            // covers the "Ya tengo cuenta" login: a cloud pull re-runs initApp, and if it
+            // restored a curriculum we land straight in the app instead of re-showing steps.
+            if (storedCurriculum && !StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.onboarded, false)) {
+                StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.onboarded, true);
+            }
 
             if (storedCurriculum) {
                 try {
@@ -84,6 +94,7 @@
                     renderUI();
                     calculateStatistics();
                     renderRequirementsWidget();
+                    hideWelcomeScreen(); // no-op if it was already hidden; dismisses it if a mid-onboarding login just restored data
                 } catch (e) {
                     console.error("Error loading saved data", e);
                     showWelcomeScreen(); // Fallback
@@ -104,10 +115,32 @@
         }
 
         // ============================================================
+        // SPLASH SCREEN
+        // ============================================================
+
+        function isReducedMotion() {
+            return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        }
+
+        // Shows briefly on every load (existing users included) so the app never pops in
+        // unstyled; kept short and shortened further under reduced-motion so it never
+        // reads as a delay. Independent of the rest of init — it just covers whatever
+        // is being decided underneath for a moment.
+        function scheduleSplashDismiss() {
+            const delay = isReducedMotion() ? 150 : 1300;
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash) splash.classList.add('hidden');
+            }, delay);
+        }
+
+        // ============================================================
         // LOGIC FOR WELCOME SCREEN & SELECTORS
         // ============================================================
 
         function showWelcomeScreen() {
+            resetOnboardingState();
+            renderOnboardingStep();
             document.getElementById('welcome-modal').classList.remove('hidden');
             // Hide header if no data loaded to focus on onboarding
             document.getElementById('app-header').classList.add('opacity-0', 'pointer-events-none');
@@ -122,8 +155,15 @@
             const uniSelect = document.getElementById(`${prefix}-uni-select`);
             const careerSelect = document.getElementById(`${prefix}-career-select`);
             const btn = document.getElementById(`${prefix}-start-btn`) || document.getElementById(`${prefix}-load-btn`);
+            const loader = document.getElementById(`${prefix}-library-loading`);
 
             if (!uniSelect || !careerSelect) return;
+
+            // Loading affordance: the remote library index hasn't resolved yet.
+            const hasData = libraryData.length > 0;
+            if (loader) loader.classList.toggle('hidden', hasData);
+            uniSelect.classList.toggle('opacity-50', !hasData);
+            uniSelect.classList.toggle('pointer-events-none', !hasData);
 
             // 1. Populate Universities
             const unis = [...new Set(libraryData.map(item => item.institution))].sort();
@@ -141,6 +181,7 @@
                 careerSelect.disabled = false;
                 if (prefix === 'welcome') {
                     document.getElementById('welcome-career-container').classList.remove('opacity-50', 'pointer-events-none');
+                    clearOnboardingVerifySummary();
                 }
 
                 // Reset button
@@ -150,6 +191,7 @@
             // 3. Handle Career Change
             careerSelect.onchange = () => {
                 if (btn) { btn.classList.remove('opacity-50', 'pointer-events-none'); }
+                if (prefix === 'welcome') updateOnboardingVerifySummary();
             };
         }
 
@@ -176,8 +218,312 @@
 
             await loadCareer(selectedItem.id, selectedItem.source, selectedItem.fullUrl);
 
-            if (origin === 'welcome') hideWelcomeScreen();
+            // Onboarding's verify step "confirms" the plan mid-flow: it loads the
+            // curriculum (so grades/tour/awards can use real data) but keeps the
+            // onboarding modal open and advances to the next step instead of entering
+            // the app — that only happens at the final "Ir a mi ruta" (completeOnboarding).
+            if (origin === 'welcome' && currentCurriculum) advanceOnboardingAfterVerify();
             if (origin === 'settings') closeSettings();
+        }
+
+        // ============================================================
+        // ONBOARDING FLOW (MiRuta multi-step welcome)
+        // ============================================================
+
+        const ONBOARDING_DOTS = {
+            status: { label: 'Tu situación', count: 1, pct: 25 },
+            verify: { label: 'Tu carrera', count: 2, pct: 50 },
+            grades: { label: 'Tu historial', count: 3, pct: 75 },
+            tour: { label: 'Conoce la app', count: 4, pct: 95 }
+        };
+        const ONBOARDING_TOUR_SLIDES = [
+            { icon: 'fas fa-map', title: 'Ruta: tu mapa', desc: 'La pantalla de inicio muestra tu carrera como un camino con paradas por período. Siempre sabrás dónde estás y cuánto falta para la meta.' },
+            { icon: 'fas fa-book', title: 'Materias: inscribe', desc: 'Explora los períodos como paradas y toca "Inscribir" en cualquier materia disponible. Mira cómo funciona:' },
+            { icon: 'fas fa-calendar', title: 'Horario: tu semana', desc: 'Asigna bloques de día y hora a tus materias inscritas y míralos aparecer en tu semana. Puedes verla como lista o como tabla.' },
+            { icon: 'fas fa-flag-checkered', title: 'Concluir o retirar', desc: 'Al terminar una materia: ponle su nota si la aprobaste, o retírala si no alcanzaste la calificación — vuelve a disponibles sin castigo.' },
+            { icon: 'fas fa-user', title: 'Perfil: tu avance', desc: 'Tu carné universitario, tu porcentaje recorrido y tus hitos desbloqueados: todo tu progreso vive aquí.' }
+        ];
+
+        let onboardingStep = 'welcome';
+        let onboardingHasHistory = null;
+        let onboardingTrimDone = {};
+        let onboardingTrimGrade = {};
+        let onboardingTourIndex = 0;
+
+        function resetOnboardingState() {
+            onboardingStep = 'welcome';
+            onboardingHasHistory = null;
+            onboardingTrimDone = {};
+            onboardingTrimGrade = {};
+            onboardingTourIndex = 0;
+        }
+
+        function goOnboardingStep(step) {
+            onboardingStep = step;
+            renderOnboardingStep();
+        }
+        function goOnboardingStatus() { goOnboardingStep('status'); }
+        function goOnboardingVerify() { goOnboardingStep('verify'); }
+        function chooseOnboardingStarted() { onboardingHasHistory = true; goOnboardingStep('verify'); }
+        function chooseOnboardingNew() { onboardingHasHistory = false; goOnboardingStep('verify'); }
+
+        function advanceOnboardingAfterVerify() {
+            goOnboardingStep(onboardingHasHistory ? 'grades' : 'tour');
+        }
+
+        function renderOnboardingStep() {
+            document.querySelectorAll('.ob-step').forEach((section) => {
+                section.classList.toggle('hidden', section.id !== `ob-step-${onboardingStep}`);
+            });
+
+            const dotsWrap = document.getElementById('ob-progress');
+            const dotInfo = ONBOARDING_DOTS[onboardingStep];
+            if (dotsWrap) {
+                dotsWrap.classList.toggle('hidden', !dotInfo);
+                if (dotInfo) {
+                    document.getElementById('ob-progress-label').textContent = dotInfo.label;
+                    document.getElementById('ob-progress-count').textContent = `Paso ${dotInfo.count} de 4`;
+                    document.getElementById('ob-progress-bar').style.width = `${dotInfo.pct}%`;
+                }
+            }
+
+            if (onboardingStep === 'grades') renderOnboardingGradesStep();
+            if (onboardingStep === 'tour') renderOnboardingTourStep();
+            if (onboardingStep === 'awards') renderOnboardingAwardsStep();
+        }
+
+        function clearOnboardingVerifySummary() {
+            const summary = document.getElementById('ob-verify-summary');
+            if (summary) summary.classList.add('hidden');
+        }
+        function updateOnboardingVerifySummary() {
+            const summary = document.getElementById('ob-verify-summary');
+            if (!summary) return;
+            const uni = document.getElementById('welcome-uni-select').value;
+            const careerId = document.getElementById('welcome-career-select').value;
+            const item = libraryData.find((i) => i.id === careerId);
+            if (!uni || !item) { summary.classList.add('hidden'); return; }
+            summary.classList.remove('hidden');
+            summary.querySelector('[data-ob-summary-text]').textContent =
+                `${item.career_name} · ${item.degree_type || 'Grado'} · ${uni}`;
+        }
+
+        // ---- Grades step: bulk-mark whole periods as approved ----
+        function toggleOnboardingPeriod(periodNumber) {
+            onboardingTrimDone[periodNumber] = !onboardingTrimDone[periodNumber];
+            if (!onboardingTrimDone[periodNumber]) delete onboardingTrimGrade[periodNumber];
+            renderOnboardingGradesStep();
+        }
+        function pickOnboardingGrade(periodNumber, grade) {
+            onboardingTrimGrade[periodNumber] = grade;
+            renderOnboardingGradesStep();
+        }
+        function renderOnboardingGradesStep() {
+            const list = document.getElementById('ob-grades-list');
+            if (!list || !currentCurriculum) return;
+            const periodType = currentCurriculum.metadata?.period_type || 'Período';
+            list.innerHTML = currentCurriculum.periods.map((period) => {
+                const n = period.period_number;
+                const done = !!onboardingTrimDone[n];
+                const grade = onboardingTrimGrade[n];
+                const label = escapeHtml(period.name || `${periodType} ${n}`);
+                const sub = done
+                    ? 'Completado · elige tu nota promedio'
+                    : `Toca para marcar como completado · ${period.subjects.length} materias`;
+                const icon = done ? 'fas fa-check' : 'far fa-circle';
+                const chips = [95, 90, 85, 80].map((v) => {
+                    const active = grade === v;
+                    return `<button type="button" data-action="pickOnboardingGrade" data-args="${actionArgs(n, v)}" class="stk-press" style="cursor:pointer;padding:6px 13px;border-radius:99px;font-size:12px;font-weight:800;font-family:var(--stk-font-numeric);background:${active ? 'var(--stk-tint)' : 'transparent'};color:${active ? '#fff' : 'var(--stk-text-2)'};border:1px solid ${active ? 'var(--stk-tint)' : 'var(--stk-hairline)'}">${v}</button>`;
+                }).join('');
+                return `<div class="stk-surface-card" style="padding:14px 16px;margin-bottom:10px;${done ? 'border:1.5px solid var(--stk-accent-approved);' : ''}">
+                    <div data-action="toggleOnboardingPeriod" data-args="${actionArgs(n)}" class="stk-press" style="cursor:pointer;display:flex;align-items:center;gap:12px">
+                        <span style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;border:2.5px solid ${done ? 'var(--stk-accent-approved)' : 'var(--stk-text-3)'};background:${done ? 'var(--stk-accent-approved)' : 'transparent'};color:${done ? '#fff' : 'var(--stk-text-2)'}"><i class="${icon}"></i></span>
+                        <span style="flex:1;min-width:0">
+                            <span style="display:block;font-size:14.5px;font-weight:800;color:var(--stk-text-1)">${label}</span>
+                            <span style="display:block;font-size:11.5px;color:var(--stk-text-2);margin-top:1px">${sub}</span>
+                        </span>
+                    </div>
+                    ${done ? `<div style="display:flex;gap:8px;margin-top:12px;padding-left:46px;flex-wrap:wrap">${chips}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+        function continueOnboardingGrades() {
+            const periodGrades = {};
+            Object.keys(onboardingTrimDone).forEach((key) => {
+                const n = Number(key);
+                if (onboardingTrimDone[key] && onboardingTrimGrade[key] != null) periodGrades[n] = onboardingTrimGrade[key];
+            });
+            userProgress = StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades);
+            saveUserProgress();
+            dependencyGraph = buildDependencyGraph(currentCurriculum);
+            calculateStatistics();
+            goOnboardingStep('tour');
+        }
+
+        // ---- Tour step ----
+        function renderOnboardingTourStep() {
+            const slide = ONBOARDING_TOUR_SLIDES[onboardingTourIndex];
+            const iconWrap = document.getElementById('ob-tour-icon');
+            if (iconWrap) iconWrap.innerHTML = `<i class="${slide.icon}"></i>`;
+            document.getElementById('ob-tour-title').textContent = slide.title;
+            document.getElementById('ob-tour-desc').textContent = slide.desc;
+            document.getElementById('ob-tour-next-btn').textContent = onboardingTourIndex === 4 ? 'Finalizar' : 'Siguiente';
+            const prevBtn = document.getElementById('ob-tour-prev-btn');
+            if (prevBtn) prevBtn.style.visibility = onboardingTourIndex === 0 ? 'hidden' : 'visible';
+
+            const dotsWrap = document.getElementById('ob-tour-dots');
+            if (dotsWrap) {
+                dotsWrap.innerHTML = [0, 1, 2, 3, 4].map((i) =>
+                    `<div style="width:8px;height:8px;border-radius:50%;background:${i === onboardingTourIndex ? 'var(--stk-tint)' : 'var(--stk-hairline)'};transition:background .2s ease"></div>`
+                ).join('');
+            }
+
+            const demoWrap = document.getElementById('ob-tour-demos');
+            if (demoWrap) demoWrap.innerHTML = renderOnboardingTourDemo(onboardingTourIndex);
+        }
+        function onboardingTourNext() {
+            if (onboardingTourIndex < 4) { onboardingTourIndex++; renderOnboardingTourStep(); }
+            else goOnboardingStep('awards');
+        }
+        function onboardingTourPrev() {
+            if (onboardingTourIndex > 0) { onboardingTourIndex--; renderOnboardingTourStep(); }
+        }
+        function renderOnboardingTourDemo(index) {
+            const reduced = isReducedMotion();
+            if (index === 1) return renderTourDemoEnroll(reduced);
+            if (index === 2) return renderTourDemoSchedule(reduced);
+            if (index === 3) return renderTourDemoConclude(reduced);
+            return '';
+        }
+        function renderTourDemoEnroll(reduced) {
+            const badge = reduced
+                ? `<span style="display:flex;align-items:center;justify-content:center;height:100%;border-radius:99px;background:var(--stk-tint);color:#fff;font-size:10.5px;font-weight:800"><i class="fas fa-check" style="margin-right:5px;font-size:9px"></i>Inscrita</span>`
+                : `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:99px;background:var(--stk-soft-available);color:var(--stk-ink-available);font-size:10.5px;font-weight:800;animation:demoA 4.5s ease infinite">Inscribir</span>
+                   <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:99px;background:var(--stk-tint);color:#fff;font-size:10.5px;font-weight:800;animation:demoB 4.5s ease infinite"><i class="fas fa-check" style="margin-right:5px;font-size:9px"></i>Inscrita</span>
+                   <span style="position:absolute;top:-4px;right:14px;width:34px;height:34px;border-radius:50%;background:var(--stk-tint);opacity:0;animation:demoTap 4.5s ease infinite"></span>`;
+            return `<div class="stk-surface-card" style="padding:14px 16px">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <span style="width:36px;height:36px;border-radius:50%;background:var(--stk-soft-available);color:var(--stk-ink-available);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px"><i class="fas fa-atom"></i></span>
+                        <span style="flex:1;min-width:0">
+                            <span style="display:block;font-size:13px;font-weight:700;color:var(--stk-text-1)">Física General</span>
+                            <span style="display:block;font-size:10.5px;color:var(--stk-text-2)">FGF-201 · 4 créditos</span>
+                        </span>
+                        <span style="position:relative;width:86px;height:28px;flex-shrink:0">${badge}</span>
+                    </div>
+                </div>
+                <div style="text-align:center;font-size:11px;color:var(--stk-text-2);margin-top:8px"><i class="fas fa-circle-play" style="margin-right:5px;color:var(--stk-tint)"></i>Toca "Inscribir" y la materia entra a tu período</div>`;
+        }
+        function renderTourDemoSchedule(reduced) {
+            const badge = reduced
+                ? `<span style="display:flex;align-items:center;justify-content:center;height:100%;border-radius:99px;background:var(--stk-accent-approved);color:#fff;font-size:10px;font-weight:800">Mar · 6–8 PM</span>`
+                : `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:99px;background:var(--stk-tint);color:#fff;font-size:10px;font-weight:800;animation:demoA 4.5s ease infinite"><i class="fas fa-plus" style="margin-right:4px;font-size:8px"></i>Agregar horario</span>
+                   <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:99px;background:var(--stk-accent-approved);color:#fff;font-size:10px;font-weight:800;animation:demoB 4.5s ease infinite">Mar · 6–8 PM</span>
+                   <span style="position:absolute;top:-4px;right:26px;width:34px;height:34px;border-radius:50%;background:var(--stk-tint);opacity:0;animation:demoTap 4.5s ease infinite"></span>`;
+            const tueCell = reduced
+                ? `<div style="background:var(--stk-tint);border-radius:6px;height:22px"></div>`
+                : `<div style="position:relative;background:var(--stk-surface-2);border-radius:6px;height:22px;overflow:hidden"><span style="position:absolute;inset:0;background:var(--stk-tint);border-radius:6px;animation:demoB 4.5s ease infinite"></span></div>`;
+            return `<div class="stk-surface-card" style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <span style="width:36px;height:36px;border-radius:50%;background:var(--stk-tint-soft);color:var(--stk-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px"><i class="fas fa-code"></i></span>
+                        <span style="flex:1;min-width:0">
+                            <span style="display:block;font-size:13px;font-weight:700;color:var(--stk-text-1)">Programación II</span>
+                            <span style="display:block;font-size:10.5px;color:var(--stk-text-2)">FGI-105</span>
+                        </span>
+                        <span style="position:relative;width:104px;height:28px;flex-shrink:0">${badge}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+                        <div style="text-align:center;font-size:9px;font-weight:800;color:var(--stk-text-2)">L</div>
+                        <div style="text-align:center;font-size:9px;font-weight:800;color:var(--stk-text-2)">M</div>
+                        <div style="text-align:center;font-size:9px;font-weight:800;color:var(--stk-text-2)">X</div>
+                        <div style="text-align:center;font-size:9px;font-weight:800;color:var(--stk-text-2)">J</div>
+                        <div style="text-align:center;font-size:9px;font-weight:800;color:var(--stk-text-2)">V</div>
+                        <div style="background:var(--stk-surface-2);border-radius:6px;height:22px"></div>
+                        ${tueCell}
+                        <div style="background:var(--stk-surface-2);border-radius:6px;height:22px"></div>
+                        <div style="background:var(--stk-surface-2);border-radius:6px;height:22px"></div>
+                        <div style="background:var(--stk-surface-2);border-radius:6px;height:22px"></div>
+                    </div>
+                </div>
+                <div style="text-align:center;font-size:11px;color:var(--stk-text-2);margin-top:8px"><i class="fas fa-circle-play" style="margin-right:5px;color:var(--stk-tint)"></i>El bloque aparece en tu semana al instante</div>`;
+        }
+        function renderTourDemoConclude(reduced) {
+            if (reduced) {
+                return `<div class="stk-surface-card" style="padding:14px 16px">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <span style="width:36px;height:36px;border-radius:50%;background:var(--stk-soft-approved);color:var(--stk-ink-approved);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px"><i class="fas fa-check"></i></span>
+                            <span style="flex:1;min-width:0">
+                                <span style="display:block;font-size:13px;font-weight:700;color:var(--stk-text-1)">Análisis Mat. II</span>
+                                <span style="display:block;font-size:10px;color:var(--stk-ink-approved);font-weight:700">Aprobada</span>
+                            </span>
+                            <span style="padding:6px 12px;border-radius:99px;background:var(--stk-soft-approved);color:var(--stk-ink-approved);font-size:11px;font-weight:800;font-family:var(--stk-font-numeric)">Nota 92</span>
+                        </div>
+                    </div>
+                    <div style="text-align:center;font-size:11px;color:var(--stk-text-2);margin-top:8px"><i class="fas fa-circle-play" style="margin-right:5px;color:var(--stk-tint)"></i>Concluye con nota si aprobaste, o retírala si no</div>`;
+            }
+            return `<div class="stk-surface-card" style="padding:14px 16px">
+                    <div style="position:relative;height:44px">
+                        <div style="position:absolute;inset:0;display:flex;align-items:center;gap:10px;animation:demoP1 7s ease infinite">
+                            <span style="width:36px;height:36px;border-radius:50%;background:var(--stk-tint-soft);color:var(--stk-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px"><i class="fas fa-square-root-variable"></i></span>
+                            <span style="flex:1;min-width:0">
+                                <span style="display:block;font-size:13px;font-weight:700;color:var(--stk-text-1)">Análisis Mat. II</span>
+                                <span style="display:block;font-size:10px;color:var(--stk-text-2)">En curso</span>
+                            </span>
+                            <span style="padding:6px 11px;border-radius:99px;background:var(--stk-accent-approved);color:#fff;font-size:10px;font-weight:800">Concluir</span>
+                            <span style="padding:6px 11px;border-radius:99px;border:1.5px solid var(--stk-accent-goal);color:var(--stk-accent-goal);font-size:10px;font-weight:800">Retirar</span>
+                        </div>
+                        <div style="position:absolute;inset:0;display:flex;align-items:center;gap:10px;opacity:0;animation:demoP2 7s ease infinite">
+                            <span style="width:36px;height:36px;border-radius:50%;background:var(--stk-soft-approved);color:var(--stk-ink-approved);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px"><i class="fas fa-check"></i></span>
+                            <span style="flex:1;min-width:0">
+                                <span style="display:block;font-size:13px;font-weight:700;color:var(--stk-text-1)">Análisis Mat. II</span>
+                                <span style="display:block;font-size:10px;color:var(--stk-ink-approved);font-weight:700">Aprobada</span>
+                            </span>
+                            <span style="padding:6px 12px;border-radius:99px;background:var(--stk-soft-approved);color:var(--stk-ink-approved);font-size:11px;font-weight:800;font-family:var(--stk-font-numeric)">Nota 92</span>
+                        </div>
+                        <div style="position:absolute;inset:0;display:flex;align-items:center;gap:10px;opacity:0;animation:demoP3 7s ease infinite">
+                            <span style="width:36px;height:36px;border-radius:50%;background:var(--stk-surface-2);color:var(--stk-text-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px"><i class="fas fa-rotate-left"></i></span>
+                            <span style="flex:1;min-width:0">
+                                <span style="display:block;font-size:13px;font-weight:700;color:var(--stk-text-2);text-decoration:line-through">Análisis Mat. II</span>
+                                <span style="display:block;font-size:10px;color:var(--stk-text-2)">Vuelve a materias disponibles</span>
+                            </span>
+                            <span style="padding:6px 12px;border-radius:99px;background:var(--stk-surface-2);color:var(--stk-text-2);font-size:10px;font-weight:800">Retirada</span>
+                        </div>
+                        <span style="position:absolute;top:2px;right:74px;width:34px;height:34px;border-radius:50%;background:var(--stk-accent-approved);opacity:0;animation:demoTap 7s ease infinite"></span>
+                        <span style="position:absolute;top:2px;right:8px;width:34px;height:34px;border-radius:50%;background:var(--stk-accent-goal);opacity:0;animation:demoTapB 7s ease infinite"></span>
+                    </div>
+                </div>
+                <div style="text-align:center;font-size:11px;color:var(--stk-text-2);margin-top:8px"><i class="fas fa-circle-play" style="margin-right:5px;color:var(--stk-tint)"></i>Concluye con nota si aprobaste, o retírala si no</div>`;
+        }
+
+        // ---- Awards step ----
+        function renderOnboardingAwardsStep() {
+            const list = document.getElementById('ob-awards-list');
+            if (!list) return;
+            const achieved = (currentCurriculum && window.StudyTrackMilestones)
+                ? StudyTrackMilestones.evaluateMilestones(buildMilestoneStats())
+                : [];
+            const cards = achieved.length
+                ? achieved.slice(-3).map((d) => ({ icon: d.icon, title: d.label, desc: 'Logro desbloqueado' }))
+                : [
+                    { icon: 'fa-graduation-cap', title: 'Aprendiste a usar MiRuta', desc: 'Completaste la guía de pantallas' },
+                    {
+                        icon: 'fa-star',
+                        title: onboardingHasHistory ? 'Primeras notas registradas' : 'Ruta desde cero',
+                        desc: onboardingHasHistory ? 'Registraste tus períodos cursados' : 'Configuraste tu carrera desde la primera parada'
+                    },
+                    { icon: 'fa-route', title: 'Ruta configurada', desc: `Tu camino a ${currentCurriculum?.metadata?.career_name || 'tu carrera'} está listo` }
+                ];
+            list.innerHTML = cards.map((c) => `<div class="ob-award-card stk-surface-card" style="padding:13px 16px;display:flex;align-items:center;gap:12px">
+                    <span style="width:38px;height:38px;border-radius:50%;background:var(--stk-tint-soft);color:var(--stk-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas ${escapeHtml(c.icon)}" style="font-size:15px"></i></span>
+                    <span style="flex:1;min-width:0">
+                        <span style="display:block;font-size:13.5px;font-weight:800;color:var(--stk-text-1)">${escapeHtml(c.title)}</span>
+                        <span style="display:block;font-size:11px;color:var(--stk-text-2)">${escapeHtml(c.desc)}</span>
+                    </span>
+                    <i class="fas fa-check-circle" style="color:var(--stk-accent-approved);font-size:16px"></i>
+                </div>`).join('');
+        }
+        function completeOnboarding() {
+            StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.onboarded, true);
+            hideWelcomeScreen();
         }
 
         // ============================================================
