@@ -133,7 +133,7 @@ assert.ok(code.includes('function resetOnboardingState()'), 'Onboarding state mu
 assert.ok(code.includes("data-action=\"chooseOnboardingStarted\"") && code.includes("data-action=\"chooseOnboardingNew\""), 'Status step must wire both branches');
 assert.ok(code.includes('function advanceOnboardingAfterVerify()') && code.includes("onboardingHasHistory ? 'grades' : 'tour'"), 'Verify step must branch on hasHistory');
 assert.ok(code.includes('function toggleOnboardingPeriod(periodNumber)') && code.includes('function pickOnboardingGrade(periodNumber, grade)'), 'Grades step interactions must be wired');
-assert.ok(code.includes('StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades)'), 'Grades step must bulk-apply through the pure progress module, not ad-hoc mutation');
+assert.ok(code.includes('StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades, APP_CONFIG.passingGrade)'), 'Grades step must bulk-apply through the pure progress module, with the configured passing grade');
 assert.ok(code.includes('function onboardingTourNext()') && code.includes('function onboardingTourPrev()'), 'Tour navigation must be wired');
 assert.ok(code.includes("data-action=\"loginWithGoogle\""), '"Ya tengo cuenta" must call the real Google sign-in, not a fake login step');
 assert.ok(!code.includes('correo@ejemplo.com') && !code.includes('••••••••'), 'Onboarding must not include a fake email/password login step');

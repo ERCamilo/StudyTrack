@@ -809,4 +809,42 @@ assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null
   assert.equal(rec.newlyAchieved.slice().sort().join('|'), 'subjects-5', 'Only the genuinely new milestone is flagged');
 }
 
+// --- Decisions confirmed by Erlin (2026-10-18), found by pseudo-loop's blind verifier + judge ---
+
+// 1. Bulk onboarding approval must respect the passing grade, like applyGradeToSubjectProgress.
+{
+  const cur = { periods: [{ period_number: 1, subjects: [{ id: 'A' }] }] };
+  const low = StudyTrackProgress.applyBulkApprovalForPeriods(cur, {}, { 1: 50 });
+  assert.equal(low.A.status, 'pending');
+  assert.equal(low.A.grade, 50);
+  assert.equal(StudyTrackProgress.applyBulkApprovalForPeriods(cur, {}, { 1: 85 }, 90).A.status, 'pending');
+  assert.equal(StudyTrackProgress.applyBulkApprovalForPeriods(cur, {}, { 1: 90 }, 90).A.status, 'approved');
+  assert.equal(StudyTrackProgress.applyBulkApprovalForPeriods(cur, {}, { 1: 70 }).A.status, 'approved');
+  assert.equal(StudyTrackProgress.applyBulkApprovalForPeriods(cur, { A: { status: 'enrolled' } }, { 1: 50 }).A.status, 'enrolled');
+}
+
+// 2. "ALL" combined with other prerequisites requires both (e.g. an optional seminar "ALL" does not cover).
+{
+  const cur = { periods: [{ subjects: [{ id: 'A' }, { id: 'SEM', is_optional: true }, { id: 'TES', prerequisites: ['ALL', 'SEM'] }] }] };
+  assert.equal(StudyTrackPrerequisites.checkPrerequisites(['ALL', 'SEM'], { A: { status: 'approved' } }, cur), false);
+  assert.equal(StudyTrackPrerequisites.checkPrerequisites(['ALL', 'SEM'], { A: { status: 'approved' }, SEM: { status: 'approved' } }, cur), true);
+  assert.equal(StudyTrackPrerequisites.checkPrerequisites(['ALL', 'SEM'], { SEM: { status: 'approved' } }, cur), false);
+  assert.equal(StudyTrackPrerequisites.checkPrerequisites(['ALL'], {}, null), false); // no curriculum: stays blocked
+  // ...and the label must not hide the extra requirement
+  assert.equal(StudyTrackPrerequisites.formatPrerequisiteString(['ALL', 'SEM']), 'Todas y SEM');
+  assert.equal(StudyTrackPrerequisites.formatPrerequisiteString(['ALL']), 'Todas');
+}
+
+// 3. Search ignores accents in both directions.
+{
+  const subject = { id: 'A', name: 'Cálculo I', code: 'MAT-101' };
+  assert.equal(StudyTrackPeriods.subjectMatchesFilter(subject, {}, 'calculo', 'all'), true);
+  assert.equal(StudyTrackPeriods.subjectMatchesFilter({ id: 'B', name: 'Calculo II' }, {}, 'cálculo', 'all'), true);
+  assert.equal(StudyTrackPeriods.subjectMatchesFilter(subject, {}, 'fisica', 'all'), false);
+}
+
+// 4. A grade made only of spaces means "no grade", same as parseGradeInput.
+assert.equal(StudyTrackGrades.getGradeLabel('   ', scale), null);
+assert.equal(StudyTrackGrades.getGradeLabel(' 85 ', scale).label, 'B');
+
 console.log('Logic checks passed');

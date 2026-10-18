@@ -75,10 +75,10 @@
   // Onboarding's "I already have history" step: the student marks whole periods as
   // completed and picks one average grade per period, instead of grading every
   // subject one by one. periodGrades is { [period_number]: grade }; only periods
-  // present there are bulk-approved (a period the student didn't mark done is left
+  // present there are bulk-graded (a period the student didn't mark done is left
   // untouched). Pure and immutable so it's directly testable without a curriculum
   // JSON fixture beyond the minimal { periods: [{ period_number, subjects }] } shape.
-  function applyBulkApprovalForPeriods(curriculum, progress, periodGrades) {
+  function applyBulkApprovalForPeriods(curriculum, progress, periodGrades, passingGrade = 70) {
     const next = { ...(progress && typeof progress === 'object' ? progress : {}) };
     const grades = periodGrades && typeof periodGrades === 'object' ? periodGrades : {};
 
@@ -86,14 +86,16 @@
       const grade = grades[period.period_number];
       if (grade === undefined || grade === null) return;
 
+      const numericGrade = Number(grade);
       (period.subjects || []).forEach((subject) => {
         if (!subject?.id) return;
-        next[subject.id] = {
-          ...createDefaultSubjectProgress(),
-          ...(next[subject.id] || {}),
-          status: 'approved',
-          grade: Number(grade)
-        };
+        const existing = { ...createDefaultSubjectProgress(), ...(next[subject.id] || {}) };
+        // Same rule as applyGradeToSubjectProgress: a failing grade never approves, and it
+        // demotes a previously approved subject to pending; enrolled stays enrolled.
+        let status = existing.status;
+        if (numericGrade >= passingGrade) status = 'approved';
+        else if (status === 'approved') status = 'pending';
+        next[subject.id] = { ...existing, status, grade: numericGrade };
       });
     });
 
