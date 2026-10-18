@@ -353,7 +353,7 @@
                 const n = Number(key);
                 if (onboardingTrimDone[key] && onboardingTrimGrade[key] != null) periodGrades[n] = onboardingTrimGrade[key];
             });
-            userProgress = StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades);
+            userProgress = StudyTrackProgress.applyBulkApprovalForPeriods(currentCurriculum, userProgress, periodGrades, APP_CONFIG.passingGrade);
             saveUserProgress();
             dependencyGraph = buildDependencyGraph(currentCurriculum);
             calculateStatistics();

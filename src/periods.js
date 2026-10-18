@@ -1,9 +1,14 @@
 (function (global) {
+  // Lowercase and strip accents so "calculo" finds "Cálculo I" (and the other way round).
+  function normalizeSearchText(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
   function subjectMatchesFilter(subject, progress, textFilter = '', statusFilter = 'all') {
-    const normalizedText = String(textFilter || '').toLowerCase();
+    const normalizedText = normalizeSearchText(textFilter);
     const matchesText = !normalizedText
-      || String(subject.name || '').toLowerCase().includes(normalizedText)
-      || String(subject.code || '').toLowerCase().includes(normalizedText);
+      || normalizeSearchText(subject.name).includes(normalizedText)
+      || normalizeSearchText(subject.code).includes(normalizedText);
     const status = progress?.[subject.id]?.status || 'pending';
 
     if (statusFilter === 'enrolled') return matchesText && status === 'enrolled';

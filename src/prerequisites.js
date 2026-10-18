@@ -18,25 +18,28 @@
     return true;
   }
 
+  function isGroupSatisfied(group, progress) {
+    if (Array.isArray(group)) return group.some((subjectId) => isApproved(progress, subjectId));
+    return isApproved(progress, group);
+  }
+
   function checkPrerequisites(prerequisites, progress, curriculum) {
     if (!prerequisites || !prerequisites.length) return true;
-    if (prerequisites.includes('ALL')) return areAllOtherSubjectsCompleted(curriculum, progress);
+    // "ALL" plus other entries requires both: "ALL" skips optional subjects and other
+    // "ALL" subjects, so an extra entry (e.g. an optional seminar) is a real requirement.
+    const others = prerequisites.filter((group) => group !== 'ALL');
+    if (others.length < prerequisites.length && !areAllOtherSubjectsCompleted(curriculum, progress)) return false;
 
-    return prerequisites.every((group) => {
-      if (Array.isArray(group)) {
-        return group.some((subjectId) => isApproved(progress, subjectId));
-      }
-
-      return isApproved(progress, group);
-    });
+    return others.every((group) => isGroupSatisfied(group, progress));
   }
 
   function formatPrerequisiteString(prerequisites) {
     if (!prerequisites?.length) return '';
-    if (prerequisites.includes('ALL')) return 'Todas';
-
     return prerequisites
-      .map((group) => Array.isArray(group) ? `(${group.join(' o ')})` : group)
+      .map((group) => {
+        if (group === 'ALL') return 'Todas';
+        return Array.isArray(group) ? `(${group.join(' o ')})` : group;
+      })
       .join(' y ');
   }
 

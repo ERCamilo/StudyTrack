@@ -4,7 +4,8 @@
   }
 
   function getGradeLabel(score, scale) {
-    if (score === null || score === '' || Number.isNaN(Number(score))) return null;
+    // Blank or whitespace-only means "no grade", same as StudyTrackProgress.parseGradeInput.
+    if (score === null || score === undefined || String(score).trim() === '' || Number.isNaN(Number(score))) return null;
 
     const numericScore = Number(score);
     for (const grade of normalizeScale(scale)) {
