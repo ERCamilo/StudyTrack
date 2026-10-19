@@ -809,9 +809,11 @@ assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null
   assert.equal(rec.newlyAchieved.slice().sort().join('|'), 'subjects-5', 'Only the genuinely new milestone is flagged');
 }
 
-// --- Decisions confirmed by Erlin (2026-10-18), found by pseudo-loop's blind verifier + judge ---
+// --- Reglas de negocio confirmadas (2026-10-18) ---
+// Cada bloque protege una regla de negocio. Si un cambio la rompe, no ajustes el test:
+// confirma primero con el dueño del producto si la regla cambió.
 
-// 1. Bulk onboarding approval must respect the passing grade, like applyGradeToSubjectProgress.
+// Regla de negocio: la aprobación masiva respeta la nota mínima, igual que applyGradeToSubjectProgress.
 {
   const cur = { periods: [{ period_number: 1, subjects: [{ id: 'A' }] }] };
   const low = StudyTrackProgress.applyBulkApprovalForPeriods(cur, {}, { 1: 50 });
@@ -823,7 +825,7 @@ assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null
   assert.equal(StudyTrackProgress.applyBulkApprovalForPeriods(cur, { A: { status: 'enrolled' } }, { 1: 50 }).A.status, 'enrolled');
 }
 
-// 2. "ALL" combined with other prerequisites requires both (e.g. an optional seminar "ALL" does not cover).
+// Regla de negocio: "ALL" junto a otros prerrequisitos exige ambos (p. ej. un seminario optativo que "ALL" no cubre).
 {
   const cur = { periods: [{ subjects: [{ id: 'A' }, { id: 'SEM', is_optional: true }, { id: 'TES', prerequisites: ['ALL', 'SEM'] }] }] };
   assert.equal(StudyTrackPrerequisites.checkPrerequisites(['ALL', 'SEM'], { A: { status: 'approved' } }, cur), false);
@@ -835,7 +837,7 @@ assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null
   assert.equal(StudyTrackPrerequisites.formatPrerequisiteString(['ALL']), 'Todas');
 }
 
-// 3. Search ignores accents in both directions.
+// Regla de negocio: la búsqueda ignora las tildes en ambos sentidos.
 {
   const subject = { id: 'A', name: 'Cálculo I', code: 'MAT-101' };
   assert.equal(StudyTrackPeriods.subjectMatchesFilter(subject, {}, 'calculo', 'all'), true);
@@ -843,7 +845,7 @@ assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null
   assert.equal(StudyTrackPeriods.subjectMatchesFilter(subject, {}, 'fisica', 'all'), false);
 }
 
-// 4. A grade made only of spaces means "no grade", same as parseGradeInput.
+// Regla de negocio: una nota hecha solo de espacios significa "sin nota", igual que parseGradeInput.
 assert.equal(StudyTrackGrades.getGradeLabel('   ', scale), null);
 assert.equal(StudyTrackGrades.getGradeLabel(' 85 ', scale).label, 'B');
 
