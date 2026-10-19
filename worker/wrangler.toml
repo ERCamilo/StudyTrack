@@ -1,0 +1,9 @@
+name = "studytrack-ics-proxy"
+main = "ics-proxy.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Who may call the relay (the StudyTrack site). Comma-separated.
+ALLOWED_ORIGINS = "https://miruta.erlin.do"
+# Which university hosts it may download from. Comma-separated.
+ALLOWED_HOSTS = "eva.uapa.edu.do"
