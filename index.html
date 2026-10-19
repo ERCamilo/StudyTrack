@@ -7,7 +7,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://eva.uapa.edu.do https://studytrack-ics-proxy.ecamilo-ec.workers.dev; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
+        content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://eva.uapa.edu.do https://studytrack-ics-proxy.ecamilo-ec.workers.dev; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
     <meta name="theme-color" content="#1D4ED8" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#15161C" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
@@ -21,13 +21,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>MiRuta - Tu Copiloto Académico</title>
     <!-- Tailwind compiled locally (see tailwind.config.js + npm/binary build). Replaces the Play CDN. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="dist/tailwind.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap"
-        rel="stylesheet">
+    <!-- Icons and fonts are self-hosted (src/vendor) so they also work offline. -->
+    <link rel="stylesheet" href="src/vendor/fa/css/all.min.css">
+    <link rel="stylesheet" href="src/vendor/fonts/fonts.css">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -900,7 +897,12 @@
         @supports (height: 1dvh) {
             #settings-modal > div, #schedule-modal > div { max-height: 90dvh; }
         }
-        #whats-new-modal, #schedule-modal, #settings-modal { overscroll-behavior: contain; }
+        #whats-new-modal, #schedule-modal, #settings-modal, #more-sheet, #update-modal { overscroll-behavior: contain; }
+        /* Blur over the whole screen is the costliest paint on mid-range phones: use opaque surfaces instead. */
+        @media (max-width: 640px) {
+            .glass, .dark .glass, .stk-tabbar { background: var(--stk-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+            .backdrop-blur-sm { backdrop-filter: none; -webkit-backdrop-filter: none; }
+        }
 
         @media (prefers-reduced-motion: reduce) {
             .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
@@ -2159,6 +2161,40 @@
             <div class="p-6 pt-3 shrink-0 safe-area-bottom">
                 <button data-action="closeWhatsNew" class="stk-btn-primary w-full py-3 text-sm" style="min-height:48px">Entendido</button>
             </div>
+        </div>
+    </div>
+
+    <!-- MOBILE "MAS" SHEET -->
+    <div id="more-sheet" role="dialog" aria-modal="true" aria-labelledby="more-sheet-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:100" data-action-self="closeMoreSheet">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up">
+            <div class="px-6 pb-2 flex items-center justify-between" style="padding-top:1.25rem">
+                <h2 id="more-sheet-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Más</h2>
+                <button data-action="closeMoreSheet" class="stk-icon-btn" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="px-4 pb-2 space-y-2">
+                <button data-action="moreAction" data-args='["toggleDarkMode"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-circle-half-stroke w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Cambiar tema</span>
+                </button>
+                <button data-action="moreOpenSettings" data-args='["settings-section-cloud"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-cloud w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Sincronización</span>
+                </button>
+                <button data-action="moreOpenSettings" data-args='["settings-section-data"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-shield-halved w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Datos y respaldo</span>
+                </button>
+                <button data-action="moreAction" data-args='["checkForAppUpdate"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-cloud-arrow-down w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1"><span id="more-update-label">Buscar actualizaciones</span></span>
+                </button>
+                <button data-action="moreAction" data-args='["openWhatsNew"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-wand-magic-sparkles w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Novedades</span>
+                </button>
+                <button data-action="moreAction" data-args='["openSettings"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-gear w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Configuración completa</span><i class="fas fa-chevron-right text-xs" style="color:var(--stk-text-3)"></i>
+                </button>
+            </div>
+            <p class="text-center text-[11px] font-semibold pb-4 safe-area-bottom" style="color:var(--stk-text-2)">MiRuta <span id="more-version-label"></span></p>
         </div>
     </div>
 

@@ -1,9 +1,16 @@
-const CACHE_NAME = 'studytrack-shell-v23';
+const CACHE_NAME = 'studytrack-shell-v24';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './dist/tailwind.css',
+  './src/vendor/fa/css/all.min.css',
+  './src/vendor/fa/webfonts/fa-solid-900.woff2',
+  './src/vendor/fa/webfonts/fa-regular-400.woff2',
+  './src/vendor/fonts/fonts.css',
+  './src/vendor/fonts/outfit.woff2',
+  './src/vendor/fonts/sora.woff2',
+  './src/vendor/fonts/space-grotesk.woff2',
   './src/storage.js',
   './src/sanitize.js',
   './src/curriculum.js',

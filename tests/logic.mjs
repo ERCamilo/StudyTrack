@@ -1213,6 +1213,26 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
     assert.ok(context.StudyTrackVersionIncoming && context.StudyTrackVersionIncoming.APP_VERSION, 'la entrante queda disponible');
     delete context.StudyTrackVersionIncoming;
   }
+
+// Regla de negocio: al bloquear una materia, se le dice al estudiante exactamente qué prerrequisitos le faltan (los grupos "A o B" cuentan como uno); si no falta ninguno, la materia no está bloqueada.
+{
+  const P = StudyTrackPrerequisites;
+  const ok = (id) => ({ status: 'approved' });
+  const prereqs = ['A', ['B', 'C'], 'D'];
+  sameData(P.getMissingPrerequisites(prereqs, {}, null), ['A', ['B', 'C'], 'D'], 'nada aprobado: falta todo, en orden');
+  sameData(P.getMissingPrerequisites(prereqs, { A: ok(), C: ok() }, null), ['D'], 'un "o" cumplido por C deja de faltar');
+  sameData(P.getMissingPrerequisites(prereqs, { A: ok(), B: ok(), D: ok() }, null), [], 'justo en el límite: todo cumplido');
+  sameData(P.getMissingPrerequisites(prereqs, { A: { status: 'enrolled' }, B: ok(), D: ok() }, null), ['A'], 'inscrita no cuenta como aprobada');
+  sameData(P.getMissingPrerequisites([], {}, null), [], 'sin prerrequisitos');
+  sameData(P.getMissingPrerequisites(null, {}, null), [], 'prerrequisitos nulos');
+  const cur = { periods: [{ subjects: [{ id: 'A' }, { id: 'SEM', is_optional: true }, { id: 'TES', prerequisites: ['ALL', 'SEM'] }] }] };
+  sameData(P.getMissingPrerequisites(['ALL', 'SEM'], { A: ok() }, cur), ['SEM'], 'ALL cumplido pero falta el seminario');
+  sameData(P.getMissingPrerequisites(['ALL', 'SEM'], { SEM: ok() }, cur), ['ALL'], 'falta cursar el resto de la carrera');
+  // Coherencia con checkPrerequisites: bloqueada si y solo si falta algo.
+  for (const progress of [{}, { A: ok() }, { A: ok(), SEM: ok() }]) {
+    assert.equal(P.getMissingPrerequisites(['ALL', 'SEM'], progress, cur).length === 0, P.checkPrerequisites(['ALL', 'SEM'], progress, cur));
+  }
+}
 }
 
 console.log('Logic checks passed');

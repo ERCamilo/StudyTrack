@@ -112,7 +112,7 @@
             if (currentView === 'profile') renderProfileView();
             milestonesReady = true; // baseline is stamped; from here new achievements celebrate
             maybeShowSharedCard(); // if opened from a shared QR/link, show the received card
-            document.getElementById('app-version-label').textContent = `v${StudyTrackVersion.APP_VERSION}`;
+            ['app-version-label', 'more-version-label'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = `v${StudyTrackVersion.APP_VERSION}`; });
             maybeShowWhatsNew(Boolean(storedCurriculum));
         }
 
@@ -731,7 +731,28 @@
             periodIndexes.forEach(idx => updatePeriodHeaderDOM(idx));
         }
 
+        // Names what is still missing (first 3) and offers a shortcut to the first missing subject.
+        function showPrerequisiteBlockedToast(prerequisites) {
+            const missing = StudyTrackPrerequisites.getMissingPrerequisites(prerequisites, userProgress, currentCurriculum);
+            const nameOf = (id) => findSubjectLocation(id)?.subject.name || id;
+            const label = (group) => group === 'ALL' ? 'el resto de la carrera' : Array.isArray(group) ? `(${group.map(nameOf).join(' o ')})` : nameOf(group);
+            const shown = missing.slice(0, 3).map(label).join(', ') + (missing.length > 3 ? ` y ${missing.length - 3} más` : '');
+            const firstId = [].concat(missing[0] || []).find((id) => id !== 'ALL' && findSubjectLocation(id));
+            showToast(`🔒 Te falta aprobar: ${shown || 'un prerrequisito'}`, 'error', {
+                key: 'prereq-blocked', duration: 5000,
+                action: firstId ? { label: 'Ver', run: () => navigateToSubject(firstId) } : undefined
+            });
+        }
+        // Undo for a single subject's progress change (approve / unapprove / enroll / unenroll).
+        function snapshotSubjectProgress(id) { return userProgress[id] ? JSON.parse(JSON.stringify(userProgress[id])) : null; }
+        function offerUndo(id, snapshot, message) {
+            showToast(message, 'success', {
+                key: 'undo', duration: 5000,
+                action: { label: 'Deshacer', run: () => { if (snapshot) userProgress[id] = snapshot; else delete userProgress[id]; saveUserProgress(); refreshAffectedSubjects(id); calculateStatistics(); } }
+            });
+        }
         function toggleSubjectStatus(id) {
+            const undoSnapshot = snapshotSubjectProgress(id);
             if (!userProgress[id]) userProgress[id] = StudyTrackProgress.createDefaultSubjectProgress();
 
             const loc = findSubjectLocation(id);
@@ -740,7 +761,8 @@
             if (!isCurrentlyApproved && loc) {
                 const prereqsMet = checkPrerequisites(loc.subject.prerequisites);
                 if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) {
-                    showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error');
+                    if (!undoSnapshot) delete userProgress[id];
+                    showPrerequisiteBlockedToast(loc.subject.prerequisites);
                     return;
                 }
             }
@@ -750,6 +772,7 @@
             refreshAffectedSubjects(id);
             calculateStatistics();
             if (userProgress[id].status === 'approved') popSubjectOrb(id);
+            offerUndo(id, undoSnapshot, userProgress[id].status === 'approved' ? 'Materia aprobada' : 'Aprobación quitada');
         }
         function popSubjectOrb(id) {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1409,8 +1432,8 @@
             const body = notes.length ? renderWhatsNewBody(notes) : '<p class="text-[13px] leading-snug" style="color:var(--stk-text-2)">Mejoras y correcciones para que la app funcione mejor.</p>';
             document.getElementById('update-modal-body').innerHTML = body;
             document.getElementById('update-modal-subtitle').textContent = version ? `v${StudyTrackVersion.APP_VERSION} → v${version}` : '';
-            const label = document.getElementById('update-check-label');
-            if (label) label.textContent = version ? `Instalar actualización (v${version})` : 'Instalar actualización';
+            const pendingText = version ? `Instalar actualización (v${version})` : 'Instalar actualización';
+            ['update-check-label', 'more-update-label'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = pendingText; });
             document.querySelectorAll('#toast-container [data-toast-key="update-check"]').forEach((t) => t.remove());
             document.getElementById('update-modal').classList.remove('hidden');
         }
@@ -1439,17 +1462,38 @@
         }
 
         // ── Dialog layers: back button, Escape and focus ───────────────────
-        // Every open modal is a "layer". Opening one pushes a history entry so the phone's back button
-        // closes it instead of leaving the app; closing it by any other route pops that entry again.
+        // Every open modal is a "layer". The phone's back button closes the top layer instead of leaving
+        // the app, so history must hold exactly one entry per open layer (historyDepth). It is reconciled
+        // once per tick, so swapping one layer for another (e.g. the "Más" sheet opening Configuración)
+        // costs no history operations, and never while one of our own history.go() calls is in flight.
         const modalLayers = [];
+        let historyDepth = 0;
         let ignoredPops = 0;
+        let historySyncQueued = false;
+        function scheduleHistorySync() {
+            if (historySyncQueued) return;
+            historySyncQueued = true;
+            queueMicrotask(() => { historySyncQueued = false; syncHistory(); });
+        }
+        function syncHistory() {
+            if (ignoredPops > 0) return; // retried when that traversal's popstate arrives
+            while (historyDepth < modalLayers.length) {
+                try { history.pushState({ stkLayer: historyDepth + 1 }, ''); } catch (e) { historyDepth = modalLayers.length; return; }
+                historyDepth++;
+            }
+            if (historyDepth > modalLayers.length) {
+                const extra = historyDepth - modalLayers.length;
+                historyDepth = modalLayers.length;
+                ignoredPops = 1;
+                try { history.go(-extra); } catch (e) { ignoredPops = 0; }
+            }
+        }
         function layerOpened(el, close) {
             if (modalLayers.some((l) => l.el === el)) return;
             if (!el.getAttribute('role')) el.setAttribute('role', 'dialog');
             el.setAttribute('aria-modal', 'true');
-            const layer = { el, close, opener: document.activeElement, poppedByBack: false };
-            modalLayers.push(layer);
-            try { history.pushState({ stkLayer: modalLayers.length }, ''); } catch (e) { layer.noHistory = true; }
+            modalLayers.push({ el, close, opener: document.activeElement });
+            scheduleHistorySync();
             if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
             requestAnimationFrame(() => { try { el.focus({ preventScroll: true }); } catch (e) { } });
         }
@@ -1457,13 +1501,12 @@
             const i = modalLayers.findIndex((l) => l.el === el);
             if (i < 0) return;
             const [layer] = modalLayers.splice(i, 1);
-            if (!layer.poppedByBack && !layer.noHistory) { ignoredPops++; try { history.back(); } catch (e) { ignoredPops--; } }
+            scheduleHistorySync();
             if (layer.opener && layer.opener.isConnected && typeof layer.opener.focus === 'function') { try { layer.opener.focus({ preventScroll: true }); } catch (e) { } }
         }
-        function dismissTopLayer(viaBack) {
+        function dismissTopLayer() {
             const top = modalLayers[modalLayers.length - 1];
             if (!top) return false;
-            top.poppedByBack = Boolean(viaBack);
             top.close();
             return true;
         }
@@ -1473,7 +1516,8 @@
                 ['schedule-modal', () => closeScheduleModal()],
                 ['schedule-details-modal', () => closeDetailsModal()],
                 ['whats-new-modal', () => closeWhatsNew()],
-                ['update-modal', () => postponeAppUpdate()]
+                ['update-modal', () => postponeAppUpdate()],
+                ['more-sheet', () => closeMoreSheet()]
             ];
             dialogs.forEach(([id, close]) => {
                 const el = document.getElementById(id);
@@ -1483,13 +1527,14 @@
                 sync();
             });
             window.addEventListener('popstate', () => {
-                if (ignoredPops > 0) { ignoredPops--; return; }
-                dismissTopLayer(true);
+                if (ignoredPops > 0) { ignoredPops--; if (ignoredPops === 0) syncHistory(); return; }
+                if (historyDepth > 0) historyDepth--; // the user's back press consumed one of our entries
+                dismissTopLayer();
             });
             document.addEventListener('keydown', (event) => {
                 const top = modalLayers[modalLayers.length - 1];
                 if (!top) return;
-                if (event.key === 'Escape') { event.preventDefault(); dismissTopLayer(false); return; }
+                if (event.key === 'Escape') { event.preventDefault(); dismissTopLayer(); return; }
                 if (event.key !== 'Tab') return;
                 const focusable = [...top.el.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter((n) => n.offsetParent !== null);
                 if (!focusable.length) { event.preventDefault(); return; }
@@ -1716,7 +1761,7 @@
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
-        function toggleEnrollment(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); }
+        function toggleEnrollment(id) { const undoSnapshot = snapshotSubjectProgress(id); if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { if (!undoSnapshot) delete userProgress[id]; showPrerequisiteBlockedToast(loc.subject.prerequisites); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); offerUndo(id, undoSnapshot, userProgress[id].status === 'enrolled' ? 'Materia inscrita' : 'Inscripción quitada'); }
         function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; notifySyncChange(); showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
         function updatePassingGrade(val) {
             const parsed = parseFloat(val);
@@ -1741,7 +1786,11 @@
             showToast(`Nota mínima para aprobar: ${newPassing}`, 'success');
         }
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
-        function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
+        function openMobileMore() { setActiveMobileNav('nav-more'); document.getElementById('more-sheet').classList.remove('hidden'); }
+        function closeMoreSheet() { document.getElementById('more-sheet').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
+        // Rows of the sheet close it first, then run the named action (resolved on window like data-action).
+        function moreAction(name, ...args) { closeMoreSheet(); const fn = window[name]; if (typeof fn === 'function') fn(...args); }
+        function moreOpenSettings(sectionId) { closeMoreSheet(); openSettings(); requestAnimationFrame(() => scrollSettingsSection(sectionId)); }
         // Toasts stack in #toast-container (bottom, above the tab bar, role=status so screen readers
         // announce them). opts: { duration: ms (0 = stays until dismissed), key: replaces a toast with the
         // same key, action: { label, run } adds a button }.

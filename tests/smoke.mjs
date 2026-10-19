@@ -173,6 +173,15 @@ assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs mus
 assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
 assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
 assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Self-hosted icons/fonts (work offline) and the mobile "Más" sheet
+assert.ok(!/https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)/.test(html), 'icons and fonts must be self-hosted, not loaded from CDNs');
+for (const f of ['src/vendor/fa/css/all.min.css', 'src/vendor/fa/webfonts/fa-solid-900.woff2', 'src/vendor/fa/webfonts/fa-regular-400.woff2', 'src/vendor/fonts/fonts.css', 'src/vendor/fonts/outfit.woff2', 'src/vendor/fonts/sora.woff2', 'src/vendor/fonts/space-grotesk.woff2']) { assert.ok(fs.existsSync(f), `Missing ${f}`); assert.ok(serviceWorker.includes('./' + f), `Service worker should precache ${f}`); }
+assert.ok(html.includes("font-src 'self' data:;"), 'CSP font-src must only need our own origin');
+for (const id of ['more-sheet', 'more-update-label', 'more-version-label']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+for (const fn of ['closeMoreSheet', 'moreAction', 'moreOpenSettings', 'showPrerequisiteBlockedToast', 'offerUndo']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(!appJs.includes('Debes completar los prerrequisitos primero'), 'blocked toasts must name the missing prerequisites');
+assert.ok(/openMobileMore\(\) \{[^}]*more-sheet/.test(appJs), 'the Más tab opens the short sheet, not the full settings');
+
 for (const png of ['icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']) { assert.ok(fs.existsSync(png), `Missing ${png}`); assert.ok(serviceWorker.includes('./' + png), `Service worker should cache ${png}`); }
 
 
