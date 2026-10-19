@@ -681,6 +681,7 @@
                 state,
                 grade: st.grade,
                 scheduleSummary: state === 'enrolled' ? formatScheduleSummary(s.id) : null,
+                nextDelivery: state === 'enrolled' ? getNextUniDelivery(s.id) : null,
                 completionLabel: (state === 'approved' || state === 'warning') ? formatCompletionLabel(st.completionDate) : null,
                 prerequisiteLabel: reqTxt,
                 missingGrade: isApprovedWithoutGrade,
@@ -1137,6 +1138,7 @@
 
         function renderHomeView(summary = null) {
             renderHomeMotivation();
+            renderHomeUniEvents();
             if (!currentCurriculum || !document.getElementById('home-view')) return;
             const academic = summary || StudyTrackAcademics.calculateAcademicSummary(currentCurriculum, userProgress, { getGradePoints, getGradeLabel });
             const insights = StudyTrackInsights.buildHomeInsights({
@@ -1474,7 +1476,7 @@
             const sideId = activeId.replace('nav-', 'side-');
             document.querySelectorAll('.side-tab').forEach(btn => btn.classList.toggle('active', btn.id === sideId));
         }
-        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); document.getElementById('settings-modal').classList.remove('hidden'); }
+        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
@@ -2299,7 +2301,7 @@
             }
         }
 
-        function renderScheduleView() { const enrolled = getEnrolledSubjects(); const emptyEl = document.getElementById('schedule-empty'); const unscheduledSection = document.getElementById('unscheduled-section'); const unscheduledList = document.getElementById('unscheduled-list'); document.querySelector('#unscheduled-section h3').innerHTML = '<i class="fas fa-edit text-primary-500"></i> Gestionar Horarios'; updateScheduleSummary(enrolled); if (enrolled.length === 0) { emptyEl.classList.remove('hidden'); unscheduledSection.classList.add('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.add('hidden'); return; } emptyEl.classList.add('hidden'); unscheduledSection.classList.remove('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.remove('hidden'); unscheduledList.innerHTML = StudyTrackSchedule.renderEnrolledScheduleHTML(enrolled, scheduleData, { escapeHtml, escapeJsString }); updateScheduleViewButtons(); if (scheduleViewType === 'list') { document.getElementById('weekly-schedule-list').classList.remove('hidden'); document.getElementById('weekly-schedule-table').classList.add('hidden'); renderWeeklySchedule(enrolled); } else { document.getElementById('weekly-schedule-list').classList.add('hidden'); document.getElementById('weekly-schedule-table').classList.remove('hidden'); renderTableSchedule(enrolled); } }
+        function renderScheduleView() { renderUniCalendar(); const enrolled = getEnrolledSubjects(); const emptyEl = document.getElementById('schedule-empty'); const unscheduledSection = document.getElementById('unscheduled-section'); const unscheduledList = document.getElementById('unscheduled-list'); document.querySelector('#unscheduled-section h3').innerHTML = '<i class="fas fa-edit text-primary-500"></i> Gestionar Horarios'; updateScheduleSummary(enrolled); if (enrolled.length === 0) { emptyEl.classList.remove('hidden'); unscheduledSection.classList.add('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.add('hidden'); return; } emptyEl.classList.add('hidden'); unscheduledSection.classList.remove('hidden'); document.getElementById('weekly-schedule-list').parentElement.classList.remove('hidden'); unscheduledList.innerHTML = StudyTrackSchedule.renderEnrolledScheduleHTML(enrolled, scheduleData, { escapeHtml, escapeJsString }); updateScheduleViewButtons(); if (scheduleViewType === 'list') { document.getElementById('weekly-schedule-list').classList.remove('hidden'); document.getElementById('weekly-schedule-table').classList.add('hidden'); renderWeeklySchedule(enrolled); } else { document.getElementById('weekly-schedule-list').classList.add('hidden'); document.getElementById('weekly-schedule-table').classList.remove('hidden'); renderTableSchedule(enrolled); } }
 
 
 
@@ -2409,6 +2411,213 @@
             showToast('Bloque eliminado', 'info');
             const scheduledLoc = findSubjectLocation(subjectId);
             if (scheduledLoc) reRenderSubjectCardDOM(scheduledLoc.subject);
+        }
+
+        // ── Entregas de la universidad (calendario de Moodle) ──────────────
+        // The calendar link carries a private token: it is kept only in this device's
+        // storage and none of these functions call notifySyncChange(). Imported events
+        // are stored as parsed iCal events and linked to subjects on read, so changing
+        // career re-links them without downloading again.
+        const UNI_CALENDAR_PROXY_URL = 'https://studytrack-ics-proxy.ecamilo-ec.workers.dev';
+        const UNI_TIME_ZONE = (() => {
+            try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santo_Domingo'; } catch { return 'America/Santo_Domingo'; }
+        })();
+        const UNI_WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const UNI_MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        let uniCalendarView = null; // { year, month } shown in the calendar; null → current month
+        let uniCalendarSelectedDay = null; // 'YYYY-MM-DD'
+        let uniRefreshInFlight = false;
+        let uniEventsMemo = { raw: undefined, curriculum: undefined, events: [] };
+
+        function getUniCalendarUrl() { return StudyTrackStorage.getItem(StudyTrackStorage.KEYS.uniCalendarUrl) || ''; }
+        function getUniCalendarStore() {
+            const store = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.uniEvents, null);
+            return store && Array.isArray(store.events) ? store : null;
+        }
+        function getUniEvents() {
+            const raw = StudyTrackStorage.getItem(StudyTrackStorage.KEYS.uniEvents);
+            if (raw === uniEventsMemo.raw && currentCurriculum === uniEventsMemo.curriculum) return uniEventsMemo.events;
+            const store = getUniCalendarStore();
+            const events = store ? StudyTrackUniEvents.toUniEvents(store.events, currentCurriculum) : [];
+            uniEventsMemo = { raw, curriculum: currentCurriculum, events };
+            return events;
+        }
+        function hasUniCalendar() { return Boolean(getUniCalendarUrl()) || getUniEvents().length > 0; }
+        function uniTodayKey() { return StudyTrackUniEvents.dayKey(new Date().toISOString(), UNI_TIME_ZONE); }
+        function uniItem(event, now) {
+            return {
+                event,
+                due: StudyTrackUniEventsView.describeDue(event, now, UNI_TIME_ZONE),
+                subjectName: event.subjectId ? (findSubjectLocation(event.subjectId)?.subject.name || null) : null,
+                dayKey: StudyTrackUniEvents.dayKey(event.dueAt, UNI_TIME_ZONE)
+            };
+        }
+        // Shape StudyTrackCards expects for the "next delivery" line of an enrolled card.
+        function getNextUniDelivery(subjectId) {
+            const now = new Date();
+            const event = StudyTrackUniEvents.nextForSubject(getUniEvents(), subjectId, now);
+            if (!event) return null;
+            const due = StudyTrackUniEventsView.describeDue(event, now, UNI_TIME_ZONE);
+            return { title: event.title, relative: due.relative, tone: due.tone };
+        }
+
+        function renderHomeUniEvents() {
+            const card = document.getElementById('home-uni-events');
+            const list = document.getElementById('home-uni-events-list');
+            if (!card || !list) return;
+            const connected = hasUniCalendar();
+            card.classList.toggle('hidden', !connected);
+            if (!connected) return;
+            const now = new Date();
+            const items = StudyTrackUniEvents.upcoming(getUniEvents(), now).map((event) => uniItem(event, now));
+            list.innerHTML = StudyTrackUniEventsUI.renderUpcomingList(items, { escapeHtml, actionArgs });
+        }
+
+        function formatUniDayLabel(key) {
+            const [year, month, day] = key.split('-').map(Number);
+            const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+            return `${UNI_WEEKDAYS_LONG[weekday]} ${day} de ${UNI_MONTHS_LONG[month - 1]}`;
+        }
+
+        function renderUniCalendar() {
+            const grid = document.getElementById('uni-calendar-grid');
+            if (!grid) return;
+            const todayKey = uniTodayKey();
+            if (!uniCalendarView) {
+                const [year, month] = todayKey.split('-').map(Number);
+                uniCalendarView = { year, month };
+                uniCalendarSelectedDay = todayKey;
+            }
+            const { year, month } = uniCalendarView;
+            const now = new Date();
+            const events = getUniEvents();
+            const tonesByDay = {};
+            Object.entries(StudyTrackUniEvents.eventsByDay(events, year, month, UNI_TIME_ZONE)).forEach(([key, dayEvents]) => {
+                tonesByDay[key] = dayEvents.map((event) => StudyTrackUniEventsView.describeDue(event, now, UNI_TIME_ZONE).tone);
+            });
+            document.getElementById('uni-calendar-month').textContent = StudyTrackUniEventsUI.monthLabel(year, month);
+            document.getElementById('uni-calendar-connect').classList.toggle('hidden', hasUniCalendar());
+            grid.innerHTML = StudyTrackUniEventsUI.renderMonthCalendar(StudyTrackUniEventsView.buildMonthGrid(year, month, todayKey), tonesByDay, uniCalendarSelectedDay, { escapeHtml, actionArgs });
+            renderUniCalendarDay();
+        }
+
+        function renderUniCalendarDay() {
+            const box = document.getElementById('uni-calendar-day');
+            if (!box) return;
+            const key = uniCalendarSelectedDay;
+            if (!key) {
+                box.innerHTML = '<div class="stk-due-empty stk-due-empty--compact">Toca un día para ver sus entregas.</div>';
+                return;
+            }
+            const now = new Date();
+            const items = getUniEvents()
+                .filter((event) => StudyTrackUniEvents.dayKey(event.dueAt, UNI_TIME_ZONE) === key)
+                .map((event) => uniItem(event, now));
+            box.innerHTML = StudyTrackUniEventsUI.renderDayList(items, formatUniDayLabel(key), { escapeHtml, actionArgs });
+        }
+
+        function selectUniCalendarDay(key) {
+            uniCalendarSelectedDay = key;
+            renderUniCalendar();
+        }
+
+        function shiftUniCalendarMonth(delta) {
+            if (!uniCalendarView) renderUniCalendar();
+            uniCalendarView = StudyTrackUniEventsView.shiftMonth(uniCalendarView.year, uniCalendarView.month, Number(delta) || 0);
+            const todayKey = uniTodayKey();
+            const monthPrefix = `${uniCalendarView.year}-${String(uniCalendarView.month).padStart(2, '0')}`;
+            uniCalendarSelectedDay = todayKey.startsWith(monthPrefix) ? todayKey : null;
+            renderUniCalendar();
+        }
+
+        // From the home list: open the Horario view on that day (null → today).
+        function openUniCalendarDay(key) {
+            if (key) {
+                const [year, month] = key.split('-').map(Number);
+                uniCalendarView = { year, month };
+                uniCalendarSelectedDay = key;
+            } else {
+                uniCalendarView = null;
+            }
+            switchView('schedule');
+            requestAnimationFrame(() => document.getElementById('uni-calendar-card')?.scrollIntoView({ behavior: isReducedMotion() ? 'auto' : 'smooth', block: 'start' }));
+        }
+
+        function openUniCalendarSettings() {
+            openSettings();
+            requestAnimationFrame(() => scrollSettingsSection('settings-section-unical'));
+        }
+
+        function setUniCalendarStatus(text, tone = 'info') {
+            const el = document.getElementById('uni-calendar-status');
+            if (!el) return;
+            el.textContent = text;
+            el.style.color = tone === 'error' ? 'var(--stk-ink-goal)' : tone === 'success' ? 'var(--stk-ink-approved)' : 'var(--stk-text-3)';
+        }
+
+        function uniStatusMeta() {
+            const store = getUniCalendarStore();
+            return store ? { fetchedAt: store.fetchedAt, count: store.events.length } : null;
+        }
+
+        function renderUniCalendarSettings() {
+            const input = document.getElementById('uni-calendar-url-input');
+            if (input) input.value = getUniCalendarUrl();
+            setUniCalendarStatus(StudyTrackUniEventsView.statusLine(uniStatusMeta(), new Date(), UNI_TIME_ZONE));
+        }
+
+        function refreshUniViews() {
+            renderHomeUniEvents();
+            renderUniCalendar();
+            if (currentCurriculum) renderPeriods(document.getElementById('search-input').value);
+        }
+
+        async function refreshUniEvents() {
+            if (uniRefreshInFlight) return;
+            const input = document.getElementById('uni-calendar-url-input');
+            const url = StudyTrackUniEventsView.normalizeCalendarUrl(input ? input.value : getUniCalendarUrl());
+            if (!url) {
+                setUniCalendarStatus('Pega primero el enlace del calendario.', 'error');
+                input?.focus();
+                return;
+            }
+            if (input) input.value = url;
+            const button = document.getElementById('uni-calendar-refresh-btn');
+            uniRefreshInFlight = true;
+            if (button) { button.disabled = true; button.classList.add('opacity-50'); }
+            setUniCalendarStatus('Actualizando…');
+            try {
+                const result = await StudyTrackUniEvents.loadCalendarText(url, {
+                    proxyUrl: UNI_CALENDAR_PROXY_URL,
+                    fetchImpl: (target) => fetch(target, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+                });
+                const parsed = result.ok ? StudyTrackUniEvents.parseIcs(result.text) : result;
+                if (!parsed.ok) {
+                    setUniCalendarStatus(StudyTrackUniEventsView.errorMessage(parsed.error), 'error');
+                    return;
+                }
+                // Saved only after a successful download, so a mistyped link never replaces a working one.
+                StudyTrackStorage.setItem(StudyTrackStorage.KEYS.uniCalendarUrl, url);
+                StudyTrackStorage.setJson(StudyTrackStorage.KEYS.uniEvents, { fetchedAt: new Date().toISOString(), events: parsed.events });
+                setUniCalendarStatus(StudyTrackUniEventsView.statusLine(uniStatusMeta(), new Date(), UNI_TIME_ZONE), 'success');
+                refreshUniViews();
+                const count = parsed.events.length;
+                showToast(`Calendario actualizado: ${count} ${count === 1 ? 'entrega' : 'entregas'}`, 'success');
+            } catch {
+                setUniCalendarStatus(StudyTrackUniEventsView.errorMessage('unknown'), 'error');
+            } finally {
+                uniRefreshInFlight = false;
+                if (button) { button.disabled = false; button.classList.remove('opacity-50'); }
+            }
+        }
+
+        function clearUniCalendar() {
+            if (!confirm('¿Quitar el enlace del calendario y las entregas importadas de este dispositivo?')) return;
+            StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.uniCalendarUrl);
+            StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.uniEvents);
+            renderUniCalendarSettings();
+            refreshUniViews();
+            showToast('Calendario desconectado', 'success');
         }
 
         // ── CSP-safe event delegation ──────────────────────────────────────

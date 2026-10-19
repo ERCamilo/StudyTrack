@@ -82,13 +82,32 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
 // Eventos de la universidad: el módulo se carga y queda disponible sin conexión.
 assert.ok(code.includes('<script src="./src/uni-events.js"></script>'), 'index.html must load the university events module');
 assert.ok(serviceWorker.includes("'./src/uni-events.js'"), 'Service worker should cache the university events module');
+for (const file of ['uni-events-view.js', 'uni-events-ui.js']) {
+  assert.ok(code.includes(`<script src="./src/${file}"></script>`), `index.html must load src/${file}`);
+  assert.ok(serviceWorker.includes(`'./src/${file}'`), `Service worker should cache src/${file}`);
+}
+{
+  const order = ['uni-events.js', 'uni-events-view.js', 'uni-events-ui.js', 'app.js'].map((f) => code.indexOf(`<script src="./src/${f}"></script>`));
+  assert.deepEqual([...order].sort((a, b) => a - b), order, 'university event modules load in order, before app.js');
+  const csp = /connect-src ([^;]+);/.exec(code)?.[1] || '';
+  assert.ok(csp.includes('https://eva.uapa.edu.do'), 'CSP must allow the direct calendar download');
+  assert.ok(csp.includes('https://studytrack-ics-proxy.ecamilo-ec.workers.dev'), 'CSP must allow the calendar relay');
+  const appJs = fs.readFileSync('src/app.js', 'utf8');
+  assert.ok(appJs.includes("'https://studytrack-ics-proxy.ecamilo-ec.workers.dev'"), 'app.js must point at the deployed relay');
+  for (const id of ['settings-section-unical', 'uni-calendar-url-input', 'uni-calendar-status', 'home-uni-events', 'home-uni-events-list', 'uni-calendar-card', 'uni-calendar-grid', 'uni-calendar-day', 'uni-calendar-month']) {
+    assert.ok(code.includes(`id="${id}"`), `index.html must have #${id}`);
+  }
+  for (const action of ['refreshUniEvents', 'clearUniCalendar', 'openUniCalendarDay', 'selectUniCalendarDay', 'shiftUniCalendarMonth']) {
+    assert.match(appJs, new RegExp(`function ${action}\\(`), `app.js must define ${action}`);
+  }
+}
 
 // Regla de negocio: el enlace del calendario de la universidad es secreto: se guarda solo en el dispositivo y nunca se sincroniza.
 {

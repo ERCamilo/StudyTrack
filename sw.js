@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v17';
+const CACHE_NAME = 'studytrack-shell-v18';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,6 +16,8 @@ const APP_SHELL = [
   './src/requirements.js',
   './src/schedule.js',
   './src/uni-events.js',
+  './src/uni-events-view.js',
+  './src/uni-events-ui.js',
   './src/insights.js',
   './src/milestones.js',
   './src/nfc.js',

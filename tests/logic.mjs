@@ -10,14 +10,15 @@ const store = new Map();
 context.localStorage = {
   clear: () => store.clear(),
   getItem: (key) => store.has(key) ? store.get(key) : null,
-  setItem: (key, value) => store.set(key, String(value))
+  setItem: (key, value) => store.set(key, String(value)),
+  removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -97,6 +98,10 @@ StudyTrackStorage.setItem('float-value', '69.5');
 assert.equal(StudyTrackStorage.getFloat('float-value', 0), 69.5);
 assert.equal(StudyTrackStorage.getNumber('float-value', 0), 69);
 assert.equal(StudyTrackStorage.getFloat('missing-float', 70), 70);
+StudyTrackStorage.setItem('to-remove', 'secret');
+assert.equal(StudyTrackStorage.removeItem('to-remove'), true);
+assert.equal(StudyTrackStorage.getItem('to-remove'), null, 'removeItem deletes the key');
+assert.equal(StudyTrackStorage.removeItem('never-set'), true, 'removing a missing key is fine');
 StudyTrackStorage.clearAll();
 assert.equal(StudyTrackStorage.getItem('number-value'), null);
 
@@ -1075,6 +1080,46 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.equal(V.statusLine({ fetchedAt: '2026-10-19T16:40:00.000Z', count: 8 }, '2026-10-19T16:45:00.000Z', TZ), 'Actualizado hoy · 12:40 PM · 8 entregas');
   assert.equal(V.statusLine({ fetchedAt: '2026-10-12T16:40:00.000Z', count: 1 }, '2026-10-19T16:45:00.000Z', TZ), 'Actualizado lun 12 oct · 12:40 PM · 1 entrega');
   assert.equal(V.statusLine({ fetchedAt: '2026-10-19T04:05:00.000Z', count: 0 }, '2026-10-19T16:45:00.000Z', TZ), 'Actualizado hoy · 12:05 AM · 0 entregas');
+}
+
+// ===== Eventos de la universidad: plantillas de la pantalla =====
+{
+  const UI = StudyTrackUniEventsUI;
+  const esc = StudyTrackSanitize.escapeHtml;
+  const item = (n, tone, extra = {}) => ({
+    event: { uid: `u${n}`, title: `Tarea ${n}`, courseCode: 'ISW201', ...extra },
+    due: { relative: tone === 'overdue' ? 'Venció ayer' : 'Mañana', absolute: 'jue 15 oct · 11:59 PM', tone },
+    subjectName: 'Ingeniería de Software I',
+    dayKey: '2026-10-15',
+  });
+
+  const list = UI.renderUpcomingList([1, 2, 3, 4, 5, 6].map((n) => item(n, 'soon')), { escapeHtml: esc });
+  assert.equal((list.match(/stk-due-row/g) || []).length - (list.match(/stk-due-row--action/g) || []).length, 5, 'the home list shows at most 5');
+  assert.ok(list.includes('data-action="openUniCalendarDay"') && list.includes('2026-10-15'), 'a row opens the calendar on its day');
+  assert.ok(!list.includes('Tarea 6'));
+  const risky = UI.renderUpcomingList([item(1, 'overdue', { title: '<img src=x onerror=alert(1)>' })], { escapeHtml: esc });
+  assert.ok(!risky.includes('<img') && risky.includes('&lt;img'), 'titles from the university are escaped');
+  assert.ok(risky.includes('stk-due-chip--overdue') && risky.includes('Venció ayer'));
+  const noSubject = UI.renderUpcomingList([{ ...item(1, 'later'), subjectName: null }], { escapeHtml: esc });
+  assert.ok(noSubject.includes('ISW201 ·'), 'without a matching subject the course code is shown');
+  assert.match(UI.renderUpcomingList([], { escapeHtml: esc }), /Sin entregas/);
+
+  const grid = StudyTrackUniEventsView.buildMonthGrid(2026, 10, '2026-10-19');
+  const cal = UI.renderMonthCalendar(grid, { '2026-10-15': ['soon', 'soon', 'later', 'overdue'] }, '2026-10-15', { escapeHtml: esc });
+  assert.equal((cal.match(/stk-cal-dot--/g) || []).length, 3, 'at most 3 dots per day');
+  assert.equal((cal.match(/stk-cal-cell--blank/g) || []).length, 4, '3 blanks before Oct 1 and 1 after Oct 31');
+  assert.equal((cal.match(/aria-pressed="true"/g) || []).length, 1);
+  assert.ok(cal.includes('aria-label="15, 4 entregas"'));
+  assert.equal((cal.match(/stk-cal-cell--today/g) || []).length, 1);
+  assert.equal(UI.monthLabel(2026, 10), 'octubre 2026');
+  assert.match(UI.renderDayList([], 'jueves 15 de octubre', { escapeHtml: esc }), /Sin entregas este día/);
+
+  // Regla de negocio: la tarjeta de una materia en curso muestra su próxima entrega (si la hay).
+  const cardBase = { id: 'ISW-201', name: 'Ingeniería de Software I', code: 'ISW-201', credits: 4, state: 'enrolled', grade: null, scheduleSummary: null, completionLabel: null, prerequisiteLabel: '', missingGrade: false, skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: '' };
+  const withNext = StudyTrackCards.renderSubjectCard({ ...cardBase, nextDelivery: { title: 'Tarea <1>', relative: 'Mañana', tone: 'soon' } }, { escapeHtml: esc });
+  assert.ok(withNext.includes('Tarea &lt;1&gt;') && withNext.includes('stk-due-chip--soon') && withNext.includes('Mañana'));
+  assert.ok(!StudyTrackCards.renderSubjectCard({ ...cardBase, nextDelivery: null }, { escapeHtml: esc }).includes('stk-subject-due'));
+  assert.ok(!StudyTrackCards.renderSubjectCard(cardBase, { escapeHtml: esc }).includes('stk-subject-due'), 'no field, no line');
 }
 
 console.log('Logic checks passed');

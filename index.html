@@ -7,7 +7,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
+        content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://eva.uapa.edu.do https://studytrack-ics-proxy.ecamilo-ec.workers.dev; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
     <meta name="theme-color" content="#1D4ED8" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#15161C" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
@@ -41,6 +41,8 @@
     <script src="./src/requirements.js"></script>
     <script src="./src/schedule.js"></script>
     <script src="./src/uni-events.js"></script>
+    <script src="./src/uni-events-view.js"></script>
+    <script src="./src/uni-events-ui.js"></script>
     <script src="./src/insights.js"></script>
     <script src="./src/milestones.js"></script>
     <script src="./src/nfc.js"></script>
@@ -838,13 +840,57 @@
         @keyframes stkCarneFlip { from { transform: rotateY(90deg); opacity: .35; } to { transform: rotateY(0deg); opacity: 1; } }
         .stk-carne-flip-anim { animation: stkCarneFlip .5s var(--stk-ease) both; }
 
+        /* ---- Entregas de la universidad (calendario de Moodle) ---- */
+        .stk-due-chip { flex-shrink: 0; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+        .stk-due-chip--overdue { background: var(--stk-soft-goal); color: var(--stk-ink-goal); }
+        .stk-due-chip--soon { background: var(--stk-soft-warning); color: var(--stk-ink-warning); }
+        .stk-due-chip--later { background: var(--stk-soft-enrolled); color: var(--stk-ink-enrolled); }
+        .stk-due-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; text-align: left; background: none; border: none; font-family: inherit; color: inherit; }
+        .stk-due-row + .stk-due-row { border-top: 1px solid var(--stk-hairline); }
+        .stk-due-row--action { cursor: pointer; transition: background-color .2s var(--stk-ease); }
+        .stk-due-row--action:hover { background: var(--stk-surface-2); }
+        .stk-due-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .stk-due-title, .stk-due-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stk-due-title { font-size: 13px; font-weight: 700; color: var(--stk-text-1); }
+        .stk-due-meta { font-size: 11px; color: var(--stk-text-2); margin-top: 1px; }
+        .stk-due-list .stk-due-row { padding: 10px 2px; }
+        .stk-due-empty { padding: 14px 16px; font-size: 12px; font-weight: 600; color: var(--stk-text-3); }
+        .stk-due-empty i { margin-right: 6px; }
+        .stk-due-empty--compact { padding: 6px 2px; }
+        .stk-subject-due { display: flex; align-items: center; gap: 6px; margin-top: 4px; min-width: 0; }
+        .stk-subject-due .stk-due-chip { font-size: 9.5px; padding: 2px 8px; }
+        .stk-subject-due-title { font-size: 11px; font-weight: 700; color: var(--stk-text-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .stk-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+        .stk-cal-head { text-align: center; font-size: 10px; font-weight: 800; color: var(--stk-text-3); padding: 2px 0 4px; font-family: var(--stk-font-numeric); }
+        .stk-cal-cell {
+            appearance: none; -webkit-appearance: none; border: none; font-family: inherit; cursor: pointer;
+            min-height: 42px; border-radius: 12px; background: var(--stk-surface-2); color: var(--stk-text-1);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+            transition: transform .15s var(--stk-spring), background-color .2s var(--stk-ease);
+        }
+        .stk-cal-cell:active { transform: scale(.94); }
+        .stk-cal-cell--blank { background: transparent; cursor: default; }
+        .stk-cal-num { font-size: 12px; font-weight: 800; font-family: var(--stk-font-numeric); line-height: 1; }
+        .stk-cal-dots { display: flex; gap: 2px; height: 5px; }
+        .stk-cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+        .stk-cal-dot--overdue { background: var(--stk-accent-goal); }
+        .stk-cal-dot--soon { background: var(--stk-accent-warning); }
+        .stk-cal-dot--later { background: var(--stk-accent-enrolled); }
+        .stk-cal-cell--today { box-shadow: inset 0 0 0 2px var(--stk-tint); color: var(--stk-tint); }
+        .stk-cal-cell--selected { background: var(--stk-navy); color: #fff; }
+        .stk-cal-nav { display: flex; align-items: center; gap: 2px; }
+        .stk-cal-nav .stk-sched-pill { padding: 6px 10px; }
+        .stk-cal-nav .stk-sched-pill i { margin: 0; }
+        .stk-cal-month { font-size: 11px; font-weight: 800; color: var(--stk-text-1); padding: 0 4px; white-space: nowrap; text-transform: capitalize; min-width: 92px; text-align: center; }
+
         @media (prefers-reduced-motion: reduce) {
             .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
             .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
             .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-action-btn, .stk-btn-primary,
             .settings-quick-link, .stk-settings-row, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,
             .stk-route-pulse, .stk-sched-pill, .stk-sched-add-btn, .stk-sched-chip, .stk-class-block,
-            .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim,
+            .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim, .stk-cal-cell, .stk-due-row,
             .loading-spinner, .stk-spinner, .stk-splash-pulse, .stk-splash-draw-a, .stk-splash-draw-b,
             .stk-splash-pin, .stk-splash-detail, .stk-splash-word,
             .ob-step, .ob-scale-in, .ob-trophy, .ob-award-card {
@@ -1203,6 +1249,14 @@
                     </div>
                 </button>
 
+                <div id="home-uni-events" class="stk-surface-card overflow-hidden hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                        <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-calendar-day" style="color:var(--stk-tint)"></i> Próximas entregas</h3>
+                        <button data-action="openUniCalendarDay" data-args='[null]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver calendario</button>
+                    </div>
+                    <div id="home-uni-events-list"></div>
+                </div>
+
                 <div class="stk-surface-card overflow-hidden">
                     <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                         <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
@@ -1400,6 +1454,29 @@
                 <div id="schedule-no-classes" class="py-8 text-center text-slate-400 dark:text-slate-500 hidden">
                     <i class="fas fa-calendar-check text-3xl mb-2 opacity-50"></i>
                     <p class="text-sm font-medium">No hay clases programadas</p>
+                </div>
+            </div>
+            <!-- UNIVERSITY CALENDAR (Moodle deliveries) -->
+            <div id="uni-calendar-card" class="stk-surface-card overflow-hidden scroll-mt-4">
+                <div
+                    class="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center gap-2">
+                    <h3 class="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                        <i class="fas fa-calendar-days text-primary-500"></i> Entregas
+                    </h3>
+                    <div class="stk-sched-pill-track stk-cal-nav">
+                        <button data-action="shiftUniCalendarMonth" data-args='[-1]' class="stk-sched-pill" aria-label="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+                        <span id="uni-calendar-month" class="stk-cal-month" aria-live="polite">&nbsp;</span>
+                        <button data-action="shiftUniCalendarMonth" data-args='[1]' class="stk-sched-pill" aria-label="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div id="uni-calendar-connect" class="hidden px-4 pt-4 text-center">
+                    <p class="text-sm font-bold" style="color:var(--stk-text-1)">Conecta el calendario de la universidad</p>
+                    <p class="text-xs mt-1" style="color:var(--stk-text-2)">Pega el enlace de Moodle en Configuración y verás aquí tus entregas.</p>
+                    <button data-action="openUniCalendarSettings" class="stk-btn-primary mt-3 px-4 py-2 text-xs">Agregar enlace</button>
+                </div>
+                <div class="p-3 sm:p-4">
+                    <div id="uni-calendar-grid"></div>
+                    <div id="uni-calendar-day" class="mt-4"></div>
                 </div>
             </div>
         </div>
@@ -1710,6 +1787,7 @@
             <div class="px-4 sm:px-6 pt-3 pb-0 overflow-x-auto shrink-0" style="border-bottom:1px solid var(--stk-hairline)">
                 <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
                     <button data-action="scrollSettingsSection" data-args='["settings-section-career"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-unical"]' class="settings-quick-link px-3 py-2 text-xs font-black">Calendario</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-requirements"]' class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-grades"]' class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
@@ -1778,6 +1856,31 @@
                             <button data-action="loadCustomJSON"
                                 class="stk-btn-primary mt-2 w-full py-2 text-xs">Cargar</button>
                         </div>
+                    </div>
+                </section>
+
+                <!-- UNIVERSITY CALENDAR SECTION: the link is a secret, it stays on this device (never synced) -->
+                <section id="settings-section-unical" class="settings-section scroll-mt-4">
+                    <h3
+                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
+                        <i class="fas fa-calendar-days"></i> Calendario de la universidad
+                    </h3>
+                    <div
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-xs" style="color:var(--stk-text-2)">Pega el enlace de exportación de Moodle: Calendario &rarr; Importar o exportar calendarios &rarr; Exportar calendario &rarr; Obtener URL del calendario.</p>
+                        <div>
+                            <label for="uni-calendar-url-input"
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Enlace del calendario</label>
+                            <input type="url" id="uni-calendar-url-input" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+                                placeholder="https://eva.uapa.edu.do/calendar/export_execute.php?..."
+                                class="stk-input text-xs font-mono">
+                        </div>
+                        <button id="uni-calendar-refresh-btn" data-action="refreshUniEvents"
+                            class="stk-btn-primary w-full py-2.5 text-sm"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                        <p id="uni-calendar-status" class="text-[11px] font-semibold" style="color:var(--stk-text-3)" role="status" aria-live="polite">A&uacute;n no se ha actualizado</p>
+                        <p class="text-[11px] pt-3" style="color:var(--stk-text-3);border-top:1px solid var(--stk-hairline)"><i class="fas fa-lock mr-1"></i> El enlace funciona como una contrase&ntilde;a: se guarda solo en este dispositivo y no se sube a la nube. Si el navegador bloquea la descarga, pasa por un intermediario que no guarda nada.</p>
+                        <button data-action="clearUniCalendar"
+                            class="text-xs font-bold hover:underline" style="color:var(--stk-ink-goal)"><i class="fas fa-unlink mr-1"></i> Quitar enlace y entregas</button>
                     </div>
                 </section>
 

@@ -54,6 +54,18 @@
     }
   }
 
+  function removeItem(key) {
+    const storage = getStorage();
+    if (!storage) return false;
+
+    try {
+      storage.removeItem(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function getJson(key, fallback = null) {
     const raw = getItem(key);
     if (raw === null || raw === '') return fallback;
@@ -115,6 +127,7 @@
     getItem,
     getJson,
     getNumber,
+    removeItem,
     setBoolean,
     setItem,
     setJson,
