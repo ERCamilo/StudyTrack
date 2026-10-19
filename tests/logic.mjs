@@ -979,4 +979,39 @@ const sameData = (actual, expected, message) => assert.deepEqual(plainData(actua
   sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f, proxyUrl: PROXY }), { ok: false, error: 'not-calendar' });
 }
 
+// Regla de negocio: una nota con coma decimal vale lo mismo que con punto ("85,5" = 85.5).
+assert.equal(StudyTrackGrades.parseGradeNumber('85,5'), 85.5);
+assert.equal(StudyTrackGrades.parseGradeNumber('85.5'), 85.5);
+assert.equal(StudyTrackGrades.parseGradeNumber(' 85,5 '), 85.5);
+assert.equal(StudyTrackGrades.parseGradeNumber('0,5'), 0.5);
+assert.equal(StudyTrackGrades.parseGradeNumber('100'), 100);
+assert.equal(StudyTrackGrades.parseGradeNumber('0'), 0);
+assert.equal(StudyTrackGrades.parseGradeNumber(85.5), 85.5);   // a number already stored passes through
+assert.equal(StudyTrackGrades.parseGradeNumber(0), 0);
+
+// Regla de negocio: si la nota empieza con un número y sigue texto, se toma el número ("70abc" → 70).
+assert.equal(StudyTrackGrades.parseGradeNumber('70abc'), 70);
+assert.equal(StudyTrackGrades.parseGradeNumber('85,5 puntos'), 85.5);
+
+// Regla de negocio: vacío, solo espacios, o texto sin número al inicio significa "sin nota".
+assert.equal(StudyTrackGrades.parseGradeNumber(''), null);
+assert.equal(StudyTrackGrades.parseGradeNumber('   '), null);
+assert.equal(StudyTrackGrades.parseGradeNumber('abc'), null);
+assert.equal(StudyTrackGrades.parseGradeNumber(null), null);
+assert.equal(StudyTrackGrades.parseGradeNumber(undefined), null);
+
+// Regla de negocio: la coma se acepta en todas partes donde se lee una nota.
+assert.equal(StudyTrackProgress.parseGradeInput('85,5'), 85.5);
+assert.equal(StudyTrackProgress.parseGradeInput('70abc'), 70);
+assert.equal(StudyTrackAcademics.getNumericGrade({ grade: '85,5' }), 85.5);
+assert.equal(StudyTrackAcademics.getNumericGrade({ grade: 'abc' }), null);
+assert.equal(StudyTrackGrades.getGradeLabel('85,5', scale).label, 'B');
+assert.equal(StudyTrackGrades.getGradeLabel('89,9', scale).label, 'B');
+assert.equal(StudyTrackGrades.getGradeLabel('90,0', scale).label, 'A');   // límite de A escrito con coma
+assert.equal(StudyTrackGrades.getGradeLabel('70abc', scale).label, 'C');
+assert.equal(StudyTrackGrades.getGradeLabel('abc', scale), null);
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '70,0').status, 'approved');   // límite de aprobación con coma
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').status, 'pending');
+assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 69.9);
+
 console.log('Logic checks passed');

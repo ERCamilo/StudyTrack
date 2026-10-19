@@ -277,6 +277,15 @@ assert.ok(code.includes('stk-subject-card--warning'), 'Missing-grade cards shoul
 assert.ok(code.includes('stk-warn-text'), 'Missing-grade cards should show a visible warning');
 assert.ok(code.includes('Falta registrar la nota'), 'Missing-grade cards should explain the pending action');
 assert.ok(code.includes('stk-grade'), 'Subject actions should keep the literal grade control scannable');
+// Regla de negocio: la coma decimal debe poder escribirse en cualquier teléfono. Un input type="number"
+// la bloquea o la entrega vacía en algunos navegadores (y la nota se borraría), así que el campo de nota es
+// de texto con teclado decimal.
+{
+  const gradeInput = cardsJs.match(/<input[^>]*class="stk-grade"[^>]*>/)?.[0] ?? '';
+  assert.ok(gradeInput, 'The subject grade input must exist in src/cards.js');
+  assert.ok(gradeInput.includes('type="text"'), 'The grade input must be type="text" so a decimal comma always reaches the code');
+  assert.ok(gradeInput.includes('inputmode="decimal"'), 'The grade input must open the decimal keypad on phones');
+}
 assert.ok(code.includes('function animateSubjectEntrance()'), 'Subjects view should run a staggered entrance');
 assert.ok(code.includes('function popSubjectOrb(id)'), 'Approving a subject should trigger a celebratory pop');
 assert.ok(code.includes('@media (prefers-reduced-motion: reduce)'), 'Motion must respect the reduced-motion preference');
