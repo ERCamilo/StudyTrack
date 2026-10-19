@@ -2597,21 +2597,31 @@
             if (button) { button.disabled = true; button.classList.add('opacity-50'); }
             setUniCalendarStatus('Actualizando…');
             try {
-                const result = await StudyTrackUniEvents.loadCalendarText(url, {
-                    proxyUrl: UNI_CALENDAR_PROXY_URL,
-                    fetchImpl: (target) => fetch(target, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
-                });
-                const parsed = result.ok ? StudyTrackUniEvents.parseIcs(result.text) : result;
-                if (!parsed.ok) {
-                    setUniCalendarStatus(StudyTrackUniEventsView.errorMessage(parsed.error), 'error');
+                const ranges = StudyTrackUniEvents.calendarRangeUrls(url);
+                const download = async (target) => {
+                    const result = await StudyTrackUniEvents.loadCalendarText(target, {
+                        proxyUrl: UNI_CALENDAR_PROXY_URL,
+                        fetchImpl: (address) => fetch(address, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+                    });
+                    return result.ok ? StudyTrackUniEvents.parseIcs(result.text) : result;
+                };
+                const upcoming = await download(ranges.upcoming);
+                if (!upcoming.ok) {
+                    setUniCalendarStatus(StudyTrackUniEventsView.errorMessage(upcoming.error), 'error');
                     return;
                 }
+                // The past range is optional: if it fails, the update still counts with the upcoming deliveries.
+                const past = await download(ranges.past);
+                const fresh = [...upcoming.events, ...(past.ok ? past.events : [])];
+                // History is kept only for the same link; a different link (another account) starts clean.
+                const previous = url === getUniCalendarUrl() ? getUniCalendarStore()?.events : null;
+                const events = StudyTrackUniEvents.mergeStoredEvents(previous, fresh, new Date());
                 // Saved only after a successful download, so a mistyped link never replaces a working one.
                 StudyTrackStorage.setItem(StudyTrackStorage.KEYS.uniCalendarUrl, url);
-                StudyTrackStorage.setJson(StudyTrackStorage.KEYS.uniEvents, { fetchedAt: new Date().toISOString(), events: parsed.events });
+                StudyTrackStorage.setJson(StudyTrackStorage.KEYS.uniEvents, { fetchedAt: new Date().toISOString(), events });
                 setUniCalendarStatus(StudyTrackUniEventsView.statusLine(uniStatusMeta(), new Date(), UNI_TIME_ZONE), 'success');
                 refreshUniViews();
-                const count = parsed.events.length;
+                const count = events.length;
                 showToast(`Calendario actualizado: ${count} ${count === 1 ? 'entrega' : 'entregas'}`, 'success');
             } catch {
                 setUniCalendarStatus(StudyTrackUniEventsView.errorMessage('unknown'), 'error');

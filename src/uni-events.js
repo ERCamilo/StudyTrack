@@ -104,6 +104,28 @@
     return value instanceof Date ? value.getTime() : Date.parse(value);
   }
 
+  function mergeStoredEvents(stored, fresh, now) {
+    const nowMs = toMs(now);
+    const seen = new Set();
+    const merged = [];
+
+    // Fresh download first: the first occurrence of a uid wins, and it replaces any stored copy.
+    for (const event of Array.isArray(fresh) ? fresh : []) {
+      if (!event || seen.has(event.uid)) continue;
+      seen.add(event.uid);
+      merged.push(event);
+    }
+
+    // Stored events missing from the download survive only if they are already past.
+    for (const event of Array.isArray(stored) ? stored : []) {
+      if (!event || seen.has(event.uid)) continue;
+      seen.add(event.uid);
+      if (toMs(event.start) < nowMs) merged.push(event);
+    }
+
+    return merged.sort((a, b) => toMs(a.start) - toMs(b.start));
+  }
+
   function toUniEvents(parsedEvents, curriculum) {
     const index = buildSubjectIndex(curriculum);
     const seen = new Set();
@@ -190,6 +212,23 @@
     return Boolean(match) && match[1] === CALENDAR_PATH;
   }
 
+  function calendarRangeUrls(url) {
+    const text = String(url ?? '');
+    const hashAt = text.indexOf('#');
+    const base = hashAt < 0 ? text : text.slice(0, hashAt);
+    const fragment = hashAt < 0 ? '' : text.slice(hashAt);
+
+    const withPreset = (value) => {
+      if (/([?&])preset_time=[^&]*/.test(base)) {
+        return base.replace(/([?&])preset_time=[^&]*/g, `$1preset_time=${value}`) + fragment;
+      }
+      const separator = base.includes('?') ? '&' : '?';
+      return `${base}${separator}preset_time=${value}${fragment}`;
+    };
+
+    return { upcoming: withPreset('recentupcoming'), past: withPreset('custom') };
+  }
+
   async function fetchText(fetchImpl, url) {
     let response;
     try {
@@ -231,6 +270,8 @@
     nextForSubject,
     dayKey,
     eventsByDay,
-    loadCalendarText
+    loadCalendarText,
+    calendarRangeUrls,
+    mergeStoredEvents
   };
 })(typeof window !== 'undefined' ? window : globalThis);
