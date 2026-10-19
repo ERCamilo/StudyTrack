@@ -4,9 +4,8 @@
   }
 
   function getNumericGrade(progressEntry) {
-    if (!progressEntry || progressEntry.grade === null || progressEntry.grade === undefined || progressEntry.grade === '') return null;
-    const grade = Number.parseFloat(progressEntry.grade);
-    return Number.isFinite(grade) ? grade : null;
+    if (!progressEntry) return null;
+    return global.StudyTrackGrades.parseGradeNumber(progressEntry.grade);
   }
 
   function calculateAcademicSummary(curriculum, progress, { getGradePoints = () => 0, getGradeLabel = () => null } = {}) {

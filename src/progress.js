@@ -16,10 +16,7 @@
   }
 
   function parseGradeInput(value) {
-    if (value === null || value === undefined || value === '') return null;
-
-    const grade = Number.parseFloat(value);
-    return Number.isFinite(grade) ? grade : null;
+    return global.StudyTrackGrades.parseGradeNumber(value);
   }
 
   function applyGradeToSubjectProgress(currentProgress, value, passingGrade = 70) {

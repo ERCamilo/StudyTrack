@@ -139,7 +139,7 @@
   function gradeInputHTML(data, { escapeHtml, actionArgs }, extraAttrs = '') {
     const safeSubjectName = escapeHtml(data.name);
     const safeGrade = escapeHtml(data.grade ?? '');
-    return `<input type="number" min="0" max="100" step="any" class="stk-grade" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" data-change="updateGrade" data-args="${actionArgs(data.id, '$value')}" ${extraAttrs}>`;
+    return `<input type="text" inputmode="decimal" class="stk-grade" aria-label="Nota de ${safeSubjectName}" placeholder="--" value="${safeGrade}" data-change="updateGrade" data-args="${actionArgs(data.id, '$value')}" ${extraAttrs}>`;
   }
 
   function renderEnrolledCard(data, helpers) {
