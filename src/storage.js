@@ -10,6 +10,8 @@
     gradeScale: 'grade_scale',
     passingGrade: 'passing_grade',
     schedule: 'studytrack_schedule_v1',
+    uniCalendarUrl: 'studytrack_uni_calendar_url_v1',
+    uniEvents: 'studytrack_uni_events_v1',
     scheduleViewType: 'schedule_view_type',
     studentName: 'studytrack_student_name',
     studentPhoto: 'studytrack_student_photo',

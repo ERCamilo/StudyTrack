@@ -13,11 +13,11 @@ context.localStorage = {
   setItem: (key, value) => store.set(key, String(value))
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -848,6 +848,136 @@ assert.equal(StudyTrackMilestones.normalizeStats({ average: 'x' }).average, null
 // Regla de negocio: una nota hecha solo de espacios significa "sin nota", igual que parseGradeInput.
 assert.equal(StudyTrackGrades.getGradeLabel('   ', scale), null);
 assert.equal(StudyTrackGrades.getGradeLabel(' 85 ', scale).label, 'B');
+
+// Values built inside the vm context have that realm's prototypes; compare them as plain data.
+const plainData = (value) => JSON.parse(JSON.stringify(value));
+const sameData = (actual, expected, message) => assert.deepEqual(plainData(actual), expected, message);
+
+// ===== Eventos de la universidad (openspec/changes/eventos-universidad) =====
+{
+  const U = StudyTrackUniEvents;
+  const ICS = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Moodle Pty Ltd//NONSGML Moodle Version 2024//EN',
+    'BEGIN:VEVENT', 'UID:101@eva.uapa.edu.do', 'SUMMARY:Vencimiento de Proyecto final (Valor de 40 puntos)',
+    'DTSTART:20261016T035900Z', 'DTEND:20261016T035900Z', 'CATEGORIES:202633-ISW410-V20-1187-0', 'END:VEVENT',
+    'BEGIN:VEVENT', 'UID:102@eva.uapa.edu.do', 'SUMMARY:Vencimiento de Tarea # 1\\, parte A\; con nota',
+    'DTSTART:20261021T035900Z', 'CATEGORIES:202633-ISW201-V20-1210-0', 'END:VEVENT',
+    'BEGIN:VEVENT', 'UID:103@eva.uapa.edu.do', 'SUMMARY:Vencimiento de Un título muy largo que Moodle par',
+    ' te en dos líneas', 'DTSTART:20261101T120000Z', 'CATEGORIES:202633-XYZ999-V20-1-0', 'END:VEVENT',
+    'BEGIN:VEVENT', 'UID:104@eva.uapa.edu.do', 'SUMMARY:Feriado', 'DTSTART;VALUE=DATE:20261106', 'END:VEVENT',
+    'END:VCALENDAR', '',
+  ].join('\r\n');
+
+  // Regla de negocio: se lee un evento por cada VEVENT, con su fecha en UTC; las líneas partidas por Moodle se unen y los caracteres escapados se leen bien.
+  const parsed = U.parseIcs(ICS);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.events.length, 4);
+  sameData(parsed.events[0], { uid: '101@eva.uapa.edu.do', summary: 'Vencimiento de Proyecto final (Valor de 40 puntos)', start: '2026-10-16T03:59:00.000Z', allDay: false, categories: ['202633-ISW410-V20-1187-0'] });
+  assert.equal(parsed.events[1].summary, 'Vencimiento de Tarea # 1, parte A; con nota');
+  assert.equal(parsed.events[2].summary, 'Vencimiento de Un título muy largo que Moodle parte en dos líneas');
+  sameData([parsed.events[3].start, parsed.events[3].allDay, parsed.events[3].categories], ['2026-11-06', true, []]);
+  assert.equal(U.parseIcs(ICS.replace(/\r\n/g, '\n')).events.length, 4, 'LF line endings work too');
+
+  // Regla de negocio: una respuesta que no es un calendario (por ejemplo la página de login) no se acepta.
+  sameData(U.parseIcs('<!DOCTYPE html><html><body>Acceder</body></html>'), { ok: false, error: 'not-calendar' });
+  sameData(U.parseIcs(''), { ok: false, error: 'not-calendar' });
+  assert.equal(U.parseIcs('﻿' + ICS).ok, true, 'a leading BOM is fine');
+
+  // Regla de negocio: el código del curso sale de CATEGORIES ("202633-ISW201-V20-1210-0" → "ISW201").
+  assert.equal(U.courseCodeFromCategory('202633-ISW201-V20-1210-0'), 'ISW201');
+  assert.equal(U.courseCodeFromCategory('202633-mer415-V22-3371-0'), 'MER415');
+  assert.equal(U.courseCodeFromCategory('Sin código'), null);
+  assert.equal(U.courseCodeFromCategory(''), null);
+
+  const curriculum = { periods: [
+    { period_number: 3, subjects: [{ id: 'ISW-201', code: 'ISW-201', name: 'Ingeniería de Software I' }] },
+    { period_number: 9, subjects: [{ id: 'ISW-410', code: 'ISW-410', name: 'Seminario de Proyecto I' }] },
+  ] };
+
+  // Regla de negocio: cada evento se asocia a la materia cuyo código coincide con el del curso, sin importar guiones ni mayúsculas; si no hay materia, el evento se muestra igual sin materia.
+  // Regla de negocio: el título quita el prefijo "Vencimiento de ".
+  const events = U.toUniEvents(parsed.events, curriculum);
+  sameData(events.map((e) => [e.uid, e.subjectId]), [
+    ['101@eva.uapa.edu.do', 'ISW-410'], ['102@eva.uapa.edu.do', 'ISW-201'], ['103@eva.uapa.edu.do', null], ['104@eva.uapa.edu.do', null],
+  ]);
+  sameData(events[0], { uid: '101@eva.uapa.edu.do', title: 'Proyecto final (Valor de 40 puntos)', dueAt: '2026-10-16T03:59:00.000Z', allDay: false, courseCode: 'ISW410', subjectId: 'ISW-410' });
+  assert.equal(events[3].title, 'Feriado');
+  assert.equal(U.toUniEvents(parsed.events, null)[0].subjectId, null, 'without a curriculum nothing is linked');
+
+  // Regla de negocio: si el calendario trae el mismo evento dos veces, se queda uno; la lista sale ordenada por fecha.
+  const dup = U.toUniEvents([parsed.events[1], parsed.events[0], parsed.events[1]], curriculum);
+  sameData(dup.map((e) => e.uid), ['101@eva.uapa.edu.do', '102@eva.uapa.edu.do']);
+
+  // Regla de negocio: una entrega vencida se muestra como vencida durante 7 días y después se oculta.
+  const due = { uid: 'x', title: 'X', dueAt: '2026-10-16T03:59:00.000Z', allDay: false, courseCode: null, subjectId: null };
+  assert.equal(U.isOverdue(due, '2026-10-16T03:58:59.000Z'), false);
+  assert.equal(U.isOverdue(due, '2026-10-16T03:59:00.000Z'), false);          // justo a la hora todavía no está vencida
+  assert.equal(U.isOverdue(due, '2026-10-16T03:59:00.001Z'), true);
+  assert.equal(U.isVisible(due, '2026-10-23T03:59:00.000Z'), true);           // exactamente 7 días después: todavía se ve
+  assert.equal(U.isVisible(due, '2026-10-23T03:59:00.001Z'), false);          // un instante más: se oculta
+  assert.equal(U.isVisible(due, '2026-10-01T00:00:00.000Z'), true);
+
+  // Regla de negocio: las próximas entregas son las visibles, ordenadas por fecha (las vencidas recientes primero).
+  const now = '2026-10-19T15:00:00.000Z';
+  sameData(U.upcoming(events, now).map((e) => e.uid), ['101@eva.uapa.edu.do', '102@eva.uapa.edu.do', '103@eva.uapa.edu.do', '104@eva.uapa.edu.do']);
+  sameData(U.upcoming(events, '2026-10-24T00:00:00.000Z').map((e) => e.uid), ['102@eva.uapa.edu.do', '103@eva.uapa.edu.do', '104@eva.uapa.edu.do']);
+
+  // Regla de negocio: la próxima entrega de una materia es la más cercana que todavía no venció; si no hay, ninguna.
+  assert.equal(U.nextForSubject(events, 'ISW-201', now).uid, '102@eva.uapa.edu.do');
+  assert.equal(U.nextForSubject(events, 'ISW-410', now), null);               // la suya ya venció
+  assert.equal(U.nextForSubject(events, 'NO-EXISTE', now), null);
+
+  // Regla de negocio: el día del calendario se calcula en la hora local: 03:59 UTC del 16 es el 15 a las 11:59 p. m. en RD.
+  assert.equal(U.dayKey('2026-10-16T03:59:00.000Z', 'America/Santo_Domingo'), '2026-10-15');
+  assert.equal(U.dayKey('2026-10-16T04:00:00.000Z', 'America/Santo_Domingo'), '2026-10-16');
+  assert.equal(U.dayKey('2026-11-06', 'America/Santo_Domingo'), '2026-11-06');  // un evento de todo el día no cambia de día
+
+  // Regla de negocio: la vista de calendario agrupa los eventos por día local, solo los del mes pedido (mes 1 = enero).
+  const october = U.eventsByDay(events, 2026, 10, 'America/Santo_Domingo');
+  sameData(Object.keys(october).sort(), ['2026-10-15', '2026-10-20']);
+  sameData(october['2026-10-15'].map((e) => e.uid), ['101@eva.uapa.edu.do']);
+  sameData(Object.keys(U.eventsByDay(events, 2026, 11, 'America/Santo_Domingo')).sort(), ['2026-11-01', '2026-11-06']);
+  sameData(U.eventsByDay([], 2026, 10, 'America/Santo_Domingo'), {});
+}
+
+// ===== Descarga del calendario =====
+{
+  const U = StudyTrackUniEvents;
+  const URL_OK = 'https://eva.uapa.edu.do/calendar/export_execute.php?userid=1&authtoken=abc&preset_what=all&preset_time=recentupcoming';
+  const PROXY = 'https://ics-proxy.example.workers.dev';
+  const CAL = 'BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n';
+  const fakeFetch = (plan) => { const calls = []; const f = async (u) => { calls.push(u); const step = plan.shift(); if (step instanceof Error) throw step; return { ok: step.status === 200, status: step.status, text: async () => step.body }; }; f.calls = calls; return f; };
+
+  // Regla de negocio: solo se acepta un enlace https de exportación de calendario de Moodle.
+  for (const bad of ['', 'http://eva.uapa.edu.do/calendar/export_execute.php?x=1', 'https://eva.uapa.edu.do/login/index.php', 'no es un enlace']) {
+    sameData(await U.loadCalendarText(bad, { fetchImpl: fakeFetch([]), proxyUrl: PROXY }), { ok: false, error: 'invalid-url' });
+  }
+
+  // Regla de negocio: primero se intenta directo; si funciona, no se usa el intermediario.
+  let f = fakeFetch([{ status: 200, body: CAL }]);
+  sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f, proxyUrl: PROXY }), { ok: true, text: CAL, via: 'direct' });
+  sameData(f.calls, [URL_OK]);
+
+  // Regla de negocio: si el navegador bloquea la descarga directa (error de red/CORS), se usa el intermediario con el enlace codificado.
+  f = fakeFetch([new TypeError('Failed to fetch'), { status: 200, body: CAL }]);
+  sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f, proxyUrl: PROXY }), { ok: true, text: CAL, via: 'proxy' });
+  sameData(f.calls, [URL_OK, `${PROXY}?url=${encodeURIComponent(URL_OK)}`]);
+
+  // Regla de negocio: sin intermediario configurado, un bloqueo se reporta como error de red.
+  f = fakeFetch([new TypeError('Failed to fetch')]);
+  sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f }), { ok: false, error: 'network' });
+  f = fakeFetch([new TypeError('Failed to fetch'), new TypeError('Failed to fetch')]);
+  sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f, proxyUrl: PROXY }), { ok: false, error: 'network' });
+
+  // Regla de negocio: si la universidad responde con error, se informa el código y no se reintenta por el intermediario.
+  f = fakeFetch([{ status: 403, body: 'Forbidden' }]);
+  sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f, proxyUrl: PROXY }), { ok: false, error: 'http-403' });
+  assert.equal(f.calls.length, 1);
+
+  // Regla de negocio: si lo descargado no es un calendario (enlace vencido → página de login), se avisa.
+  f = fakeFetch([{ status: 200, body: '<html>Acceder</html>' }]);
+  sameData(await U.loadCalendarText(URL_OK, { fetchImpl: f, proxyUrl: PROXY }), { ok: false, error: 'not-calendar' });
+}
 
 // Regla de negocio: una nota con coma decimal vale lo mismo que con punto ("85,5" = 85.5).
 assert.equal(StudyTrackGrades.parseGradeNumber('85,5'), 85.5);

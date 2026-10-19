@@ -82,8 +82,22 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
+}
+
+// Eventos de la universidad: el módulo se carga y queda disponible sin conexión.
+assert.ok(code.includes('<script src="./src/uni-events.js"></script>'), 'index.html must load the university events module');
+assert.ok(serviceWorker.includes("'./src/uni-events.js'"), 'Service worker should cache the university events module');
+
+// Regla de negocio: el enlace del calendario de la universidad es secreto: se guarda solo en el dispositivo y nunca se sincroniza.
+{
+  const storageJs = fs.readFileSync('src/storage.js', 'utf8');
+  const syncJs = fs.readFileSync('src/firebase-sync.js', 'utf8');
+  assert.match(storageJs, /uniCalendarUrl:\s*'[^']+'/, 'storage.js must define a key for the calendar link');
+  assert.match(storageJs, /uniEvents:\s*'[^']+'/, 'storage.js must define a key for the imported events');
+  assert.ok(!syncJs.includes('uniCalendarUrl'), 'The calendar link must never be part of Firebase sync');
+  assert.ok(!syncJs.includes('uniEvents'), 'Imported university events stay on the device');
 }
 
 assert.match(html, /id="stat-gpa">N\/A/);
