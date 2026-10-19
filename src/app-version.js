@@ -3,9 +3,22 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.0';
 
   const CHANGELOG = [
+    {
+      version: '1.1.0',
+      date: '2026-10-19',
+      title: 'Más cómoda en el celular y actualizaciones más claras',
+      items: [
+        'La app busca actualizaciones sola cada vez que vuelves a abrirla, y puedes buscarlas a mano en Configuración.',
+        'Los avisos ahora salen abajo, al alcance del pulgar, y los lectores de pantalla los anuncian.',
+        'El botón atrás del teléfono y la tecla Esc cierran las ventanas en vez de salir de la app.',
+        'Botones más grandes y textos más legibles; los campos ya no hacen zoom al escribir en iPhone.',
+        'Confirmaciones claras antes de reiniciar notas o borrar tus datos.',
+        'La búsqueda de materias responde más fluida y cada pantalla empieza desde arriba.'
+      ]
+    },
     {
       version: '1.0.0',
       date: '2026-10-19',
@@ -44,5 +57,13 @@
       .slice(0, Math.max(0, limit));
   }
 
-  global.StudyTrackVersion = { APP_VERSION, CHANGELOG, compareVersions, getUnseenReleases };
+  // True when enough time passed since the last update check. A clock that moved backwards
+  // (now < lastCheck) allows a check instead of blocking until the clock catches up.
+  function shouldCheckForUpdate(lastCheckMs, nowMs, minIntervalMs) {
+    if (typeof lastCheckMs !== 'number' || !Number.isFinite(lastCheckMs)) return true;
+    const elapsed = nowMs - lastCheckMs;
+    return elapsed < 0 || elapsed >= minIntervalMs;
+  }
+
+  global.StudyTrackVersion = { APP_VERSION, CHANGELOG, compareVersions, getUnseenReleases, shouldCheckForUpdate };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v21';
+const CACHE_NAME = 'studytrack-shell-v22';
 const APP_SHELL = [
   './',
   './index.html',
@@ -28,7 +28,11 @@ const APP_SHELL = [
   './src/firebase-sync.js',
   './src/app.js',
   './icons/studytrack-icon.svg',
-  './icons/studytrack-maskable.svg'
+  './icons/studytrack-maskable.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {

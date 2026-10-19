@@ -13,13 +13,17 @@
     <meta name="description" content="Tu copiloto académico inteligente">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">
-    <link rel="apple-touch-icon" href="icons/studytrack-icon.svg">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MiRuta">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>MiRuta - Tu Copiloto Académico</title>
     <!-- Tailwind compiled locally (see tailwind.config.js + npm/binary build). Replaces the Play CDN. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="dist/tailwind.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap"
@@ -367,8 +371,8 @@
             --stk-surface: #ffffff;
             --stk-surface-2: #edf1fb;
             --stk-text-1: #111633;
-            --stk-text-2: #636b8c;
-            --stk-text-3: #a6adc2;
+            --stk-text-2: #4f5675;
+            --stk-text-3: #6b7290;
             --stk-hairline: rgba(17, 22, 51, 0.08);
             --stk-shadow: 0 1px 2px rgba(17, 22, 51, .04), 0 8px 22px rgba(17, 22, 51, .08);
             --stk-radius: 18px;
@@ -579,7 +583,7 @@
         button.stk-surface-card:active, a.stk-surface-card:active { transform: scale(.985); }
         /* Round icon button (header chrome) */
         .stk-icon-btn {
-            width: 40px; height: 40px; border-radius: var(--stk-radius-sm);
+            width: 44px; height: 44px; border-radius: var(--stk-radius-sm);
             display: flex; align-items: center; justify-content: center;
             background: var(--stk-surface-2); color: var(--stk-text-2); border: none; cursor: pointer;
             transition: background-color .2s var(--stk-ease), transform .2s var(--stk-spring);
@@ -884,6 +888,19 @@
         .stk-cal-nav .stk-sched-pill { padding: 6px 10px; }
         .stk-cal-nav .stk-sched-pill i { margin: 0; }
         .stk-cal-month { font-size: 11px; font-weight: 800; color: var(--stk-text-1); padding: 0 4px; white-space: nowrap; text-transform: capitalize; min-width: 92px; text-align: center; }
+
+        /* ---- Mobile ergonomics ---- */
+        .filter-btn { min-height: 44px; }
+        .stk-sched-pill { min-height: 44px; }
+        /* iOS Safari zooms the page when a focused field is below 16px. */
+        @media (max-width: 640px) {
+            .stk-input.stk-input, .stk-field input, .stk-search.stk-search { font-size: 16px; }
+        }
+        /* 100vh ignores the mobile browser bars; dvh follows them. */
+        @supports (height: 1dvh) {
+            #settings-modal > div, #schedule-modal > div { max-height: 90dvh; }
+        }
+        #whats-new-modal, #schedule-modal, #settings-modal { overscroll-behavior: contain; }
 
         @media (prefers-reduced-motion: reduce) {
             .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
@@ -1279,7 +1296,7 @@
                         style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
                         <div class="w-full h-full rounded-full flex flex-col items-center justify-center" style="background: var(--stk-surface)">
                             <div id="mobile-progress-value" class="text-xl font-black text-emerald-600 dark:text-emerald-400">0%</div>
-                            <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500">avance</div>
+                            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">avance</div>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -1288,19 +1305,19 @@
                         <div class="grid grid-cols-4 gap-1.5">
                             <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5 text-center">
                                 <div id="mobile-earned-credits" class="text-sm font-black text-emerald-700 dark:text-emerald-300">0</div>
-                                <div class="text-[9px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
+                                <div class="text-[10px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
                             </div>
                             <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5 text-center">
                                 <div id="mobile-index" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
-                                <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
+                                <div class="text-[10px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
                             </div>
                             <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5 text-center">
                                 <div id="mobile-letter" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
-                                <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
+                                <div class="text-[10px] leading-tight text-blue-700/70 dark:text-blue-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
                             </div>
                             <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 px-2 py-1.5 text-center">
                                 <div id="mobile-remaining-subjects" class="text-sm font-black text-slate-700 dark:text-slate-200">0</div>
-                                <div class="text-[9px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
+                                <div class="text-[10px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
                             </div>
                         </div>
                     </div>
@@ -1913,6 +1930,9 @@
                         <button data-action="exportProgress"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
+                        <button data-action="checkForAppUpdate"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-cloud-arrow-down mr-2" style="color:var(--stk-tint)"></i> Buscar actualizaciones</button>
                         <button data-action="forceAppRefresh"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
@@ -2142,7 +2162,8 @@
         </div>
     </div>
 
-    <div id="toast-container" class="fixed top-20 right-4 z-[110] space-y-2 max-w-sm"></div>
+    <div id="toast-container" role="status" aria-live="polite" aria-atomic="false" class="fixed left-0 right-0 flex flex-col items-center gap-2 px-4 pointer-events-none"
+        style="z-index:130;bottom:calc(84px + env(safe-area-inset-bottom, 0px))"></div>
 
     <script src="./src/app.js"></script>
 </body>

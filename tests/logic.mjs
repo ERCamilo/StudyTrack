@@ -1185,6 +1185,14 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.equal(V.CHANGELOG[0].version, V.APP_VERSION);
   assert.ok(V.CHANGELOG.every((r) => /^\d+\.\d+\.\d+$/.test(r.version) && r.items.length > 0));
   assert.ok(V.CHANGELOG.every((r, i) => i === 0 || V.compareVersions(V.CHANGELOG[i - 1].version, r.version) === 1), 'orden descendente sin repetidos');
+
+  // Regla de negocio: la app busca actualizaciones al volver a primer plano, pero a lo sumo una vez cada 30 minutos.
+  const MIN = 30 * 60 * 1000;
+  assert.equal(V.shouldCheckForUpdate(null, 1000, MIN), true, 'nunca se ha buscado');
+  assert.equal(V.shouldCheckForUpdate(0, MIN, MIN), true, 'justo en el límite: pasaron exactamente 30 minutos');
+  assert.equal(V.shouldCheckForUpdate(0, MIN - 1, MIN), false, 'un milisegundo antes del límite');
+  assert.equal(V.shouldCheckForUpdate(5000, 1000, MIN), true, 'reloj atrasado: se permite buscar');
+  assert.equal(V.shouldCheckForUpdate(undefined, 1000, MIN), true);
 }
 
 console.log('Logic checks passed');

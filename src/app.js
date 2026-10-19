@@ -214,7 +214,7 @@
             if (!selectedItem) return;
 
             // Warning if switching careers via settings
-            if (origin === 'settings' && !confirm(`¿Cargar ${selectedItem.career_name}? \n⚠️ Se reiniciará tu progreso actual.`)) {
+            if (origin === 'settings' && !(await askConfirm({ title: `¿Cargar ${selectedItem.career_name}?`, message: 'Se reiniciará tu progreso actual. Esta acción no se puede deshacer.', confirmLabel: 'Cargar carrera', danger: true }))) {
                 return;
             }
 
@@ -626,7 +626,7 @@
         function saveCurriculum() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.curriculum, currentCurriculum); notifySyncChange(); }
         function saveUserProgress() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.progress, userProgress); notifySyncChange(); }
         let appEventListenersReady = false;
-        function setupEventListeners() { if (appEventListenersReady) return; appEventListenersReady = true; document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value)); }
+        function setupEventListeners() { if (appEventListenersReady) return; appEventListenersReady = true; const searchInput = document.getElementById('search-input'); let searchTimer = null; searchInput.addEventListener('input', (e) => { clearTimeout(searchTimer); const text = e.target.value; searchTimer = setTimeout(() => handleSearch(text), 150); }); searchInput.addEventListener('search', (e) => { clearTimeout(searchTimer); handleSearch(e.target.value); }); setupDialogLayers(); }
         function handleSearch(text) { renderPeriods(text); }
         function checkPrerequisites(prereqs) { return StudyTrackPrerequisites.checkPrerequisites(prereqs, userProgress, currentCurriculum); }
         function areAllOtherSubjectsCompleted() { return StudyTrackPrerequisites.areAllOtherSubjectsCompleted(currentCurriculum, userProgress); }
@@ -874,7 +874,7 @@
                 : recommendation.category === 'close-period' ? 'bg-blue-500'
                     : recommendation.category === 'light-load' ? 'bg-amber-500'
                         : 'bg-slate-500';
-            return `<button data-action="handleHomeAction" data-args='["pending"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
+            return `<button data-action="handleHomeAction" data-args='["pending"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
         }
 
         function renderHomeEmpty(icon, title, detail) {
@@ -1348,19 +1348,159 @@
             setTimeout(() => showWhatsNew(releases, `Actualizaste a la versión ${current}`), isReducedMotion() ? 300 : 1500);
         }
 
+        // ── Updates ────────────────────────────────────────────────────────
+        // A new version activates with skipWaiting/clients.claim; until then this page may run old cached
+        // scripts under new HTML. Reload once when the new worker takes control, but not on the very first
+        // install (there was no previous version to replace). tests/smoke.mjs pins this rule.
+        const UPDATE_CHECK_MIN_INTERVAL_MS = 30 * 60 * 1000;
+        let swRegistration = null;
+        let lastUpdateCheck = null;
+        let reloadingForUpdate = false;
         function registerServiceWorker() {
             if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;
-            // A new version activates with skipWaiting/clients.claim; until then this page may run old
-            // cached scripts under new HTML. Reload once when the new worker takes control, but not on
-            // the very first install (there was no previous version to replace).
             const hadController = Boolean(navigator.serviceWorker.controller);
-            let reloading = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!hadController || reloading) return;
-                reloading = true;
+                if (!hadController || reloadingForUpdate) return;
+                reloadingForUpdate = true;
                 location.reload();
             });
-            navigator.serviceWorker.register('./sw.js').then((registration) => registration.update()).catch(() => { });
+            navigator.serviceWorker.register('./sw.js').then((registration) => {
+                swRegistration = registration;
+                lastUpdateCheck = Date.now();
+                return registration.update();
+            }).catch(() => { });
+            // Installed PWAs stay alive for days: look for updates whenever the app comes back to the foreground.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible' || !swRegistration) return;
+                if (!StudyTrackVersion.shouldCheckForUpdate(lastUpdateCheck, Date.now(), UPDATE_CHECK_MIN_INTERVAL_MS)) return;
+                lastUpdateCheck = Date.now();
+                swRegistration.update().catch(() => { });
+            });
+        }
+        async function checkForAppUpdate() {
+            if (!swRegistration) { showToast('Las actualizaciones automáticas no están disponibles en este navegador', 'info'); return; }
+            showToast('Buscando actualizaciones…', 'info', { key: 'update-check' });
+            try {
+                await swRegistration.update();
+                lastUpdateCheck = Date.now();
+            } catch (e) { showToast('No se pudo buscar. Revisa tu conexión.', 'error', { key: 'update-check' }); return; }
+            if (reloadingForUpdate) return;
+            if (swRegistration.installing || swRegistration.waiting) showToast('Descargando la nueva versión… la app se reiniciará sola.', 'info', { key: 'update-check' });
+            else showToast(`Ya tienes la última versión (v${StudyTrackVersion.APP_VERSION})`, 'success', { key: 'update-check' });
+        }
+
+        // ── Dialog layers: back button, Escape and focus ───────────────────
+        // Every open modal is a "layer". Opening one pushes a history entry so the phone's back button
+        // closes it instead of leaving the app; closing it by any other route pops that entry again.
+        const modalLayers = [];
+        let ignoredPops = 0;
+        function layerOpened(el, close) {
+            if (modalLayers.some((l) => l.el === el)) return;
+            if (!el.getAttribute('role')) el.setAttribute('role', 'dialog');
+            el.setAttribute('aria-modal', 'true');
+            const layer = { el, close, opener: document.activeElement, poppedByBack: false };
+            modalLayers.push(layer);
+            try { history.pushState({ stkLayer: modalLayers.length }, ''); } catch (e) { layer.noHistory = true; }
+            if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+            requestAnimationFrame(() => { try { el.focus({ preventScroll: true }); } catch (e) { } });
+        }
+        function layerClosed(el) {
+            const i = modalLayers.findIndex((l) => l.el === el);
+            if (i < 0) return;
+            const [layer] = modalLayers.splice(i, 1);
+            if (!layer.poppedByBack && !layer.noHistory) { ignoredPops++; try { history.back(); } catch (e) { ignoredPops--; } }
+            if (layer.opener && layer.opener.isConnected && typeof layer.opener.focus === 'function') { try { layer.opener.focus({ preventScroll: true }); } catch (e) { } }
+        }
+        function dismissTopLayer(viaBack) {
+            const top = modalLayers[modalLayers.length - 1];
+            if (!top) return false;
+            top.poppedByBack = Boolean(viaBack);
+            top.close();
+            return true;
+        }
+        function setupDialogLayers() {
+            const dialogs = [
+                ['settings-modal', () => closeSettings()],
+                ['schedule-modal', () => closeScheduleModal()],
+                ['schedule-details-modal', () => closeDetailsModal()],
+                ['whats-new-modal', () => closeWhatsNew()]
+            ];
+            dialogs.forEach(([id, close]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const sync = () => { if (el.classList.contains('hidden')) layerClosed(el); else layerOpened(el, close); };
+                new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['class'] });
+                sync();
+            });
+            window.addEventListener('popstate', () => {
+                if (ignoredPops > 0) { ignoredPops--; return; }
+                dismissTopLayer(true);
+            });
+            document.addEventListener('keydown', (event) => {
+                const top = modalLayers[modalLayers.length - 1];
+                if (!top) return;
+                if (event.key === 'Escape') { event.preventDefault(); dismissTopLayer(false); return; }
+                if (event.key !== 'Tab') return;
+                const focusable = [...top.el.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter((n) => n.offsetParent !== null);
+                if (!focusable.length) { event.preventDefault(); return; }
+                const first = focusable[0], last = focusable[focusable.length - 1];
+                if (event.shiftKey && (document.activeElement === first || document.activeElement === top.el)) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+            });
+        }
+
+        // Styled replacement for window.confirm: resolves true only on the confirm button.
+        function askConfirm({ title, message = '', confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false } = {}) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4';
+                overlay.style.zIndex = '140';
+                overlay.setAttribute('role', 'alertdialog');
+                const panel = document.createElement('div');
+                panel.className = 'w-full rounded-3xl p-6 animate-slide-up';
+                panel.style.cssText = 'max-width:380px;background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);margin-bottom:env(safe-area-inset-bottom,0px)';
+                const h = document.createElement('h2');
+                h.id = 'confirm-title';
+                h.className = 'text-lg font-bold';
+                h.style.cssText = 'font-family:var(--stk-font-display);color:var(--stk-text-1)';
+                h.textContent = title || '';
+                const p = document.createElement('p');
+                p.id = 'confirm-message';
+                p.className = 'text-sm mt-2 leading-normal';
+                p.style.color = 'var(--stk-text-2)';
+                p.textContent = message;
+                overlay.setAttribute('aria-labelledby', 'confirm-title');
+                overlay.setAttribute('aria-describedby', 'confirm-message');
+                const row = document.createElement('div');
+                row.className = 'flex gap-3 mt-6';
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'stk-settings-row flex-1 font-bold text-sm';
+                cancel.style.minHeight = '48px';
+                cancel.textContent = cancelLabel;
+                const ok = document.createElement('button');
+                ok.type = 'button';
+                ok.className = 'stk-btn-primary flex-1 text-sm';
+                ok.style.cssText = `min-height:48px;${danger ? 'background:var(--stk-accent-goal)' : ''}`;
+                ok.textContent = confirmLabel;
+                row.append(cancel, ok);
+                panel.append(h, p, row);
+                overlay.appendChild(panel);
+                let settled = false;
+                const finish = (value) => {
+                    if (settled) return;
+                    settled = true;
+                    layerClosed(overlay);
+                    overlay.remove();
+                    resolve(value);
+                };
+                cancel.onclick = () => finish(false);
+                ok.onclick = () => finish(true);
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false); });
+                document.body.appendChild(overlay);
+                layerOpened(overlay, () => finish(false));
+                requestAnimationFrame(() => cancel.focus({ preventScroll: true })); // safer default for destructive actions
+            });
         }
         function getSubjectStatusLabel(subjectId) {
             const status = userProgress[subjectId]?.status || 'pending';
@@ -1552,13 +1692,46 @@
         }
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
         function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
-        function showToast(msg, type = 'info') { const t = document.createElement('div'); const s = { success: 'background:var(--stk-surface);color:var(--stk-ink-approved);border-left:4px solid var(--stk-accent-approved);box-shadow:var(--stk-shadow-hover)', error: 'background:var(--stk-surface);color:var(--stk-ink-goal);border-left:4px solid var(--stk-accent-goal);box-shadow:var(--stk-shadow-hover)', info: 'background:var(--stk-navy);color:#fff;box-shadow:var(--stk-shadow-hover)' }; t.className = 'px-4 py-3 rounded-lg fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm'; t.style.cssText = s[type] || s.info; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        // Toasts stack in #toast-container (bottom, above the tab bar, role=status so screen readers
+        // announce them). opts: { duration: ms (0 = stays until dismissed), key: replaces a toast with the
+        // same key, action: { label, run } adds a button }.
+        function showToast(msg, type = 'info', opts = {}) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const key = opts.key || '';
+            if (key) container.querySelectorAll('[data-toast-key]').forEach((el) => { if (el.dataset.toastKey === key) el.remove(); });
+            const palette = {
+                success: 'background:var(--stk-surface);color:var(--stk-ink-approved);border-left:4px solid var(--stk-accent-approved);box-shadow:var(--stk-shadow-hover)',
+                error: 'background:var(--stk-surface);color:var(--stk-ink-goal);border-left:4px solid var(--stk-accent-goal);box-shadow:var(--stk-shadow-hover)',
+                info: 'background:var(--stk-navy);color:#fff;box-shadow:var(--stk-shadow-hover)'
+            };
+            const t = document.createElement('div');
+            t.className = 'px-4 py-3 rounded-xl animate-slide-up font-medium text-sm flex items-center gap-3';
+            t.style.cssText = `${palette[type] || palette.info};pointer-events:auto;max-width:100%`;
+            if (key) t.dataset.toastKey = key;
+            const text = document.createElement('span');
+            text.textContent = msg;
+            t.appendChild(text);
+            if (opts.action) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = opts.action.label;
+                btn.className = 'font-extrabold shrink-0 px-3 rounded-lg';
+                btn.style.cssText = 'min-height:36px;background:rgba(255,255,255,.18);color:inherit';
+                btn.onclick = () => { t.remove(); opts.action.run(); };
+                t.appendChild(btn);
+            }
+            container.appendChild(t);
+            while (container.children.length > 3) container.firstElementChild.remove();
+            const duration = opts.duration === undefined ? (type === 'error' ? 4500 : 3000) : opts.duration;
+            if (duration > 0) setTimeout(() => t.remove(), duration);
+        }
         function calculatePeriodAverage(p) { return StudyTrackAcademics.calculatePeriodAverage(p, userProgress); }
 
         function calculatePeriodGPA4(p) { return StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints); }
 
         function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
-        function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Cargar?')) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
+        async function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (await askConfirm({ title: '¿Cargar esta carrera?', message: 'Se reiniciará tu progreso actual. Esta acción no se puede deshacer.', confirmLabel: 'Cargar', danger: true })) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
         function exportProgress() { const b = new Blob([JSON.stringify({ curriculum: currentCurriculum, progress: userProgress }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup.json'; a.click(); }
 
         // ── NFC Student Card (Carné por NFC) ───────────────────────────────
@@ -2224,13 +2397,13 @@
             try { history.replaceState(null, '', location.origin + location.pathname); } catch (e) { /* history may be unavailable */ }
             showStudentCardModal(card);
         }
-        function resetProgress() { if (confirm('¿Reiniciar?')) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
-        function deleteAllData() { if (confirm('¿Borrar todo?')) { StudyTrackStorage.clearAll(); location.reload(); } }
+        async function resetProgress() { if (await askConfirm({ title: '¿Reiniciar notas?', message: 'Se borrarán tus notas y el estado de tus materias (aprobadas e inscritas). Tu carrera y tu perfil se conservan.', confirmLabel: 'Reiniciar', danger: true })) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
+        async function deleteAllData() { if (await askConfirm({ title: '¿Borrar todos tus datos?', message: 'Se eliminarán tu carrera, notas, horario y perfil de este dispositivo. No se puede deshacer.', confirmLabel: 'Borrar todo', danger: true })) { StudyTrackStorage.clearAll(); location.reload(); } }
         // Force the PWA to fetch the latest version: unregister the service worker
         // and clear the Cache Storage shell, then reload. Deliberately does NOT touch
         // localStorage, so the user's curriculum, grades and profile are preserved.
         async function forceAppRefresh() {
-            if (!confirm('Recargar la app con la última versión. Tus datos (carrera, notas, perfil) se conservan. ¿Continuar?')) return;
+            if (!(await askConfirm({ title: '¿Recargar con la última versión?', message: 'Tus datos (carrera, notas, perfil) se conservan.', confirmLabel: 'Recargar' }))) return;
             showToast('Actualizando…', 'info');
             try {
                 if ('serviceWorker' in navigator) {
@@ -2244,7 +2417,7 @@
             } catch (e) { /* best-effort: a reload still helps even if clearing partially fails */ }
             location.reload();
         }
-        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum); saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
+        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = async e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (await askConfirm({ title: '¿Importar este respaldo?', message: 'Reemplazará la carrera y las notas que tienes ahora en este dispositivo.', confirmLabel: 'Importar', danger: true })) { currentCurriculum = d.curriculum; userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum); saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
 
         let isRequirementsExpanded = true;
         function toggleRequirementsWidget() {
@@ -2263,7 +2436,7 @@
 
         function renderSettingsRequirements() { const c = document.getElementById('settings-requirements-list'); if (!currentCurriculum) return; c.innerHTML = StudyTrackRequirements.renderSettingsRequirementsHTML(currentCurriculum.requirements, { escapeHtml }); }
         function toggleRequirement(i) { const result = StudyTrackRequirements.toggleRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); }
-        function deleteRequirement(i) { if (confirm('¿Borrar?')) { const result = StudyTrackRequirements.deleteRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
+        async function deleteRequirement(i) { if (await askConfirm({ title: '¿Borrar este requisito?', confirmLabel: 'Borrar', danger: true })) { const result = StudyTrackRequirements.deleteRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
         function toggleAddReqForm() { document.getElementById('new-req-form').classList.toggle('hidden'); document.getElementById('add-req-btn').classList.toggle('hidden'); }
         function confirmAddRequirement() { const input = document.getElementById('new-req-name'); const result = StudyTrackRequirements.addRequirement(currentCurriculum.requirements, input.value, () => `req-${Date.now()}`); if (result.changed) { currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); toggleAddReqForm(); input.value = ''; } }
         let currentView = 'home';
@@ -2306,6 +2479,7 @@
         }
 
         function switchView(view) {
+            if (view !== currentView) window.scrollTo(0, 0);
             currentView = view;
             const homeView = document.getElementById('home-view');
             const subjectsView = document.getElementById('subjects-view');
@@ -2376,7 +2550,7 @@
 
         function closeScheduleModal() { document.getElementById('schedule-modal').classList.add('hidden'); currentEditingBlock = null; }
 
-        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; setScheduleRoomDetails(block.room); const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = () => { if (confirm('¿Eliminar este horario?')) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
+        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; setScheduleRoomDetails(block.room); const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = async () => { if (await askConfirm({ title: '¿Eliminar este horario?', confirmLabel: 'Eliminar', danger: true })) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
 
         function closeDetailsModal() { const modal = document.getElementById('schedule-details-modal'); modal.classList.add('opacity-0'); document.getElementById('details-modal-content').classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 200); }
 
@@ -2666,8 +2840,8 @@
             }
         }
 
-        function clearUniCalendar() {
-            if (!confirm('¿Quitar el enlace del calendario y las entregas importadas de este dispositivo?')) return;
+        async function clearUniCalendar() {
+            if (!(await askConfirm({ title: '¿Quitar el calendario?', message: 'Se borrarán el enlace y las entregas importadas de este dispositivo.', confirmLabel: 'Quitar', danger: true }))) return;
             StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.uniCalendarUrl);
             StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.uniEvents);
             renderUniCalendarSettings();

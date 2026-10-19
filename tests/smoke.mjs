@@ -153,6 +153,19 @@ assert.ok(serviceWorker.includes('./src/app-version.js'), 'Service worker should
 for (const id of ['app-version-label', 'whats-new-modal', 'whats-new-body']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
 for (const fn of ['openWhatsNew', 'closeWhatsNew']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn} for the delegated dispatcher`);
 assert.ok(html.includes('data-action="openWhatsNew"'), 'Settings must offer a way to reopen the news');
+// Mobile / PWA hardening
+assert.ok(!/\bconfirm\(/.test(appJs), 'app.js must use askConfirm instead of the native confirm()');
+for (const fn of ['askConfirm', 'checkForAppUpdate', 'setupDialogLayers']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(/id="toast-container"[^>]*aria-live="polite"/.test(html), 'toasts must be announced to screen readers');
+assert.ok(appJs.includes("addEventListener('popstate'") && appJs.includes("'Escape'"), 'dialogs must close with the back button and Escape');
+assert.ok(html.includes('data-action="checkForAppUpdate"'), 'Settings must offer a manual update check');
+assert.ok(!html.includes('text-[9px]') && !appJs.includes('text-[9px]'), 'no 9px text on mobile');
+assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs must be 16px on phones to avoid the iOS focus zoom');
+assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
+assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
+assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+for (const png of ['icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']) { assert.ok(fs.existsSync(png), `Missing ${png}`); assert.ok(serviceWorker.includes('./' + png), `Service worker should cache ${png}`); }
+
 
 assert.ok(code.includes('<script src="./src/vendor/qrcode.min.js"></script>'), 'index.html must load the vendored QR library');
 assert.ok(code.includes('<script src="./src/vendor/jsqr.min.js"></script>'), 'index.html must load the vendored QR decoder');
@@ -199,7 +212,7 @@ assert.ok(code.includes('Hoy en tu carrera'));
 assert.ok(code.includes('id="mobile-letter"'));
 assert.ok(code.includes('id="mobile-gpa-points"'));
 assert.ok(code.includes('<link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">'));
-assert.ok(code.includes('<link rel="apple-touch-icon" href="icons/studytrack-icon.svg">'));
+assert.ok(code.includes('<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">'), 'iOS ignores SVG touch icons: use the PNG');
 assert.ok(code.includes('function registerServiceWorker()'));
 assert.ok(code.includes("window.addEventListener('load', registerServiceWorker);"));
 assert.ok(code.includes("navigator.serviceWorker.register('./sw.js')"));
