@@ -1122,4 +1122,34 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.ok(!StudyTrackCards.renderSubjectCard(cardBase, { escapeHtml: esc }).includes('stk-subject-due'), 'no field, no line');
 }
 
+// ===== Eventos de la universidad: entregas pasadas =====
+{
+  const U = StudyTrackUniEvents;
+  const link = 'https://eva.uapa.edu.do/calendar/export_execute.php?userid=1&authtoken=abc&preset_what=all';
+
+  // Regla de negocio: "Actualizar" descarga dos rangos del mismo enlace: las próximas (recentupcoming) y las pasadas (custom).
+  sameData(U.calendarRangeUrls(`${link}&preset_time=custom`), { upcoming: `${link}&preset_time=recentupcoming`, past: `${link}&preset_time=custom` });
+  sameData(U.calendarRangeUrls(`${link}&preset_time=weeknow`), { upcoming: `${link}&preset_time=recentupcoming`, past: `${link}&preset_time=custom` });
+  sameData(U.calendarRangeUrls(link), { upcoming: `${link}&preset_time=recentupcoming`, past: `${link}&preset_time=custom` }, 'no preset_time: it is added');
+  sameData(U.calendarRangeUrls(`${link}&preset_time=custom#x`), { upcoming: `${link}&preset_time=recentupcoming#x`, past: `${link}&preset_time=custom#x` });
+
+  const ev = (uid, start, summary = `Vencimiento de ${uid}`) => ({ uid, summary, start, allDay: false, categories: [] });
+  const now = '2026-10-19T16:00:00.000Z';
+
+  // Regla de negocio: al actualizar se conserva el historial: una entrega que ya pasó y ya no viene en la descarga se queda.
+  // Regla de negocio: una entrega futura que ya no viene en la descarga se quita (Moodle la borró o la movió).
+  // Regla de negocio: si una entrega viene en la descarga, gana la versión nueva (título o fecha cambiados).
+  const stored = [ev('old', '2026-09-01T03:59:00.000Z'), ev('gone-future', '2026-11-01T03:59:00.000Z'), ev('edited', '2026-10-25T03:59:00.000Z', 'Vencimiento de Viejo')];
+  const fresh = [ev('edited', '2026-10-26T03:59:00.000Z', 'Vencimiento de Nuevo'), ev('new', '2026-10-21T03:59:00.000Z'), ev('new', '2026-10-21T03:59:00.000Z', 'duplicado')];
+  const merged = plainData(U.mergeStoredEvents(stored, fresh, now));
+  sameData(merged.map((e) => e.uid), ['old', 'new', 'edited'], 'sorted by date, no duplicates');
+  assert.equal(merged[1].summary, 'Vencimiento de new', 'the first copy in the download wins over a later duplicate');
+  sameData([merged[2].summary, merged[2].start], ['Vencimiento de Nuevo', '2026-10-26T03:59:00.000Z']);
+  // Justo en el límite: una entrega guardada con fecha exactamente ahora todavía no es pasada, así que se quita si ya no viene.
+  sameData(plainData(U.mergeStoredEvents([ev('edge', now)], [], now)).map((e) => e.uid), []);
+  sameData(plainData(U.mergeStoredEvents([ev('edge', '2026-10-19T15:59:59.999Z')], [], now)).map((e) => e.uid), ['edge']);
+  sameData(plainData(U.mergeStoredEvents(null, [ev('a', now)], now)).map((e) => e.uid), ['a'], 'nothing stored yet');
+  sameData(plainData(U.mergeStoredEvents([ev('a', '2026-01-01T00:00:00.000Z')], null, now)).map((e) => e.uid), ['a']);
+}
+
 console.log('Logic checks passed');
