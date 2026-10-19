@@ -1932,7 +1932,7 @@
                                 class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
                         <button data-action="checkForAppUpdate"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-cloud-arrow-down mr-2" style="color:var(--stk-tint)"></i> Buscar actualizaciones</button>
+                                class="fas fa-cloud-arrow-down mr-2" style="color:var(--stk-tint)"></i> <span id="update-check-label">Buscar actualizaciones</span></button>
                         <button data-action="forceAppRefresh"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
@@ -2158,6 +2158,27 @@
             <div id="whats-new-body" class="px-6 pb-2 overflow-y-auto space-y-5"></div>
             <div class="p-6 pt-3 shrink-0 safe-area-bottom">
                 <button data-action="closeWhatsNew" class="stk-btn-primary w-full py-3 text-sm" style="min-height:48px">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATE AVAILABLE MODAL -->
+    <div id="update-modal" role="dialog" aria-modal="true" aria-labelledby="update-modal-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:120" data-action-self="postponeAppUpdate">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px;max-height:85dvh"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div class="px-6 pb-3 shrink-0" style="padding-top:1.5rem">
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center mb-3" style="background:var(--stk-tint-soft);color:var(--stk-tint)">
+                    <i class="fas fa-cloud-arrow-down text-lg"></i>
+                </div>
+                <h2 id="update-modal-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Nueva versión disponible</h2>
+                <p id="update-modal-subtitle" class="text-xs mt-1" style="color:var(--stk-text-2)"></p>
+            </div>
+            <div id="update-modal-body" class="px-6 pb-2 overflow-y-auto space-y-5"></div>
+            <div class="p-6 pt-3 shrink-0 safe-area-bottom flex flex-col gap-2">
+                <button data-action="applyAppUpdate" class="stk-btn-primary w-full py-3 text-sm" style="min-height:48px">Actualizar ahora</button>
+                <button data-action="postponeAppUpdate" class="stk-settings-row w-full font-bold text-sm" style="min-height:48px">Más tarde</button>
             </div>
         </div>
     </div>

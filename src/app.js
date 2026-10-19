@@ -1349,20 +1349,27 @@
         }
 
         // ── Updates ────────────────────────────────────────────────────────
-        // A new version activates with skipWaiting/clients.claim; until then this page may run old cached
-        // scripts under new HTML. Reload once when the new worker takes control, but not on the very first
-        // install (there was no previous version to replace). tests/smoke.mjs pins this rule.
+        // A new version activates with skipWaiting/clients.claim, but this page keeps running the scripts it
+        // already loaded. We never reload by ourselves: we show what improved and let the user pick
+        // "Actualizar ahora" or "Más tarde". Later just keeps the old page; the new version is used on the
+        // next launch. tests/smoke.mjs pins this rule.
         const UPDATE_CHECK_MIN_INTERVAL_MS = 30 * 60 * 1000;
         let swRegistration = null;
         let lastUpdateCheck = null;
-        let reloadingForUpdate = false;
+        let updatePrompted = false;
+        let pendingUpdate = null; // { version, notes } once a new version is active but not applied
         function registerServiceWorker() {
             if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;
-            const hadController = Boolean(navigator.serviceWorker.controller);
+            // Tracked across changes: the first takeover of a fresh install has no previous version, but a
+            // later one in the same session does.
+            let hasController = Boolean(navigator.serviceWorker.controller);
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!hadController || reloadingForUpdate) return;
-                reloadingForUpdate = true;
-                location.reload();
+                const hadPrevious = hasController;
+                hasController = true;
+                if (hadPrevious && pendingUpdate) pendingUpdate = null; // an even newer version: re-read its notes when asked
+                if (!StudyTrackVersion.shouldPromptForUpdate(hadPrevious, updatePrompted)) return;
+                updatePrompted = true;
+                offerAppUpdate();
             });
             navigator.serviceWorker.register('./sw.js').then((registration) => {
                 swRegistration = registration;
@@ -1377,15 +1384,57 @@
                 swRegistration.update().catch(() => { });
             });
         }
+        // Load the version module a second time (it registers itself as StudyTrackVersionIncoming) to read the
+        // incoming release notes. The unique query defeats the in-memory copy of the script this page already
+        // loaded; the new worker lets it through to the network, which now serves the new file.
+        function loadIncomingVersion() {
+            return new Promise((resolve) => {
+                delete window.StudyTrackVersionIncoming;
+                const s = document.createElement('script');
+                s.src = `./src/app-version.js?incoming=${Date.now()}`;
+                s.onload = () => { s.remove(); resolve(window.StudyTrackVersionIncoming || null); };
+                s.onerror = () => { s.remove(); resolve(null); };
+                document.head.appendChild(s);
+            });
+        }
+        async function offerAppUpdate() {
+            if (!pendingUpdate) {
+                const incoming = await loadIncomingVersion();
+                const running = StudyTrackVersion.APP_VERSION;
+                const version = incoming ? incoming.APP_VERSION : null;
+                const notes = incoming ? StudyTrackVersion.getUnseenReleases(incoming.CHANGELOG, running, version) : [];
+                pendingUpdate = { version, notes };
+            }
+            const { version, notes } = pendingUpdate;
+            const body = notes.length ? renderWhatsNewBody(notes) : '<p class="text-[13px] leading-snug" style="color:var(--stk-text-2)">Mejoras y correcciones para que la app funcione mejor.</p>';
+            document.getElementById('update-modal-body').innerHTML = body;
+            document.getElementById('update-modal-subtitle').textContent = version ? `v${StudyTrackVersion.APP_VERSION} → v${version}` : '';
+            const label = document.getElementById('update-check-label');
+            if (label) label.textContent = version ? `Instalar actualización (v${version})` : 'Instalar actualización';
+            document.querySelectorAll('#toast-container [data-toast-key="update-check"]').forEach((t) => t.remove());
+            document.getElementById('update-modal').classList.remove('hidden');
+        }
+        function applyAppUpdate() {
+            // The user already read the notes, so don't show them again as "Novedades" after the reload.
+            if (pendingUpdate && pendingUpdate.version) StudyTrackStorage.setItem(StudyTrackStorage.KEYS.lastSeenVersion, pendingUpdate.version);
+            location.reload();
+        }
+        function postponeAppUpdate() {
+            const modal = document.getElementById('update-modal');
+            if (modal.classList.contains('hidden')) return;
+            modal.classList.add('hidden');
+            showToast('Listo. Usarás la nueva versión la próxima vez que abras la app.', 'info', { key: 'update-later' });
+        }
         async function checkForAppUpdate() {
+            if (pendingUpdate) { offerAppUpdate(); return; }
             if (!swRegistration) { showToast('Las actualizaciones automáticas no están disponibles en este navegador', 'info'); return; }
             showToast('Buscando actualizaciones…', 'info', { key: 'update-check' });
             try {
                 await swRegistration.update();
                 lastUpdateCheck = Date.now();
             } catch (e) { showToast('No se pudo buscar. Revisa tu conexión.', 'error', { key: 'update-check' }); return; }
-            if (reloadingForUpdate) return;
-            if (swRegistration.installing || swRegistration.waiting) showToast('Descargando la nueva versión… la app se reiniciará sola.', 'info', { key: 'update-check' });
+            if (pendingUpdate) return;
+            if (swRegistration.installing || swRegistration.waiting) showToast('Descargando la nueva versión…', 'info', { key: 'update-check' });
             else showToast(`Ya tienes la última versión (v${StudyTrackVersion.APP_VERSION})`, 'success', { key: 'update-check' });
         }
 
@@ -1423,7 +1472,8 @@
                 ['settings-modal', () => closeSettings()],
                 ['schedule-modal', () => closeScheduleModal()],
                 ['schedule-details-modal', () => closeDetailsModal()],
-                ['whats-new-modal', () => closeWhatsNew()]
+                ['whats-new-modal', () => closeWhatsNew()],
+                ['update-modal', () => postponeAppUpdate()]
             ];
             dialogs.forEach(([id, close]) => {
                 const el = document.getElementById(id);

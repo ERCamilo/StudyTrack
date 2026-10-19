@@ -3,9 +3,19 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.1.0';
+  const APP_VERSION = '1.2.0';
 
   const CHANGELOG = [
+    {
+      version: '1.2.0',
+      date: '2026-10-19',
+      title: 'Tú decides cuándo actualizar',
+      items: [
+        'Cuando hay una versión nueva, la app te muestra qué mejora y tú eliges: actualizar ahora o más tarde.',
+        'Si eliges más tarde, la app no se recarga sola; la nueva versión se usa la próxima vez que la abras.',
+        'En Configuración puedes instalar la actualización pendiente cuando quieras.'
+      ]
+    },
     {
       version: '1.1.0',
       date: '2026-10-19',
@@ -65,5 +75,15 @@
     return elapsed < 0 || elapsed >= minIntervalMs;
   }
 
-  global.StudyTrackVersion = { APP_VERSION, CHANGELOG, compareVersions, getUnseenReleases, shouldCheckForUpdate };
+  // Ask the user only when a previous version was running (not on first install) and we haven't
+  // asked yet in this session.
+  function shouldPromptForUpdate(hadController, alreadyPrompted) {
+    return Boolean(hadController) && !alreadyPrompted;
+  }
+
+  const api = { APP_VERSION, CHANGELOG, compareVersions, getUnseenReleases, shouldCheckForUpdate, shouldPromptForUpdate };
+  // The running page loads this file once. When an update is pending, app.js loads it again to read the
+  // incoming release notes: that second copy must not replace the version in use.
+  if (global.StudyTrackVersion) global.StudyTrackVersionIncoming = api;
+  else global.StudyTrackVersion = api;
 })(typeof window !== 'undefined' ? window : globalThis);

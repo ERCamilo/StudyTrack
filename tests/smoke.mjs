@@ -59,15 +59,24 @@ new Function(serviceWorker);
 assert.ok(serviceWorker.includes('CACHE_NAME'));
 
 // Regla de negocio: al publicar una versión nueva, la app no mezcla la pantalla nueva con el código viejo:
-// el service worker descarga los archivos frescos (sin la caché HTTP) y la página se recarga una sola vez
-// cuando la versión nueva toma el control (no en la primera instalación).
+// el service worker descarga los archivos frescos (sin la caché HTTP) y, cuando la versión nueva toma el control
+// (no en la primera instalación), la app le pregunta al usuario si actualiza ahora o más tarde, mostrando las mejoras.
+// Solo "Actualizar ahora" recarga la página; "Más tarde" no la toca. (Regla cambiada con confirmación del usuario:
+// antes la página se recargaba sola.)
 assert.match(serviceWorker, /cache:\s*'reload'/, 'install must bypass the HTTP cache so the new shell is really new');
 {
   const appJs = fs.readFileSync('src/app.js', 'utf8');
   const register = appJs.slice(appJs.indexOf('function registerServiceWorker'), appJs.indexOf('function registerServiceWorker') + 900);
-  assert.ok(register.includes("'controllerchange'"), 'reload when the new service worker takes control');
+  assert.ok(register.includes("'controllerchange'"), 'react when the new service worker takes control');
   assert.match(register, /navigator\.serviceWorker\.controller/, 'only when a previous version was in control (not on first install)');
-  assert.ok(register.includes('location.reload()'), 'the page reloads into the new version');
+  assert.ok(register.includes('shouldPromptForUpdate'), 'the prompt decision lives in the tested pure helper');
+  assert.ok(!register.includes('location.reload()'), 'the service worker taking control must not reload the page by itself');
+  const apply = appJs.slice(appJs.indexOf('function applyAppUpdate'), appJs.indexOf('function applyAppUpdate') + 600);
+  assert.ok(apply.includes('location.reload()'), 'Actualizar ahora reloads into the new version');
+  const later = appJs.slice(appJs.indexOf('function postponeAppUpdate'), appJs.indexOf('function postponeAppUpdate') + 500);
+  assert.ok(!later.includes('location.reload()'), 'Más tarde must not reload');
+  for (const id of ['update-modal', 'update-modal-body']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+  assert.ok(html.includes('data-action="applyAppUpdate"') && html.includes('data-action="postponeAppUpdate"'), 'both choices are offered');
 }
 assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));

@@ -1193,6 +1193,26 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.equal(V.shouldCheckForUpdate(0, MIN - 1, MIN), false, 'un milisegundo antes del límite');
   assert.equal(V.shouldCheckForUpdate(5000, 1000, MIN), true, 'reloj atrasado: se permite buscar');
   assert.equal(V.shouldCheckForUpdate(undefined, 1000, MIN), true);
+
+  // Regla de negocio: cuando una versión nueva toma el control, la app pregunta al usuario (actualizar ahora o más tarde) en lugar de recargar sola; no pregunta en la primera instalación ni más de una vez por sesión.
+  assert.equal(V.shouldPromptForUpdate(true, false), true, 'había versión anterior y aún no se preguntó');
+  assert.equal(V.shouldPromptForUpdate(false, false), false, 'primera instalación: no hay nada que reemplazar');
+  assert.equal(V.shouldPromptForUpdate(true, true), false, 'ya se preguntó en esta sesión');
+  assert.equal(V.shouldPromptForUpdate(false, true), false);
+  assert.equal(V.shouldPromptForUpdate(undefined, undefined), false, 'sin datos no se pregunta');
+
+  // Regla de negocio: el resumen de la actualización lista solo lo que es más nuevo que la versión en uso y hasta la versión entrante, aunque el historial tenga más (la versión en uso no se repite).
+  sameData(vs(V.getUnseenReleases(log, '1.0.0', '1.1.0')), ['1.1.0']);
+  sameData(vs(V.getUnseenReleases(log, '1.1.0', '1.1.0')), [], 'misma versión: sin notas (límite)');
+
+  // Cargar el módulo otra vez (la versión entrante) no pisa la versión en uso: queda aparte como StudyTrackVersionIncoming.
+  {
+    const running = context.StudyTrackVersion;
+    vm.runInContext(fs.readFileSync('src/app-version.js', 'utf8'), context, { filename: 'src/app-version.js' });
+    assert.equal(context.StudyTrackVersion, running, 'la versión en uso no se reemplaza');
+    assert.ok(context.StudyTrackVersionIncoming && context.StudyTrackVersionIncoming.APP_VERSION, 'la entrante queda disponible');
+    delete context.StudyTrackVersionIncoming;
+  }
 }
 
 console.log('Logic checks passed');
