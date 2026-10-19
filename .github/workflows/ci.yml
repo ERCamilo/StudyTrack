@@ -33,3 +33,6 @@ jobs:
 
       - name: QR share checks
         run: node tests/qr-share.mjs
+
+      - name: University calendar proxy checks
+        run: node tests/uni-events-worker.mjs
