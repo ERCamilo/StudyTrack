@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v18';
+const CACHE_NAME = 'studytrack-shell-v19';
 const APP_SHELL = [
   './',
   './index.html',
@@ -33,7 +33,8 @@ const APP_SHELL = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
+      // cache: 'reload' skips the browser's HTTP cache, so a new version never precaches old files.
+      .then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
