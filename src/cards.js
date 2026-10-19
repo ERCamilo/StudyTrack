@@ -114,6 +114,8 @@
    * @property {string} classroom
    * @property {string} teacher
    * @property {string} completionRaw - raw "YYYY-MM" value backing the details-panel date field
+   * @property {{title: string, relative: string, tone: string}|null} [nextDelivery] - next university
+   *   delivery for this subject (enrolled only), e.g. { title: 'Tarea 1', relative: 'Mañana', tone: 'soon' }
    */
 
   function detailsPanelHTML(data, { escapeHtml, actionArgs }) {
@@ -153,6 +155,11 @@
       ? `<div class="stk-subject-meta stk-subject-meta--schedule"><i class="fas fa-calendar-check"></i>${escapeHtml(data.scheduleSummary)}</div>`
       : `<div class="stk-subject-meta">${safeCode} · ${safeCredits} créditos</div>`;
 
+    const next = data.nextDelivery;
+    const nextDeliveryLine = next
+      ? `<div class="stk-subject-due"><span class="stk-due-chip stk-due-chip--${escapeHtml(next.tone)}">${escapeHtml(next.relative)}</span><span class="stk-subject-due-title">${escapeHtml(next.title)}</span></div>`
+      : '';
+
     const scheduleBtn = data.scheduleSummary
       ? ''
       : `<button class="stk-action-btn stk-action-btn--tint" data-action="openScheduleModal" data-args="${actionArgs(data.id, data.name, null)}"><i class="fas fa-clock"></i>Agregar horario</button>`;
@@ -168,6 +175,7 @@
         <div class="stk-subject-main">
           <div class="stk-subject-name">${safeSubjectName}</div>
           ${metaLine}
+          ${nextDeliveryLine}
         </div>
         <button class="stk-pill stk-pill--enrolled" data-action="toggleEnrollment" data-args="${actionArgs(data.id)}">En curso</button>
         ${expandButtonHTML(data, helpers)}

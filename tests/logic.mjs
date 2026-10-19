@@ -10,14 +10,15 @@ const store = new Map();
 context.localStorage = {
   clear: () => store.clear(),
   getItem: (key) => store.has(key) ? store.get(key) : null,
-  setItem: (key, value) => store.set(key, String(value))
+  setItem: (key, value) => store.set(key, String(value)),
+  removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -97,6 +98,10 @@ StudyTrackStorage.setItem('float-value', '69.5');
 assert.equal(StudyTrackStorage.getFloat('float-value', 0), 69.5);
 assert.equal(StudyTrackStorage.getNumber('float-value', 0), 69);
 assert.equal(StudyTrackStorage.getFloat('missing-float', 70), 70);
+StudyTrackStorage.setItem('to-remove', 'secret');
+assert.equal(StudyTrackStorage.removeItem('to-remove'), true);
+assert.equal(StudyTrackStorage.getItem('to-remove'), null, 'removeItem deletes the key');
+assert.equal(StudyTrackStorage.removeItem('never-set'), true, 'removing a missing key is fine');
 StudyTrackStorage.clearAll();
 assert.equal(StudyTrackStorage.getItem('number-value'), null);
 
@@ -1013,5 +1018,108 @@ assert.equal(StudyTrackGrades.getGradeLabel('abc', scale), null);
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '70,0').status, 'approved');   // límite de aprobación con coma
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').status, 'pending');
 assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 69.9);
+
+// ===== Eventos de la universidad: cómo se muestran (openspec/changes/eventos-universidad, PR 2) =====
+{
+  const V = StudyTrackUniEventsView;
+  const TZ = 'America/Santo_Domingo';
+  const due = { uid: 'a', title: 'Proyecto final', dueAt: '2026-10-16T03:59:00.000Z', allDay: false, courseCode: 'ISW410', subjectId: 'ISW-410' };
+  const at = (now) => plainData(V.describeDue(due, now, TZ));
+
+  // Regla de negocio: "Hoy", "Mañana" y "En N días" se cuentan por días del calendario en la hora del teléfono, no por bloques de 24 horas.
+  sameData(at('2026-10-15T14:00:00.000Z'), { relative: 'Hoy', absolute: 'jue 15 oct · 11:59 PM', tone: 'soon' });
+  sameData(at('2026-10-15T03:00:00.000Z'), { relative: 'Mañana', absolute: 'jue 15 oct · 11:59 PM', tone: 'soon' }, '11:00 PM del día anterior');
+  sameData(at('2026-10-13T03:59:00.000Z'), { relative: 'En 3 días', absolute: 'jue 15 oct · 11:59 PM', tone: 'later' });
+  // Regla de negocio: una entrega vence justo después de su hora; en la hora exacta todavía no está vencida.
+  assert.equal(at('2026-10-16T03:59:00.000Z').relative, 'Hoy', 'exactly at the due time');
+  sameData(at('2026-10-16T03:59:00.001Z'), { relative: 'Venció hoy', absolute: 'jue 15 oct · 11:59 PM', tone: 'overdue' });
+  assert.equal(at('2026-10-16T04:00:00.000Z').relative, 'Venció ayer', 'midnight, the next day');
+  assert.equal(at('2026-10-19T16:00:00.000Z').relative, 'Venció hace 4 días');
+
+  // Regla de negocio: un evento de día completo no muestra hora y no vence hasta que termina ese día.
+  const holiday = { uid: 'h', title: 'Feriado', dueAt: '2026-11-06', allDay: true, courseCode: null, subjectId: null };
+  sameData(V.describeDue(holiday, '2026-11-05T14:00:00.000Z', TZ), { relative: 'Mañana', absolute: 'vie 6 nov', tone: 'soon' });
+  sameData(V.describeDue(holiday, '2026-11-07T03:59:00.000Z', TZ), { relative: 'Hoy', absolute: 'vie 6 nov', tone: 'soon' }, '11:59 PM that day');
+  assert.equal(V.describeDue(holiday, '2026-11-07T04:00:00.000Z', TZ).relative, 'Venció ayer');
+
+  // Regla de negocio: el calendario mensual empieza en lunes, como el horario semanal; los huecos antes del día 1 y después del último quedan vacíos.
+  const oct = plainData(V.buildMonthGrid(2026, 10, '2026-10-19'));
+  assert.equal(oct.length, 5);
+  sameData(oct[0].map((c) => c.day), [null, null, null, 1, 2, 3, 4]);
+  sameData(oct[4].map((c) => c.day), [26, 27, 28, 29, 30, 31, null]);
+  sameData(oct[0][3], { key: '2026-10-01', day: 1, isToday: false });
+  sameData(oct[3][0], { key: '2026-10-19', day: 19, isToday: true });
+  sameData(oct[0][0], { key: null, day: null, isToday: false });
+  const feb = plainData(V.buildMonthGrid(2027, 2, '2026-10-19'));
+  assert.equal(feb.length, 4, 'a 28-day month starting on Monday fills exactly 4 weeks');
+  sameData([feb[0][0].day, feb[3][6].day], [1, 28]);
+
+  sameData(V.shiftMonth(2026, 12, 1), { year: 2027, month: 1 });
+  sameData(V.shiftMonth(2026, 1, -1), { year: 2025, month: 12 });
+  sameData(V.shiftMonth(2026, 10, 0), { year: 2026, month: 10 });
+
+  // Regla de negocio: si el enlace pide un rango "custom" sin fechas, la app lo cambia a "recentupcoming" para traer las entregas próximas.
+  const base = 'https://eva.uapa.edu.do/calendar/export_execute.php?userid=1&authtoken=abc&preset_what=all';
+  assert.equal(V.normalizeCalendarUrl(`${base}&preset_time=custom`), `${base}&preset_time=recentupcoming`);
+  assert.equal(V.normalizeCalendarUrl(`  ${base}&preset_time=weeknow  `), `${base}&preset_time=weeknow`, 'other ranges are kept; spaces trimmed');
+  assert.equal(V.normalizeCalendarUrl(base), base, 'no preset_time: untouched');
+  assert.equal(V.normalizeCalendarUrl(''), '');
+  assert.equal(V.normalizeCalendarUrl(null), '');
+
+  // Regla de negocio: cada error de descarga tiene un mensaje claro en español; un 401/403 significa que hay que generar un enlace nuevo.
+  assert.match(V.errorMessage('invalid-url'), /export_execute\.php/);
+  assert.match(V.errorMessage('http-403'), /enlace nuevo/);
+  assert.match(V.errorMessage('http-401'), /enlace nuevo/);
+  assert.match(V.errorMessage('not-calendar'), /enlace nuevo/);
+  assert.match(V.errorMessage('network'), /conexión/);
+  assert.match(V.errorMessage('http-500'), /\(500\)/);
+  assert.match(V.errorMessage('algo-raro'), /No se pudo actualizar/);
+
+  // Regla de negocio: el estado muestra cuándo fue la última actualización y cuántas entregas trajo.
+  assert.equal(V.statusLine(null, '2026-10-19T16:45:00.000Z', TZ), 'Aún no se ha actualizado');
+  assert.equal(V.statusLine({ fetchedAt: '2026-10-19T16:40:00.000Z', count: 8 }, '2026-10-19T16:45:00.000Z', TZ), 'Actualizado hoy · 12:40 PM · 8 entregas');
+  assert.equal(V.statusLine({ fetchedAt: '2026-10-12T16:40:00.000Z', count: 1 }, '2026-10-19T16:45:00.000Z', TZ), 'Actualizado lun 12 oct · 12:40 PM · 1 entrega');
+  assert.equal(V.statusLine({ fetchedAt: '2026-10-19T04:05:00.000Z', count: 0 }, '2026-10-19T16:45:00.000Z', TZ), 'Actualizado hoy · 12:05 AM · 0 entregas');
+}
+
+// ===== Eventos de la universidad: plantillas de la pantalla =====
+{
+  const UI = StudyTrackUniEventsUI;
+  const esc = StudyTrackSanitize.escapeHtml;
+  const item = (n, tone, extra = {}) => ({
+    event: { uid: `u${n}`, title: `Tarea ${n}`, courseCode: 'ISW201', ...extra },
+    due: { relative: tone === 'overdue' ? 'Venció ayer' : 'Mañana', absolute: 'jue 15 oct · 11:59 PM', tone },
+    subjectName: 'Ingeniería de Software I',
+    dayKey: '2026-10-15',
+  });
+
+  const list = UI.renderUpcomingList([1, 2, 3, 4, 5, 6].map((n) => item(n, 'soon')), { escapeHtml: esc });
+  assert.equal((list.match(/stk-due-row/g) || []).length - (list.match(/stk-due-row--action/g) || []).length, 5, 'the home list shows at most 5');
+  assert.ok(list.includes('data-action="openUniCalendarDay"') && list.includes('2026-10-15'), 'a row opens the calendar on its day');
+  assert.ok(!list.includes('Tarea 6'));
+  const risky = UI.renderUpcomingList([item(1, 'overdue', { title: '<img src=x onerror=alert(1)>' })], { escapeHtml: esc });
+  assert.ok(!risky.includes('<img') && risky.includes('&lt;img'), 'titles from the university are escaped');
+  assert.ok(risky.includes('stk-due-chip--overdue') && risky.includes('Venció ayer'));
+  const noSubject = UI.renderUpcomingList([{ ...item(1, 'later'), subjectName: null }], { escapeHtml: esc });
+  assert.ok(noSubject.includes('ISW201 ·'), 'without a matching subject the course code is shown');
+  assert.match(UI.renderUpcomingList([], { escapeHtml: esc }), /Sin entregas/);
+
+  const grid = StudyTrackUniEventsView.buildMonthGrid(2026, 10, '2026-10-19');
+  const cal = UI.renderMonthCalendar(grid, { '2026-10-15': ['soon', 'soon', 'later', 'overdue'] }, '2026-10-15', { escapeHtml: esc });
+  assert.equal((cal.match(/stk-cal-dot--/g) || []).length, 3, 'at most 3 dots per day');
+  assert.equal((cal.match(/stk-cal-cell--blank/g) || []).length, 4, '3 blanks before Oct 1 and 1 after Oct 31');
+  assert.equal((cal.match(/aria-pressed="true"/g) || []).length, 1);
+  assert.ok(cal.includes('aria-label="15, 4 entregas"'));
+  assert.equal((cal.match(/stk-cal-cell--today/g) || []).length, 1);
+  assert.equal(UI.monthLabel(2026, 10), 'octubre 2026');
+  assert.match(UI.renderDayList([], 'jueves 15 de octubre', { escapeHtml: esc }), /Sin entregas este día/);
+
+  // Regla de negocio: la tarjeta de una materia en curso muestra su próxima entrega (si la hay).
+  const cardBase = { id: 'ISW-201', name: 'Ingeniería de Software I', code: 'ISW-201', credits: 4, state: 'enrolled', grade: null, scheduleSummary: null, completionLabel: null, prerequisiteLabel: '', missingGrade: false, skippedPrerequisite: false, disabled: false, attempts: 0, section: '', classroom: '', teacher: '', completionRaw: '' };
+  const withNext = StudyTrackCards.renderSubjectCard({ ...cardBase, nextDelivery: { title: 'Tarea <1>', relative: 'Mañana', tone: 'soon' } }, { escapeHtml: esc });
+  assert.ok(withNext.includes('Tarea &lt;1&gt;') && withNext.includes('stk-due-chip--soon') && withNext.includes('Mañana'));
+  assert.ok(!StudyTrackCards.renderSubjectCard({ ...cardBase, nextDelivery: null }, { escapeHtml: esc }).includes('stk-subject-due'));
+  assert.ok(!StudyTrackCards.renderSubjectCard(cardBase, { escapeHtml: esc }).includes('stk-subject-due'), 'no field, no line');
+}
 
 console.log('Logic checks passed');
