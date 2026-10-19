@@ -94,7 +94,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -148,6 +148,12 @@ assert.ok(code.includes('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-
 assert.ok(code.includes('<script src="./src/firebase-sync.js"></script>'));
 assert.ok(code.includes('<script src="./src/app.js"></script>'), 'index.html must load the externalized controller');
 assert.ok(code.includes('<script src="./src/milestones.js"></script>'), 'index.html must load the milestones module');
+assert.ok(code.includes('<script src="./src/app-version.js"></script>'), 'index.html must load the app-version module before app.js');
+assert.ok(serviceWorker.includes('./src/app-version.js'), 'Service worker should cache the app-version module');
+for (const id of ['app-version-label', 'whats-new-modal', 'whats-new-body']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+for (const fn of ['openWhatsNew', 'closeWhatsNew']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn} for the delegated dispatcher`);
+assert.ok(html.includes('data-action="openWhatsNew"'), 'Settings must offer a way to reopen the news');
+
 assert.ok(code.includes('<script src="./src/vendor/qrcode.min.js"></script>'), 'index.html must load the vendored QR library');
 assert.ok(code.includes('<script src="./src/vendor/jsqr.min.js"></script>'), 'index.html must load the vendored QR decoder');
 assert.ok(code.includes('<script src="./src/qr-share.js"></script>'), 'index.html must load the QR share module');

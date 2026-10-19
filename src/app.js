@@ -112,6 +112,8 @@
             if (currentView === 'profile') renderProfileView();
             milestonesReady = true; // baseline is stamped; from here new achievements celebrate
             maybeShowSharedCard(); // if opened from a shared QR/link, show the received card
+            document.getElementById('app-version-label').textContent = `v${StudyTrackVersion.APP_VERSION}`;
+            maybeShowWhatsNew(Boolean(storedCurriculum));
         }
 
         // ============================================================
@@ -1312,6 +1314,39 @@
         function updateFilterCounts() { if (!currentCurriculum) return; const counts = StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress); document.getElementById('count-all').textContent = counts.all; document.getElementById('count-enrolled').textContent = counts.enrolled; document.getElementById('count-completed').textContent = counts.completed; document.getElementById('count-pending').textContent = counts.pending; }
         function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; notifySyncChange(); }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+        // ── App version + "what's new" ─────────────────────────────────────
+        function renderWhatsNewBody(releases) {
+            return releases.map((r) => `<section><div class="flex items-baseline justify-between gap-2"><h3 class="text-sm font-extrabold" style="color:var(--stk-text-1)">${escapeHtml(r.title)}</h3><span class="text-[11px] font-bold shrink-0" style="color:var(--stk-tint)">v${escapeHtml(r.version)}</span></div><ul class="mt-2 space-y-2">${r.items.map((item) => `<li class="flex gap-2 text-[13px] leading-snug" style="color:var(--stk-text-2)"><i class="fas fa-check text-[10px] mt-1" style="color:var(--stk-accent-approved)"></i><span>${escapeHtml(item)}</span></li>`).join('')}</ul></section>`).join('');
+        }
+        function showWhatsNew(releases, subtitle) {
+            if (!releases.length) return;
+            document.getElementById('whats-new-body').innerHTML = renderWhatsNewBody(releases);
+            document.getElementById('whats-new-subtitle').textContent = subtitle;
+            document.getElementById('whats-new-modal').classList.remove('hidden');
+        }
+        function openWhatsNew() {
+            showWhatsNew(StudyTrackVersion.CHANGELOG.slice(0, 5), `Versión ${StudyTrackVersion.APP_VERSION}`);
+        }
+        function closeWhatsNew() {
+            document.getElementById('whats-new-modal').classList.add('hidden');
+            StudyTrackStorage.setItem(StudyTrackStorage.KEYS.lastSeenVersion, StudyTrackVersion.APP_VERSION);
+        }
+        let whatsNewChecked = false;
+        // Runs once per page load (initApp re-runs on cloud pulls). A brand-new install is only
+        // stamped with the current version; an existing user who never had a stamp sees every release.
+        function maybeShowWhatsNew(hasData) {
+            if (whatsNewChecked) return;
+            whatsNewChecked = true;
+            const K = StudyTrackStorage.KEYS.lastSeenVersion;
+            const current = StudyTrackVersion.APP_VERSION;
+            let lastSeen = StudyTrackStorage.getItem(K);
+            if (!lastSeen && !hasData) { StudyTrackStorage.setItem(K, current); return; }
+            if (!lastSeen) lastSeen = '0.0.0';
+            const releases = StudyTrackVersion.getUnseenReleases(StudyTrackVersion.CHANGELOG, lastSeen, current);
+            if (!releases.length) { StudyTrackStorage.setItem(K, current); return; }
+            setTimeout(() => showWhatsNew(releases, `Actualizaste a la versión ${current}`), isReducedMotion() ? 300 : 1500);
+        }
 
         function registerServiceWorker() {
             if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;

@@ -20,7 +20,8 @@
     studentStatus: 'studytrack_student_status',
     milestones: 'studytrack_milestones',
     carneVariant: 'studytrack_carne_variant',
-    onboarded: 'studytrack_onboarded_v1'
+    onboarded: 'studytrack_onboarded_v1',
+    lastSeenVersion: 'studytrack_last_seen_version'
   };
 
   function getStorage() {

@@ -45,6 +45,7 @@
     <script src="./src/uni-events-ui.js"></script>
     <script src="./src/insights.js"></script>
     <script src="./src/milestones.js"></script>
+    <script src="./src/app-version.js"></script>
     <script src="./src/nfc.js"></script>
     <script src="./src/vendor/qrcode.min.js"></script>
     <script src="./src/vendor/jsqr.min.js"></script>
@@ -2102,6 +2103,14 @@
                     </div>
                 </section>
 
+                <!-- APP VERSION -->
+                <section class="pt-4 text-center">
+                    <p class="text-[11px] font-semibold" style="color:var(--stk-text-2)">MiRuta <span id="app-version-label">v1.0.0</span></p>
+                    <button data-action="openWhatsNew" class="mt-1 text-xs font-bold px-3 py-2" style="color:var(--stk-tint)">
+                        <i class="fas fa-wand-magic-sparkles mr-1"></i> Novedades
+                    </button>
+                </section>
+
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
                     <button data-action="closeSettings"
@@ -2109,6 +2118,26 @@
                         <i class="fas fa-times mr-2"></i> Cerrar Configuración
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WHAT'S NEW MODAL -->
+    <div id="whats-new-modal" role="dialog" aria-modal="true" aria-labelledby="whats-new-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:115" data-action-self="closeWhatsNew">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px;max-height:85dvh"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div class="px-6 pb-3 shrink-0" style="padding-top:1.5rem">
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center mb-3" style="background:var(--stk-tint-soft);color:var(--stk-tint)">
+                    <i class="fas fa-wand-magic-sparkles text-lg"></i>
+                </div>
+                <h2 id="whats-new-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Novedades</h2>
+                <p id="whats-new-subtitle" class="text-xs mt-1" style="color:var(--stk-text-2)"></p>
+            </div>
+            <div id="whats-new-body" class="px-6 pb-2 overflow-y-auto space-y-5"></div>
+            <div class="p-6 pt-3 shrink-0 safe-area-bottom">
+                <button data-action="closeWhatsNew" class="stk-btn-primary w-full py-3 text-sm" style="min-height:48px">Entendido</button>
             </div>
         </div>
     </div>

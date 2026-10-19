@@ -24,3 +24,4 @@ Los cambios grandes siguen el flujo de `openspec/`.
 
 - El repo mezcla saltos de línea: algunos archivos usan CRLF y otros LF. Conserva los que ya tiene cada archivo.
 - Al cambiar archivos que cachea el service worker, sube la versión del caché en `sw.js`.
+- Cada cambio visible para el usuario sube la versión: agrega una entrada arriba en `CHANGELOG` de `src/app-version.js`, pon el mismo número en `APP_VERSION` y sube `CACHE_NAME` en `sw.js`. La app muestra esa entrada en el modal «Novedades» al actualizar.

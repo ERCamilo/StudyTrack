@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1150,6 +1150,41 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   sameData(plainData(U.mergeStoredEvents([ev('edge', '2026-10-19T15:59:59.999Z')], [], now)).map((e) => e.uid), ['edge']);
   sameData(plainData(U.mergeStoredEvents(null, [ev('a', now)], now)).map((e) => e.uid), ['a'], 'nothing stored yet');
   sameData(plainData(U.mergeStoredEvents([ev('a', '2026-01-01T00:00:00.000Z')], null, now)).map((e) => e.uid), ['a']);
+}
+
+{
+  const V = StudyTrackVersion;
+  const log = [
+    { version: '1.2.0', date: '2026-11-01', title: 'C', items: ['c'] },
+    { version: '1.1.0', date: '2026-10-20', title: 'B', items: ['b'] },
+    { version: '1.0.0', date: '2026-10-01', title: 'A', items: ['a'] }
+  ];
+  const vs = (list) => plainData(list).map((r) => r.version);
+
+  // Regla de negocio: las versiones se comparan número por número, no como texto (1.10.0 es mayor que 1.9.0).
+  assert.equal(V.compareVersions('1.10.0', '1.9.0'), 1);
+  assert.equal(V.compareVersions('1.9.0', '1.10.0'), -1);
+  assert.equal(V.compareVersions('1.0.0', '1.0.0'), 0, 'justo en el límite: iguales');
+  assert.equal(V.compareVersions('1.0', '1.0.0'), 0, 'partes faltantes cuentan como 0');
+  assert.equal(V.compareVersions(null, '0.0.0'), 0, 'versión vacía equivale a 0.0.0');
+  assert.equal(V.compareVersions('basura', '0.0.1'), -1, 'versión inválida equivale a 0.0.0');
+
+  // Regla de negocio: tras actualizar se muestran solo las novedades más nuevas que la última versión vista, hasta la versión actual, de la más nueva a la más vieja.
+  sameData(vs(V.getUnseenReleases(log, '1.0.0', '1.2.0')), ['1.2.0', '1.1.0']);
+  sameData(vs(V.getUnseenReleases(log, '1.1.0', '1.2.0')), ['1.2.0'], 'la versión ya vista no se repite (límite)');
+  sameData(vs(V.getUnseenReleases(log, '1.2.0', '1.2.0')), [], 'sin cambios no hay modal');
+  sameData(vs(V.getUnseenReleases(log, '1.0.0', '1.1.0')), ['1.1.0'], 'una versión futura del historial no se muestra (límite: actual incluida)');
+  sameData(vs(V.getUnseenReleases(log, '0.0.0', '1.2.0', 2)), ['1.2.0', '1.1.0'], 'tope de entradas');
+
+  // Regla de negocio: una instalación nueva (sin versión vista) no muestra novedades; solo se marca la versión actual como vista.
+  sameData(vs(V.getUnseenReleases(log, null, '1.2.0')), []);
+  sameData(vs(V.getUnseenReleases(log, '', '1.2.0')), []);
+  sameData(vs(V.getUnseenReleases(null, '1.0.0', '1.2.0')), [], 'historial vacío o nulo');
+
+  // Regla de negocio: el historial de la app es coherente: la versión más nueva es la versión actual y las entradas tienen lista de cambios.
+  assert.equal(V.CHANGELOG[0].version, V.APP_VERSION);
+  assert.ok(V.CHANGELOG.every((r) => /^\d+\.\d+\.\d+$/.test(r.version) && r.items.length > 0));
+  assert.ok(V.CHANGELOG.every((r, i) => i === 0 || V.compareVersions(V.CHANGELOG[i - 1].version, r.version) === 1), 'orden descendente sin repetidos');
 }
 
 console.log('Logic checks passed');
