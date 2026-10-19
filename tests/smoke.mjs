@@ -57,6 +57,18 @@ for (const icon of manifest.icons) {
 const serviceWorker = fs.readFileSync('sw.js', 'utf8');
 new Function(serviceWorker);
 assert.ok(serviceWorker.includes('CACHE_NAME'));
+
+// Regla de negocio: al publicar una versión nueva, la app no mezcla la pantalla nueva con el código viejo:
+// el service worker descarga los archivos frescos (sin la caché HTTP) y la página se recarga una sola vez
+// cuando la versión nueva toma el control (no en la primera instalación).
+assert.match(serviceWorker, /cache:\s*'reload'/, 'install must bypass the HTTP cache so the new shell is really new');
+{
+  const appJs = fs.readFileSync('src/app.js', 'utf8');
+  const register = appJs.slice(appJs.indexOf('function registerServiceWorker'), appJs.indexOf('function registerServiceWorker') + 900);
+  assert.ok(register.includes("'controllerchange'"), 'reload when the new service worker takes control');
+  assert.match(register, /navigator\.serviceWorker\.controller/, 'only when a previous version was in control (not on first install)');
+  assert.ok(register.includes('location.reload()'), 'the page reloads into the new version');
+}
 assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));
 assert.ok(serviceWorker.includes('./src/progress.js'));

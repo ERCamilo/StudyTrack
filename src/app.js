@@ -1315,7 +1315,17 @@
 
         function registerServiceWorker() {
             if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;
-            navigator.serviceWorker.register('./sw.js').catch(() => { });
+            // A new version activates with skipWaiting/clients.claim; until then this page may run old
+            // cached scripts under new HTML. Reload once when the new worker takes control, but not on
+            // the very first install (there was no previous version to replace).
+            const hadController = Boolean(navigator.serviceWorker.controller);
+            let reloading = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!hadController || reloading) return;
+                reloading = true;
+                location.reload();
+            });
+            navigator.serviceWorker.register('./sw.js').then((registration) => registration.update()).catch(() => { });
         }
         function getSubjectStatusLabel(subjectId) {
             const status = userProgress[subjectId]?.status || 'pending';
