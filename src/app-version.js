@@ -3,9 +3,20 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.4.0';
+  const APP_VERSION = '1.5.0';
 
   const CHANGELOG = [
+    {
+      version: '1.5.0',
+      date: '2026-10-20',
+      title: 'Ves el estado de tu sincronización',
+      items: [
+        'Un punto en el botón de tu cuenta te dice si tus datos están sincronizados, subiendo, pendientes o con error.',
+        'Si estás sin conexión, avisa cuándo hay cambios esperando para subirse.',
+        'El estado también aparece escrito en el menú «Más», para que no dependa solo del color.',
+        'Botón de detalles de cada materia más fácil de tocar.'
+      ]
+    },
     {
       version: '1.4.0',
       date: '2026-10-20',

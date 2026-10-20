@@ -103,7 +103,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -173,9 +173,15 @@ assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs mus
 assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
 assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
 assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Header sync indicator
+assert.ok(code.includes('<script src="./src/sync-status.js"></script>') && serviceWorker.includes('./src/sync-status.js'), 'sync-status module is loaded and cached');
+assert.ok(html.includes('id="sync-dot"') && html.includes('id="more-sync-label"'), 'indicator markup exists');
+assert.ok(appJs.includes("'studytrack:sync-state'") && fs.readFileSync('src/firebase-sync.js', 'utf8').includes("'studytrack:sync-state'"), 'firebase-sync publishes and app listens');
+assert.ok(/syncing:\s*true,\s*error:\s*false/.test(fs.readFileSync('src/firebase-sync.js', 'utf8')), 'sync start clears the previous error');
+
 // Keyboard / screen-reader support
 assert.ok(/data-action="togglePeriod"[^>]*role="button"[^>]*tabindex="0"[^>]*aria-expanded/.test(fs.readFileSync('src/periods.js', 'utf8')), 'period headers are keyboard-operable');
-assert.ok(/toggleSubjectDetails[^>]*role="button"[^>]*tabindex="0"[^>]*aria-expanded/.test(cardsJs), 'subject headers are keyboard-operable');
+assert.ok(/class="stk-expand-btn" aria-expanded="false"/.test(cardsJs) && !/role="button"/.test(cardsJs), 'subject cards expose one real expand button (no nested role=button headers)');
 assert.ok(/id="toggle-skip-prereqs"[^>]*role="switch"[^>]*aria-checked/.test(html), 'the prerequisites toggle is a switch');
 for (const f of ['all', 'enrolled', 'completed', 'pending']) assert.ok(html.includes(`id="filter-${f}" aria-pressed=`), `filter ${f} exposes aria-pressed`);
 assert.ok(appJs.includes("'aria-current'") && appJs.includes('clearSubjectFilters') && appJs.includes('getEmptyListMessage'), 'tabs expose the current page and empty lists offer a way out');

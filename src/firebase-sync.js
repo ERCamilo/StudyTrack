@@ -60,6 +60,14 @@
     if (typeof global.showToast === 'function') global.showToast(message, type);
   }
 
+  // Facts for the header sync indicator (modeled by StudyTrackSyncStatus, rendered by app.js).
+  const syncUi = { signedIn: false, syncing: false, error: false };
+  function publishSyncUi(patch = {}) {
+    Object.assign(syncUi, patch);
+    if (typeof global.dispatchEvent !== 'function' || typeof global.CustomEvent !== 'function') return;
+    global.dispatchEvent(new global.CustomEvent('studytrack:sync-state', { detail: { ...syncUi, dirty: isLocalDirty() } }));
+  }
+
   function getElement(id) {
     return global.document?.getElementById(id) || null;
   }
@@ -222,6 +230,7 @@
   }
 
   function updateAuthUI(user) {
+    publishSyncUi(user ? { signedIn: true } : { signedIn: false, syncing: false, error: false });
     const headerBtn = getElement('auth-header-btn');
     const loginBtn = getElement('firebase-login-btn');
     const syncBtn = getElement('firebase-sync-now-btn');
@@ -391,6 +400,7 @@
   async function pushToCloud() {
     if (!db || !currentUser || syncing) return;
     syncing = true;
+    publishSyncUi({ syncing: true, error: false });
     const syncStatus = getElement('firebase-sync-status');
     if (syncStatus) {
       syncStatus.textContent = 'Sincronizando...';
@@ -423,9 +433,11 @@
         syncStatus.textContent = 'Error al sincronizar';
         syncStatus.className = 'font-bold text-red-600';
       }
+      publishSyncUi({ error: true });
       notify('Error al subir datos: ' + error.message, 'error');
     } finally {
       syncing = false;
+      publishSyncUi({ syncing: false });
     }
   }
 
@@ -447,6 +459,7 @@
   async function syncCloudData() {
     if (!db || !currentUser || syncing) return;
     syncing = true;
+    publishSyncUi({ syncing: true, error: false });
 
     const syncStatus = getElement('firebase-sync-status');
     if (syncStatus) {
@@ -514,9 +527,11 @@
         syncStatus.textContent = 'Error de sincronización';
         syncStatus.className = 'font-bold text-red-600';
       }
+      publishSyncUi({ error: true });
       notify('Error al sincronizar con la nube: ' + error.message, 'error');
     } finally {
       syncing = false;
+      publishSyncUi({ syncing: false });
     }
   }
 
@@ -604,6 +619,7 @@
   function handleLocalModification() {
     setStorageItem(STORAGE_KEYS.localUpdatedAt, new Date().toISOString());
     setStorageItem(STORAGE_KEYS.localDirty, 'true');
+    publishSyncUi();
 
     if (!db || !currentUser) return;
     if (syncTimeout) clearTimeout(syncTimeout);
@@ -726,6 +742,7 @@
 
   global.StudyTrackFirebaseSync = {
     STORAGE_KEYS,
+    getSyncUiState: () => ({ ...syncUi, dirty: isLocalDirty() }),
     initFirebase,
     syncCloudData,
     pushToCloud,

@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1248,6 +1248,30 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.equal(E(null, undefined).showClear, false, 'valores nulos');
   assert.ok(E('', 'enrolled').title !== E('', 'completed').title, 'cada filtro tiene su propio mensaje');
   assert.ok(E('', 'all').title.length > 0 && E('', 'all').hint.length > 0);
+}
+
+{
+  const S = StudyTrackSyncStatus;
+  const st = (o) => S.getSyncIndicator({ signedIn: true, syncing: false, error: false, dirty: false, online: true, ...o }).state;
+
+  // Regla de negocio: sin sesión de Google no hay indicador de sincronización; con sesión, el estado más urgente gana (sincronizando, luego error, luego sin conexión con cambios, luego cambios pendientes) y solo "sincronizado" significa que todo está en la nube.
+  assert.equal(st({ signedIn: false, dirty: true, error: true, syncing: true }), 'none', 'sin sesión no se muestra nada');
+  assert.equal(st({}), 'synced', 'todo limpio y en línea');
+  assert.equal(st({ dirty: true }), 'pending', 'hay cambios por subir');
+  assert.equal(st({ syncing: true, dirty: true, error: true }), 'syncing', 'sincronizando gana sobre error y pendiente');
+  assert.equal(st({ error: true, dirty: true }), 'error', 'el error gana sobre pendiente');
+  assert.equal(st({ error: true, online: false }), 'error', 'el error se sigue mostrando sin conexión');
+  assert.equal(st({ dirty: true, online: false }), 'offline', 'cambios esperando conexión');
+  assert.equal(st({ dirty: false, online: false }), 'synced', 'sin conexión pero sin nada pendiente: no alarma');
+  assert.equal(S.getSyncIndicator(null).state, 'none', 'entrada nula');
+  assert.equal(S.getSyncIndicator({}).state, 'none', 'entrada vacía');
+  // Todos los estados visibles traen texto para el lector de pantalla; "none" no.
+  for (const state of ['syncing', 'error', 'offline', 'pending', 'synced']) {
+    const m = S.getSyncIndicator({ signedIn: true, syncing: state === 'syncing', error: state === 'error', dirty: state === 'pending' || state === 'offline', online: state !== 'offline' });
+    assert.equal(m.state, state);
+    assert.ok(m.label.length > 0, `${state} has a label`);
+  }
+  assert.equal(S.getSyncIndicator({}).label, '');
 }
 }
 

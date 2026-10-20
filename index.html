@@ -47,6 +47,7 @@
     <script src="./src/insights.js"></script>
     <script src="./src/milestones.js"></script>
     <script src="./src/app-version.js"></script>
+    <script src="./src/sync-status.js"></script>
     <script src="./src/nfc.js"></script>
     <script src="./src/vendor/qrcode.min.js"></script>
     <script src="./src/vendor/jsqr.min.js"></script>
@@ -506,7 +507,7 @@
         .stk-pill--enrolled { padding: 5px 10px; background: var(--stk-accent-enrolled); color: #fff; font-size: 10px; }
         .stk-pill--inscribir { padding: 7px 14px; background: var(--stk-soft-goal); color: var(--stk-accent-goal); font-size: 10.5px; }
 
-        .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 36px; min-height: 36px; padding: 7px; margin: -4px -3px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 44px; min-height: 44px; padding: 7px; margin: -8px -7px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .stk-chev { color: var(--stk-text-3); font-size: 12px; flex-shrink: 0; transition: transform .35s var(--stk-spring); }
         .stk-subject-card.open .stk-chev { transform: rotate(180deg); }
 
@@ -886,6 +887,13 @@
         .stk-cal-nav .stk-sched-pill i { margin: 0; }
         .stk-cal-month { font-size: 11px; font-weight: 800; color: var(--stk-text-1); padding: 0 4px; white-space: nowrap; text-transform: capitalize; min-width: 92px; text-align: center; }
 
+        /* ---- Header sync indicator (state is also spelled out in the button's aria-label and the Más sheet) ---- */
+        .stk-sync-dot { position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--stk-surface); background: var(--stk-accent-approved); pointer-events: none; display: none; }
+        .stk-sync-dot:not([data-state="none"]) { display: block; }
+        .stk-sync-dot[data-state="syncing"] { background: var(--stk-accent-enrolled); animation: stkSyncPulse 1.2s ease-in-out infinite; }
+        .stk-sync-dot[data-state="pending"], .stk-sync-dot[data-state="offline"] { background: var(--stk-accent-warning); }
+        .stk-sync-dot[data-state="error"] { background: var(--stk-accent-goal); }
+        @keyframes stkSyncPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: .6; } }
         /* ---- Mobile ergonomics ---- */
         .filter-btn { min-height: 44px; }
         .stk-sched-pill { min-height: 44px; }
@@ -912,7 +920,7 @@
             .stk-route-pulse, .stk-sched-pill, .stk-sched-add-btn, .stk-sched-chip, .stk-class-block,
             .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim, .stk-cal-cell, .stk-due-row,
             .loading-spinner, .stk-spinner, .stk-splash-pulse, .stk-splash-draw-a, .stk-splash-draw-b,
-            .stk-splash-pin, .stk-splash-detail, .stk-splash-word,
+            .stk-splash-pin, .stk-splash-detail, .stk-splash-word, .stk-sync-dot,
             .ob-step, .ob-scale-in, .ob-trophy, .ob-award-card {
                 transition: none !important; animation: none !important;
             }
@@ -1149,11 +1157,14 @@
                     <button data-action="toggleDarkMode" class="stk-icon-btn" aria-label="Cambiar tema"><i
                             id="theme-icon" class="fas fa-moon text-sm"></i></button>
                     <!-- Google Account / Sync Button -->
-                    <button id="auth-header-btn" data-action="openGoogleSyncSettings"
-                        class="stk-icon-btn overflow-hidden" style="border-radius:50%"
-                        title="Cuenta de Google y Sincronización" aria-label="Cuenta de Google y sincronización">
-                        <i id="auth-header-icon" class="fas fa-user text-sm"></i>
-                    </button>
+                    <span class="relative inline-flex">
+                        <button id="auth-header-btn" data-action="openGoogleSyncSettings"
+                            class="stk-icon-btn overflow-hidden" style="border-radius:50%"
+                            title="Cuenta de Google y Sincronización" aria-label="Cuenta de Google y sincronización">
+                            <i id="auth-header-icon" class="fas fa-user text-sm"></i>
+                        </button>
+                        <span id="sync-dot" class="stk-sync-dot" data-state="none" aria-hidden="true"></span>
+                    </span>
                     <button data-action="openSettings" class="stk-icon-btn" aria-label="Configuración"><i
                             class="fas fa-cog text-sm"></i></button>
                 </div>
@@ -2179,7 +2190,7 @@
                     <i class="fas fa-circle-half-stroke w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Cambiar tema</span>
                 </button>
                 <button data-action="moreOpenSettings" data-args='["settings-section-cloud"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
-                    <i class="fas fa-cloud w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Sincronización</span>
+                    <i class="fas fa-cloud w-5 text-center" style="color:var(--stk-tint)"></i> <span id="more-sync-label" class="flex-1">Sincronización</span>
                 </button>
                 <button data-action="moreOpenSettings" data-args='["settings-section-data"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
                     <i class="fas fa-shield-halved w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Datos y respaldo</span>

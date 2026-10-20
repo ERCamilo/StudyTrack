@@ -543,6 +543,32 @@ assert.equal(store.get(StudyTrackFirebaseSync.STORAGE_KEYS.localDirty), 'true',
   assert.equal(writes.length, 0, 'Auto-save must NOT blindly overwrite the cloud after another device pushed');
   assert.ok(elements.get('sync-conflict-modal'), 'Auto-save must surface a conflict instead of a silent overwrite');
 
+  // ── Header indicator facts: the sync lifecycle is published for StudyTrackSyncStatus ──
+  {
+    const seen = [];
+    context.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } };
+    context.dispatchEvent = (e) => { if (e.type === 'studytrack:sync-state') seen.push(e.detail); };
+    resetModal();
+    writes.length = 0;
+    cloud.exists = false;
+    cloud.data = null;
+    store.set(KEYS.localDirty, 'true');
+    await StudyTrackFirebaseSync.syncCloudData();
+    assert.ok(seen.some((d) => d.syncing === true && d.error === false), 'a sync run publishes syncing=true');
+    const last = seen[seen.length - 1];
+    assert.equal(last.syncing, false, 'the run ends with syncing=false');
+    assert.equal(last.error, false);
+    assert.equal(last.dirty, false, 'after a successful push nothing is pending');
+    assert.equal(StudyTrackFirebaseSync.getSyncUiState().syncing, false);
+    // A local edit publishes dirty=true right away (before the debounced upload).
+    seen.length = 0;
+    StudyTrackStorage.setJson(StudyTrackStorage.KEYS.progress, { EDITED_FOR_INDICATOR: true });
+    StudyTrackFirebaseSync.notifyChange();
+    assert.ok(seen.some((d) => d.dirty === true), 'a local edit publishes dirty=true');
+    delete context.dispatchEvent;
+    delete context.CustomEvent;
+  }
+
   context.setTimeout = realSetTimeout;
   context.clearTimeout = realClearTimeout;
 

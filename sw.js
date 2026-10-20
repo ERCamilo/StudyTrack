@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studytrack-shell-v25';
+const CACHE_NAME = 'studytrack-shell-v26';
 const APP_SHELL = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const APP_SHELL = [
   './src/insights.js',
   './src/milestones.js',
   './src/app-version.js',
+  './src/sync-status.js',
   './src/nfc.js',
   './src/vendor/qrcode.min.js',
   './src/vendor/jsqr.min.js',

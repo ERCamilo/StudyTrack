@@ -114,6 +114,7 @@
             maybeShowSharedCard(); // if opened from a shared QR/link, show the received card
             ['app-version-label', 'more-version-label'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = `v${StudyTrackVersion.APP_VERSION}`; });
             maybeShowWhatsNew(Boolean(storedCurriculum));
+            renderSyncIndicator(window.StudyTrackFirebaseSync?.getSyncUiState?.());
         }
 
         // ============================================================
@@ -795,7 +796,7 @@
             const card = document.getElementById(`subject-card-${id}`);
             if (!card) return;
             card.classList.toggle('open');
-            card.querySelector('[data-action="toggleSubjectDetails"]')?.setAttribute('aria-expanded', card.classList.contains('open') ? 'true' : 'false');
+            card.querySelector('.stk-expand-btn')?.setAttribute('aria-expanded', card.classList.contains('open') ? 'true' : 'false');
         }
         function prepareSubjectReport(subjectId) {
             const loc = findSubjectLocation(subjectId);
@@ -1386,6 +1387,28 @@
             if (!releases.length) { StudyTrackStorage.setItem(K, current); return; }
             setTimeout(() => showWhatsNew(releases, `Actualizaste a la versión ${current}`), isReducedMotion() ? 300 : 1500);
         }
+
+        // ── Header sync indicator ──────────────────────────────────────────
+        // firebase-sync.js publishes the raw facts ('studytrack:sync-state'); StudyTrackSyncStatus decides
+        // the state and this paints it: a dot on the account button plus words for assistive tech.
+        let lastSyncFacts = { signedIn: false, syncing: false, error: false, dirty: false };
+        function renderSyncIndicator(facts) {
+            if (facts) lastSyncFacts = facts;
+            const model = StudyTrackSyncStatus.getSyncIndicator({ ...lastSyncFacts, online: navigator.onLine });
+            const dot = document.getElementById('sync-dot');
+            if (dot) dot.dataset.state = model.state;
+            const btn = document.getElementById('auth-header-btn');
+            if (btn) {
+                const text = model.label ? `Cuenta de Google y sincronización: ${model.label}` : 'Cuenta de Google y sincronización';
+                btn.setAttribute('aria-label', text);
+                btn.title = text;
+            }
+            const more = document.getElementById('more-sync-label');
+            if (more) more.textContent = model.label ? `Sincronización · ${model.label}` : 'Sincronización';
+        }
+        window.addEventListener('studytrack:sync-state', (e) => renderSyncIndicator(e.detail));
+        window.addEventListener('online', () => renderSyncIndicator());
+        window.addEventListener('offline', () => renderSyncIndicator());
 
         // ── Updates ────────────────────────────────────────────────────────
         // A new version activates with skipWaiting/clients.claim, but this page keeps running the scripts it
