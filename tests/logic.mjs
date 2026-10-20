@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers, StudyTrackGraduation, StudyTrackHonors } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1150,6 +1150,483 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   sameData(plainData(U.mergeStoredEvents([ev('edge', '2026-10-19T15:59:59.999Z')], [], now)).map((e) => e.uid), ['edge']);
   sameData(plainData(U.mergeStoredEvents(null, [ev('a', now)], now)).map((e) => e.uid), ['a'], 'nothing stored yet');
   sameData(plainData(U.mergeStoredEvents([ev('a', '2026-01-01T00:00:00.000Z')], null, now)).map((e) => e.uid), ['a']);
+}
+
+{
+  const V = StudyTrackVersion;
+  const log = [
+    { version: '1.2.0', date: '2026-11-01', title: 'C', items: ['c'] },
+    { version: '1.1.0', date: '2026-10-20', title: 'B', items: ['b'] },
+    { version: '1.0.0', date: '2026-10-01', title: 'A', items: ['a'] }
+  ];
+  const vs = (list) => plainData(list).map((r) => r.version);
+
+  // Regla de negocio: las versiones se comparan número por número, no como texto (1.10.0 es mayor que 1.9.0).
+  assert.equal(V.compareVersions('1.10.0', '1.9.0'), 1);
+  assert.equal(V.compareVersions('1.9.0', '1.10.0'), -1);
+  assert.equal(V.compareVersions('1.0.0', '1.0.0'), 0, 'justo en el límite: iguales');
+  assert.equal(V.compareVersions('1.0', '1.0.0'), 0, 'partes faltantes cuentan como 0');
+  assert.equal(V.compareVersions(null, '0.0.0'), 0, 'versión vacía equivale a 0.0.0');
+  assert.equal(V.compareVersions('basura', '0.0.1'), -1, 'versión inválida equivale a 0.0.0');
+
+  // Regla de negocio: tras actualizar se muestran solo las novedades más nuevas que la última versión vista, hasta la versión actual, de la más nueva a la más vieja.
+  sameData(vs(V.getUnseenReleases(log, '1.0.0', '1.2.0')), ['1.2.0', '1.1.0']);
+  sameData(vs(V.getUnseenReleases(log, '1.1.0', '1.2.0')), ['1.2.0'], 'la versión ya vista no se repite (límite)');
+  sameData(vs(V.getUnseenReleases(log, '1.2.0', '1.2.0')), [], 'sin cambios no hay modal');
+  sameData(vs(V.getUnseenReleases(log, '1.0.0', '1.1.0')), ['1.1.0'], 'una versión futura del historial no se muestra (límite: actual incluida)');
+  sameData(vs(V.getUnseenReleases(log, '0.0.0', '1.2.0', 2)), ['1.2.0', '1.1.0'], 'tope de entradas');
+
+  // Regla de negocio: una instalación nueva (sin versión vista) no muestra novedades; solo se marca la versión actual como vista.
+  sameData(vs(V.getUnseenReleases(log, null, '1.2.0')), []);
+  sameData(vs(V.getUnseenReleases(log, '', '1.2.0')), []);
+  sameData(vs(V.getUnseenReleases(null, '1.0.0', '1.2.0')), [], 'historial vacío o nulo');
+
+  // Regla de negocio: el historial de la app es coherente: la versión más nueva es la versión actual y las entradas tienen lista de cambios.
+  assert.equal(V.CHANGELOG[0].version, V.APP_VERSION);
+  assert.ok(V.CHANGELOG.every((r) => /^\d+\.\d+\.\d+$/.test(r.version) && r.items.length > 0));
+  assert.ok(V.CHANGELOG.every((r, i) => i === 0 || V.compareVersions(V.CHANGELOG[i - 1].version, r.version) === 1), 'orden descendente sin repetidos');
+
+  // Regla de negocio: la app busca actualizaciones al volver a primer plano, pero a lo sumo una vez cada 30 minutos.
+  const MIN = 30 * 60 * 1000;
+  assert.equal(V.shouldCheckForUpdate(null, 1000, MIN), true, 'nunca se ha buscado');
+  assert.equal(V.shouldCheckForUpdate(0, MIN, MIN), true, 'justo en el límite: pasaron exactamente 30 minutos');
+  assert.equal(V.shouldCheckForUpdate(0, MIN - 1, MIN), false, 'un milisegundo antes del límite');
+  assert.equal(V.shouldCheckForUpdate(5000, 1000, MIN), true, 'reloj atrasado: se permite buscar');
+  assert.equal(V.shouldCheckForUpdate(undefined, 1000, MIN), true);
+
+  // Regla de negocio: cuando una versión nueva toma el control, la app pregunta al usuario (actualizar ahora o más tarde) en lugar de recargar sola; no pregunta en la primera instalación ni más de una vez por sesión.
+  assert.equal(V.shouldPromptForUpdate(true, false), true, 'había versión anterior y aún no se preguntó');
+  assert.equal(V.shouldPromptForUpdate(false, false), false, 'primera instalación: no hay nada que reemplazar');
+  assert.equal(V.shouldPromptForUpdate(true, true), false, 'ya se preguntó en esta sesión');
+  assert.equal(V.shouldPromptForUpdate(false, true), false);
+  assert.equal(V.shouldPromptForUpdate(undefined, undefined), false, 'sin datos no se pregunta');
+
+  // Regla de negocio: el resumen de la actualización lista solo lo que es más nuevo que la versión en uso y hasta la versión entrante, aunque el historial tenga más (la versión en uso no se repite).
+  sameData(vs(V.getUnseenReleases(log, '1.0.0', '1.1.0')), ['1.1.0']);
+  sameData(vs(V.getUnseenReleases(log, '1.1.0', '1.1.0')), [], 'misma versión: sin notas (límite)');
+
+  // Cargar el módulo otra vez (la versión entrante) no pisa la versión en uso: queda aparte como StudyTrackVersionIncoming.
+  {
+    const running = context.StudyTrackVersion;
+    vm.runInContext(fs.readFileSync('src/app-version.js', 'utf8'), context, { filename: 'src/app-version.js' });
+    assert.equal(context.StudyTrackVersion, running, 'la versión en uso no se reemplaza');
+    assert.ok(context.StudyTrackVersionIncoming && context.StudyTrackVersionIncoming.APP_VERSION, 'la entrante queda disponible');
+    delete context.StudyTrackVersionIncoming;
+  }
+
+// Regla de negocio: al bloquear una materia, se le dice al estudiante exactamente qué prerrequisitos le faltan (los grupos "A o B" cuentan como uno); si no falta ninguno, la materia no está bloqueada.
+{
+  const P = StudyTrackPrerequisites;
+  const ok = (id) => ({ status: 'approved' });
+  const prereqs = ['A', ['B', 'C'], 'D'];
+  sameData(P.getMissingPrerequisites(prereqs, {}, null), ['A', ['B', 'C'], 'D'], 'nada aprobado: falta todo, en orden');
+  sameData(P.getMissingPrerequisites(prereqs, { A: ok(), C: ok() }, null), ['D'], 'un "o" cumplido por C deja de faltar');
+  sameData(P.getMissingPrerequisites(prereqs, { A: ok(), B: ok(), D: ok() }, null), [], 'justo en el límite: todo cumplido');
+  sameData(P.getMissingPrerequisites(prereqs, { A: { status: 'enrolled' }, B: ok(), D: ok() }, null), ['A'], 'inscrita no cuenta como aprobada');
+  sameData(P.getMissingPrerequisites([], {}, null), [], 'sin prerrequisitos');
+  sameData(P.getMissingPrerequisites(null, {}, null), [], 'prerrequisitos nulos');
+  const cur = { periods: [{ subjects: [{ id: 'A' }, { id: 'SEM', is_optional: true }, { id: 'TES', prerequisites: ['ALL', 'SEM'] }] }] };
+  sameData(P.getMissingPrerequisites(['ALL', 'SEM'], { A: ok() }, cur), ['SEM'], 'ALL cumplido pero falta el seminario');
+  sameData(P.getMissingPrerequisites(['ALL', 'SEM'], { SEM: ok() }, cur), ['ALL'], 'falta cursar el resto de la carrera');
+  // Coherencia con checkPrerequisites: bloqueada si y solo si falta algo.
+  for (const progress of [{}, { A: ok() }, { A: ok(), SEM: ok() }]) {
+    assert.equal(P.getMissingPrerequisites(['ALL', 'SEM'], progress, cur).length === 0, P.checkPrerequisites(['ALL', 'SEM'], progress, cur));
+  }
+}
+
+// Lista vacía de materias: el mensaje explica por qué no hay nada y ofrece limpiar solo si hay algo que limpiar.
+{
+  const E = StudyTrackPeriods.getEmptyListMessage;
+  const search = E('cálculo', 'all');
+  assert.ok(search.title.includes('cálculo'), 'menciona lo que se buscó');
+  assert.equal(search.showClear, true);
+  assert.equal(E('  ', 'all').showClear, false, 'solo espacios no cuenta como búsqueda (límite)');
+  assert.equal(E('', 'enrolled').showClear, true, 'un filtro activo se puede quitar');
+  assert.equal(E('', 'completed').showClear, true);
+  assert.equal(E('', 'pending').showClear, true);
+  assert.equal(E('', 'all').showClear, false, 'sin filtro ni búsqueda no hay nada que limpiar');
+  assert.equal(E(null, undefined).showClear, false, 'valores nulos');
+  assert.ok(E('', 'enrolled').title !== E('', 'completed').title, 'cada filtro tiene su propio mensaje');
+  assert.ok(E('', 'all').title.length > 0 && E('', 'all').hint.length > 0);
+}
+
+{
+  const S = StudyTrackSyncStatus;
+  const st = (o) => S.getSyncIndicator({ signedIn: true, syncing: false, error: false, dirty: false, online: true, ...o }).state;
+
+  // Regla de negocio: sin sesión de Google no hay indicador de sincronización; con sesión, el estado más urgente gana (sincronizando, luego error, luego sin conexión con cambios, luego cambios pendientes) y solo "sincronizado" significa que todo está en la nube.
+  assert.equal(st({ signedIn: false, dirty: true, error: true, syncing: true }), 'none', 'sin sesión no se muestra nada');
+  assert.equal(st({}), 'synced', 'todo limpio y en línea');
+  assert.equal(st({ dirty: true }), 'pending', 'hay cambios por subir');
+  assert.equal(st({ syncing: true, dirty: true, error: true }), 'syncing', 'sincronizando gana sobre error y pendiente');
+  assert.equal(st({ error: true, dirty: true }), 'error', 'el error gana sobre pendiente');
+  assert.equal(st({ error: true, online: false }), 'error', 'el error se sigue mostrando sin conexión');
+  assert.equal(st({ dirty: true, online: false }), 'offline', 'cambios esperando conexión');
+  assert.equal(st({ dirty: false, online: false }), 'synced', 'sin conexión pero sin nada pendiente: no alarma');
+  assert.equal(S.getSyncIndicator(null).state, 'none', 'entrada nula');
+  assert.equal(S.getSyncIndicator({}).state, 'none', 'entrada vacía');
+  // Todos los estados visibles traen texto para el lector de pantalla; "none" no.
+  for (const state of ['syncing', 'error', 'offline', 'pending', 'synced']) {
+    const m = S.getSyncIndicator({ signedIn: true, syncing: state === 'syncing', error: state === 'error', dirty: state === 'pending' || state === 'offline', online: state !== 'offline' });
+    assert.equal(m.state, state);
+    assert.ok(m.label.length > 0, `${state} has a label`);
+  }
+  assert.equal(S.getSyncIndicator({}).label, '');
+}
+
+{
+  const D = StudyTrackDevMode;
+  // Simula N toques seguidos separados por `gap` ms y devuelve el estado final.
+  const tapMany = (n, gap, start = null) => { let st = start, t = 1000; for (let i = 0; i < n; i++) { st = D.registerVersionTap(st, t); t += gap; } return st; };
+
+  // Regla de negocio: el modo desarrollador se activa con 7 toques seguidos sobre la versión de la app; cada toque debe llegar a lo sumo 2 segundos después del anterior, si no la cuenta empieza de nuevo.
+  const six = tapMany(6, 500);
+  assert.equal(six.unlocked, false, '6 toques no bastan');
+  assert.equal(six.remaining, 1);
+  const seven = tapMany(7, 500);
+  assert.equal(seven.unlocked, true, 'el 7.º toque activa (límite)');
+  assert.equal(seven.remaining, 0);
+  assert.equal(tapMany(7, 2000).unlocked, true, 'justo en el límite: 2000 ms entre toques todavía cuenta');
+  assert.equal(tapMany(7, 2001).unlocked, false, '2001 ms entre toques reinicia la cuenta');
+  assert.equal(tapMany(7, 2001).count, 1, 'tras reiniciar queda el toque actual como primero');
+  // Un descanso en medio reinicia: 4 toques, pausa larga, 3 toques más no suman 7.
+  let mid = tapMany(4, 300);
+  mid = D.registerVersionTap(mid, 1000 + 4 * 300 + 5000);
+  assert.equal(mid.count, 1);
+  assert.equal(D.registerVersionTap(null, 0).count, 1, 'sin estado previo empieza en 1');
+  assert.equal(D.registerVersionTap(undefined, 0).unlocked, false);
+  // Reloj hacia atrás: no cuenta como seguido.
+  assert.equal(D.registerVersionTap({ count: 5, last: 9000 }, 1000).count, 1);
+  // Tras activarse, la cuenta queda en cero para poder volver a empezar.
+  assert.equal(seven.count, 0);
+
+  // Regla de negocio: el QR y el NFC están ocultos por defecto; una función solo se muestra si el modo desarrollador está activo y su interruptor está encendido.
+  assert.equal(D.isFeatureOn(false, {}, 'qr'), false, 'por defecto oculto');
+  assert.equal(D.isFeatureOn(true, {}, 'qr'), false, 'modo activo pero interruptor apagado (por defecto)');
+  assert.equal(D.isFeatureOn(true, { qr: true }, 'qr'), true);
+  assert.equal(D.isFeatureOn(false, { qr: true }, 'qr'), false, 'si se oculta el modo desarrollador, las funciones se ocultan aunque el interruptor siga encendido');
+  assert.equal(D.isFeatureOn(true, { qr: true }, 'nfc'), false, 'cada función tiene su propio interruptor');
+  assert.equal(D.isFeatureOn(true, null, 'qr'), false, 'flags nulos');
+  assert.equal(D.isFeatureOn(true, { zzz: true }, 'zzz'), false, 'función desconocida');
+  assert.equal(D.isFeatureOn(true, { qr: 'true' }, 'qr'), false, 'solo true booleano cuenta');
+  sameData(D.normalizeFlags({ qr: true, nfc: 1, zzz: true }), { qr: true, nfc: false }, 'solo funciones conocidas, solo booleanos');
+  sameData(D.normalizeFlags(null), { qr: false, nfc: false });
+  sameData(D.toggleFlag({ qr: false, nfc: true }, 'qr'), { qr: true, nfc: true });
+  sameData(D.toggleFlag({ qr: true, nfc: true }, 'qr'), { qr: false, nfc: true });
+  sameData(D.toggleFlag({ qr: false, nfc: false }, 'zzz'), { qr: false, nfc: false }, 'función desconocida se ignora');
+  const frozen = Object.freeze({ qr: false, nfc: false });
+  assert.notEqual(D.toggleFlag(frozen, 'qr'), frozen, 'no muta el original');
+  assert.ok(D.FEATURES.every((f) => f.id && f.label && f.hint));
+}
+
+{
+  const B = StudyTrackBlockers;
+  const ap = { status: 'approved' };
+  const sub = (id, prerequisites = [], extra = {}) => ({ id, code: id, name: `Materia ${id}`, credits: 3, prerequisites, ...extra });
+  const cur = (...periods) => ({ periods: periods.map((subjects, i) => ({ period_number: i + 1, name: `P${i + 1}`, subjects })) });
+  const ids = (list) => list.map((b) => b.id);
+
+  // Regla de negocio: una materia "frena tu avance" si aún no está aprobada, se puede cursar ya (sus prerrequisitos están cumplidos o está en curso) y de ella depende, directamente o en cadena, alguna materia hoy bloqueada.
+  const chain = cur([sub('A'), sub('B', ['A']), sub('C', ['B']), sub('D', ['B']), sub('E', ['C'])]);
+  let r = B.analyzeBlockers(chain, {});
+  assert.equal(r.lockedCount, 4, 'B, C, D y E están bloqueadas');
+  sameData(ids(r.blockers), ['A'], 'solo A se puede cursar ya; B, C, D y E no son accionables');
+  assert.equal(r.blockers[0].blocks, 4, 'cuenta las que bloquea en cadena (B, C, D, E)');
+  assert.equal(r.blockers[0].total, 4);
+  assert.equal(r.blockers[0].unlocksNow, 1, 'aprobar A desbloquea ya solo a B');
+  sameData(r.blockers[0].blockedIds, ['B', 'C', 'D', 'E']);
+  r = B.analyzeBlockers(chain, { A: ap });
+  assert.equal(r.lockedCount, 3);
+  sameData(ids(r.blockers), ['B']);
+  assert.equal(r.blockers[0].blocks, 3);
+  assert.equal(r.blockers[0].unlocksNow, 2, 'aprobar B desbloquea ya a C y a D');
+  r = B.analyzeBlockers(chain, { A: { status: 'enrolled' } });
+  sameData(ids(r.blockers), ['A'], 'una materia en curso sigue frenando hasta que se apruebe');
+  assert.equal(r.blockers[0].status, 'enrolled');
+
+  // Regla de negocio: no aparece nada si no hay materias bloqueadas, y una materia que no bloquea a nadie no se lista.
+  sameData(B.analyzeBlockers(chain, { A: ap, B: ap, C: ap, D: ap }).blockers, [], 'solo E queda disponible y no bloquea a nadie');
+  sameData(B.analyzeBlockers(cur([sub('X'), sub('Y')]), {}).blockers, [], 'sin dependencias no hay bloqueos');
+  assert.equal(B.analyzeBlockers(null, {}).lockedCount, 0, 'currículo nulo');
+  sameData(B.analyzeBlockers({ periods: [] }, null).blockers, [], 'currículo vacío y progreso nulo');
+
+  // Regla de negocio: si un prerrequisito es un grupo "A o B", las dos alternativas cuentan como frenos; una materia aprobada en medio corta la cadena.
+  const orCur = cur([sub('P'), sub('Q'), sub('X', [['P', 'Q']])]);
+  sameData(ids(B.analyzeBlockers(orCur, {}).blockers), ['P', 'Q'], 'cada alternativa del "o" frena a X');
+  sameData(B.analyzeBlockers(orCur, { Q: ap }).blockers, [], 'con Q aprobada, X ya no está bloqueada');
+  // Aprobada en medio: B está aprobada (p. ej. se saltó el prerrequisito), así que A ya no frena a C.
+  sameData(B.analyzeBlockers(cur([sub('A'), sub('B', ['A']), sub('C', ['B'])]), { B: ap }).blockers, [], 'la cadena se corta en la aprobada');
+
+  // Regla de negocio: las materias que exigen "ALL" (cursar todo lo demás) no cuentan ni como bloqueadas ni como bloqueo: todas las pendientes las frenan por igual.
+  const allCur = cur([sub('A'), sub('B', ['A']), sub('TES', ['ALL'])]);
+  const allR = B.analyzeBlockers(allCur, {});
+  assert.equal(allR.lockedCount, 1, 'TES no cuenta como bloqueada');
+  assert.equal(allR.blockers[0].blocks, 1);
+
+  // Regla de negocio: la urgencia es el % de las materias bloqueadas que frena: 50% o más es alta, de 20% a menos de 50% es media y menos de 20% es baja.
+  assert.equal(B.getUrgency(5, 10), 'high', 'justo 50%');
+  assert.equal(B.getUrgency(4, 10), 'medium');
+  assert.equal(B.getUrgency(2, 10), 'medium', 'justo 20%');
+  assert.equal(B.getUrgency(1, 10), 'low');
+  assert.equal(B.getUrgency(50, 100), 'high');
+  assert.equal(B.getUrgency(49, 100), 'medium');
+  assert.equal(B.getUrgency(20, 100), 'medium');
+  assert.equal(B.getUrgency(19, 100), 'low');
+  assert.equal(B.getUrgency(10, 10), 'high');
+  assert.equal(B.getUrgency(0, 10), null, 'no frena nada');
+  assert.equal(B.getUrgency(3, 0), null, 'sin bloqueadas no hay urgencia');
+  assert.equal(B.getUrgency(undefined, undefined), null);
+
+  // Orden: más materias frenadas primero; a igual número, las que desbloquean más ya; luego el período más bajo; luego el id.
+  const ord = cur([sub('A'), sub('B'), sub('C'), sub('A1', ['A']), sub('A2', ['A']), sub('B1', ['B']), sub('B2', ['B']), sub('C1', ['C'])]);
+  const o = B.analyzeBlockers(ord, {});
+  sameData(ids(o.blockers), ['A', 'B', 'C'], 'A y B frenan 2 cada una (A antes que B por id), C frena 1');
+  assert.equal(o.lockedCount, 5);
+  assert.equal(o.blockers[0].percent, 40, '2 de 5 bloqueadas');
+  assert.equal(o.blockers[0].urgency, 'medium');
+  assert.equal(o.blockers[2].percent, 20, '1 de 5');
+  assert.equal(o.blockers[2].urgency, 'medium', 'justo 20% ya es media');
+  const tie = cur([sub('Z')], [sub('A')], [sub('Z1', ['Z']), sub('A1', ['A'])]);
+  sameData(ids(B.analyzeBlockers(tie, {}).blockers), ['Z', 'A'], 'a igual de todo gana el período más bajo');
+  // Textos de la tarjeta: singular/plural y el caso de "no desbloquea nada todavía".
+  const d1 = B.describeBlocker({ blocks: 8, total: 10, percent: 80, unlocksNow: 3 });
+  assert.equal(d1.headline, 'Frena 8 de 10 materias bloqueadas (80%)');
+  assert.equal(d1.detail, 'Aprobarla desbloquea 3 materias ya.');
+  const d2 = B.describeBlocker({ blocks: 1, total: 1, percent: 100, unlocksNow: 1 });
+  assert.equal(d2.headline, 'Frena 1 de 1 materia bloqueada (100%)');
+  assert.equal(d2.detail, 'Aprobarla desbloquea 1 materia ya.');
+  assert.equal(B.describeBlocker({ blocks: 2, total: 9, percent: 22, unlocksNow: 0 }).detail, 'Abre el camino a las siguientes de la cadena.');
+  assert.equal(B.URGENCY_LABELS.high, 'Urgencia alta');
+  assert.ok(B.URGENCY_LABELS.medium && B.URGENCY_LABELS.low);
+  // Un ciclo mal cargado no cuelga la app.
+  const cyc = cur([sub('A', ['B']), sub('B', ['A']), sub('F')]);
+  assert.doesNotThrow(() => B.analyzeBlockers(cyc, {}));
+  // Un prerrequisito que no existe en el currículo no bloquea a nadie por sí solo.
+  sameData(B.analyzeBlockers(cur([sub('A'), sub('B', ['A', 'FANTASMA'])]), {}).blockers.map((b) => b.id), ['A']);
+}
+
+{
+  const G = StudyTrackGraduation;
+  const ap = { status: 'approved' };
+  const sub = (id, prerequisites = [], extra = {}) => ({ id, code: id, name: `Materia ${id}`, credits: 3, prerequisites, ...extra });
+  const cur = (...periods) => ({ periods: periods.map((subjects, i) => ({ period_number: i + 1, name: `P${i + 1}`, subjects })) });
+  const bySubjects = (n) => ({ mode: 'subjects', perPeriod: n, periodMonths: 3 });
+  const byCredits = (n) => ({ mode: 'credits', perPeriod: n, periodMonths: 3 });
+  const plan = (c, p, settings) => G.planGraduation(c, p, settings);
+
+  // Regla de negocio: los períodos que faltan salen de simular período por período: cada uno toma, hasta tu límite, las materias que ya puedes cursar (prerrequisitos aprobados en períodos anteriores), dando prioridad a las que abren cadenas más largas.
+  assert.equal(plan(cur([sub('A'), sub('B'), sub('C')]), {}, bySubjects(2)).periods, 2, '3 materias, 2 por período');
+  assert.equal(plan(cur([sub('A'), sub('B'), sub('C'), sub('D')]), {}, bySubjects(4)).periods, 1, 'justo en el límite de la carga: caben todas');
+  assert.equal(plan(cur([sub('A'), sub('B'), sub('C'), sub('D'), sub('E')]), {}, bySubjects(4)).periods, 2, 'una más que la carga: otro período');
+  const chainPlan = plan(cur([sub('A'), sub('B', ['A']), sub('C', ['B'])]), {}, bySubjects(10));
+  assert.equal(chainPlan.periods, 3, 'una cadena A>B>C no se acorta con más carga');
+  assert.equal(chainPlan.minPeriods, 3);
+  assert.equal(chainPlan.limitedBy, 'prerequisites');
+  const wide = plan(cur([sub('A'), sub('B'), sub('C'), sub('D'), sub('E'), sub('F')]), {}, bySubjects(2));
+  assert.equal(wide.periods, 3);
+  assert.equal(wide.minPeriods, 1, 'con carga ilimitada bastaría 1 período');
+  assert.equal(wide.limitedBy, 'capacity');
+  sameData(wide.plan.map((p) => p.ids.length), [2, 2, 2]);
+  // Prioridad: la materia que abre la cadena más larga va primero aunque haya otras libres.
+  const prio = plan(cur([sub('Z'), sub('A'), sub('B', ['A']), sub('C', ['B'])]), {}, bySubjects(1));
+  assert.equal(prio.plan[0].ids[0], 'A', 'A abre la cadena más larga');
+  assert.equal(prio.periods, 4);
+
+  // Regla de negocio: la carga puede medirse en créditos; las materias de 0 créditos siempre caben, y si una materia pendiente no cabe nunca en tu límite, no hay estimación.
+  const four = cur([sub('A'), sub('B'), sub('C'), sub('D')]);
+  assert.equal(plan(four, {}, byCredits(6)).periods, 2, '2 materias de 3 créditos caben justo en 6');
+  assert.equal(plan(four, {}, byCredits(5)).periods, 4, 'con 5 créditos solo cabe una de 3 por período');
+  assert.equal(plan(cur([sub('Z0', [], { credits: 0 }), sub('A')]), {}, byCredits(3)).periods, 1, 'la de 0 créditos no ocupa cupo');
+  const tooSmall = plan(cur([sub('G', [], { credits: 4 })]), {}, byCredits(3));
+  assert.equal(tooSmall.status, 'stuck');
+  assert.equal(tooSmall.reason, 'capacity');
+  assert.equal(plan(cur([sub('G', [], { credits: 4 })]), {}, byCredits(4)).periods, 1, 'justo en el límite');
+
+  // Regla de negocio: lo aprobado no cuenta; si no falta nada, ya terminaste; las materias en curso van en el primer período aunque superen tu límite.
+  const done = plan(four, { A: ap, B: ap, C: ap, D: ap }, bySubjects(2));
+  assert.equal(done.status, 'done');
+  assert.equal(done.periods, 0);
+  assert.equal(plan(four, { A: ap, B: ap }, bySubjects(2)).periods, 1, 'solo faltan 2');
+  const enr = plan(cur([sub('A'), sub('B'), sub('C')]), { A: { status: 'enrolled' }, B: { status: 'enrolled' } }, bySubjects(1));
+  sameData(enr.plan[0].ids.slice().sort(), ['A', 'B'], 'las dos inscritas van juntas en el período 1');
+  assert.equal(enr.periods, 2, 'C queda para el período 2');
+  assert.equal(plan(null, {}, bySubjects(2)).status, 'done', 'currículo nulo: nada que cursar');
+
+  // Regla de negocio: una materia que exige "ALL" va después de todas las demás, en su propio período; las optativas solo cuentan si alguna materia obligatoria las exige.
+  const allCur = cur([sub('A'), sub('B'), sub('TES', ['ALL'])]);
+  const allPlan = plan(allCur, {}, bySubjects(5));
+  assert.equal(allPlan.periods, 2, 'A y B en el 1; TES sola en el 2');
+  sameData(allPlan.plan[1].ids, ['TES']);
+  const opt = cur([sub('A'), sub('OPT', [], { is_optional: true }), sub('B', ['A'])]);
+  assert.equal(plan(opt, {}, bySubjects(5)).remainingSubjects, 2, 'la optativa que nadie exige no cuenta');
+  const optReq = cur([sub('SEM', [], { is_optional: true }), sub('TES', ['SEM'])]);
+  assert.equal(plan(optReq, {}, bySubjects(5)).remainingSubjects, 2, 'la optativa que TES exige sí cuenta');
+  assert.equal(plan(optReq, {}, bySubjects(5)).periods, 2);
+
+  // Un prerrequisito que nunca se podrá cumplir (no existe) deja la estimación en "atascada", sin colgar.
+  const stuck = plan(cur([sub('A', ['FANTASMA']), sub('B')]), {}, bySubjects(2));
+  assert.equal(stuck.status, 'stuck');
+  assert.equal(stuck.reason, 'prerequisites');
+  sameData(stuck.stuckIds, ['A']);
+  assert.doesNotThrow(() => plan(cur([sub('A', ['B']), sub('B', ['A'])]), {}, bySubjects(2)), 'un ciclo no cuelga');
+  assert.equal(plan(cur([sub('A', [['B', 'C']]), sub('B'), sub('C')]), {}, bySubjects(5)).periods, 2, 'grupo "o": basta con una alternativa, A queda para el 2.º período');
+  assert.equal(plan(four, {}, { mode: 'subjects', perPeriod: 0, periodMonths: 3 }).status, 'stuck', 'carga 0 no avanza');
+  assert.equal(plan(four, {}, bySubjects(2)).remainingCredits, 12);
+
+  // Regla de negocio: la duración total es períodos × meses por período, y la fecha de fin suma esos meses al día de inicio (sin pasarse de fin de mes).
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const start = Date.UTC(2026, 9, 20);
+  assert.equal(G.estimateEnd(11, 3, start).months, 33);
+  assert.equal(iso(G.estimateEnd(11, 3, start).endMs), '2029-07-20', '33 meses desde oct 2026');
+  assert.equal(iso(G.estimateEnd(0, 3, start).endMs), '2026-10-20', '0 períodos: hoy');
+  assert.equal(iso(G.estimateEnd(1, 1, Date.UTC(2026, 0, 31)).endMs), '2026-02-28', '31 de enero + 1 mes = fin de febrero');
+  assert.equal(iso(G.estimateEnd(1, 1, Date.UTC(2028, 0, 31)).endMs), '2028-02-29', 'año bisiesto');
+  assert.equal(G.estimateEnd(3, 3.5, start).months, 10.5, 'meses con decimales');
+  assert.equal(G.formatDuration(0), 'menos de un mes');
+  assert.equal(G.formatDuration(1), '1 mes');
+  assert.equal(G.formatDuration(11), '11 meses');
+  assert.equal(G.formatDuration(12), '1 año');
+  assert.equal(G.formatDuration(13), '1 año y 1 mes');
+  assert.equal(G.formatDuration(33), '2 años y 9 meses');
+  assert.equal(G.formatDuration(24), '2 años');
+  assert.equal(G.formatDuration(10.5), '11 meses', 'redondea al mes más cercano');
+
+  // Valores por defecto y validación de lo que escribe el usuario (se limita a rangos razonables).
+  const real = { metadata: { duration_years: 4, total_credits: 209 }, periods: Array.from({ length: 16 }, (_, i) => ({ period_number: i + 1, subjects: [sub(`S${i}a`, [], { credits: 13 }), sub(`S${i}b`, [], { credits: 0 }), sub(`S${i}c`), sub(`S${i}d`)] })) };
+  sameData(G.defaultPlanSettings(real), { mode: 'subjects', perPeriod: 4, periodMonths: 3 }, '4 años / 16 períodos = 3 meses; 64 materias / 16 = 4');
+  assert.equal(G.defaultPlanSettings(null).periodMonths, 4, 'sin datos: 4 meses');
+  assert.equal(G.defaultPlanSettings(null).perPeriod, 4);
+  const d = G.defaultPlanSettings(real);
+  sameData(G.normalizePlanSettings({ mode: 'credits', perPeriod: 14, periodMonths: 2.5 }, d), { mode: 'credits', perPeriod: 14, periodMonths: 2.5 });
+  assert.equal(G.normalizePlanSettings({ periodMonths: 0 }, d).periodMonths, 0.5, 'mínimo 0.5 meses');
+  assert.equal(G.normalizePlanSettings({ periodMonths: 13 }, d).periodMonths, 12, 'máximo 12 meses');
+  assert.equal(G.normalizePlanSettings({ periodMonths: 'abc' }, d).periodMonths, 3, 'inválido: el predeterminado');
+  assert.equal(G.normalizePlanSettings({ mode: 'subjects', perPeriod: 0 }, d).perPeriod, 1, 'mínimo 1 materia');
+  assert.equal(G.normalizePlanSettings({ mode: 'subjects', perPeriod: 99 }, d).perPeriod, 15, 'máximo 15 materias');
+  assert.equal(G.normalizePlanSettings({ mode: 'credits', perPeriod: 99 }, d).perPeriod, 60, 'máximo 60 créditos');
+  assert.equal(G.normalizePlanSettings({ mode: 'zzz' }, d).mode, 'subjects', 'modo desconocido');
+  sameData(G.normalizePlanSettings(null, d), plainData(d), 'sin datos guardados: los predeterminados');
+  assert.equal(G.defaultCreditsPerPeriod(real), 14, '209 créditos / 16 períodos, redondeado hacia arriba');
+  assert.equal(G.defaultCreditsPerPeriod(cur([sub('A'), sub('B')])), 6, 'sin total declarado: suma de créditos / períodos');
+  assert.equal(G.defaultCreditsPerPeriod(null), 15, 'sin datos: 15');
+  assert.equal(G.periodNoun('Trimestre', 1), 'trimestre');
+  assert.equal(G.periodNoun('Trimestre', 11), 'trimestres');
+  assert.equal(G.periodNoun('Mes', 3), 'meses', 'termina en consonante: +es');
+  assert.equal(G.periodNoun(undefined, 2), 'períodos');
+  assert.equal(G.periodNoun('', 1), 'período');
+}
+
+{
+  const H = StudyTrackHonors;
+  const levels = H.normalizeHonorLevels(null);
+  const sub = (id, credits, extra = {}) => ({ id, code: id, name: `Materia ${id}`, credits, prerequisites: [], ...extra });
+  const cur = (...subjects) => ({ periods: [{ period_number: 1, subjects }] });
+  // S = suma de nota×créditos, W = créditos con nota, R = créditos que faltan.
+  const ev = (S, W, R, extra = {}) => H.evaluateHonors({ levels, weightedSum: S, weightBase: W, remainingCredits: R, passingGrade: 70, ...extra });
+
+  // Regla de negocio: los niveles de reconocimiento por defecto son Cum Laude 90, Magna Cum Laude 95 y Summa Cum Laude 98 (promedio en base 100); lo que edite el estudiante se limita a 1–100, se ordena de menor a mayor y lo inválido vuelve al valor por defecto.
+  sameData(levels.map((l) => [l.name, l.min]), [['Cum Laude', 90], ['Magna Cum Laude', 95], ['Summa Cum Laude', 98]]);
+  sameData(H.normalizeHonorLevels([{ name: 'Honor A', min: 85 }, { name: 'Honor B', min: 92.5 }, { name: 'Honor C', min: 99 }]).map((l) => [l.name, l.min]), [['Honor A', 85], ['Honor B', 92.5], ['Honor C', 99]]);
+  sameData(H.normalizeHonorLevels([{ min: 150 }, { min: 0 }, { min: 'x' }]).map((l) => l.min), [1, 98, 100], '150 pasa a 100, 0 pasa a 1, "x" vuelve a 98; queda ordenado');
+  sameData(H.normalizeHonorLevels([{ name: '  ', min: 90 }, {}, {}]).map((l) => l.name), ['Cum Laude', 'Magna Cum Laude', 'Summa Cum Laude'], 'nombre vacío: el de siempre');
+  assert.equal(H.normalizeHonorLevels([{ name: 'x'.repeat(60), min: 90 }])[0].name.length, 30, 'nombre de a lo sumo 30 letras');
+  assert.equal(H.normalizeHonorLevels('basura').length, 3, 'entrada inválida: los 3 por defecto');
+  sameData(H.normalizeHonorLevels([{ name: 'B', min: 95 }, { name: 'A', min: 90 }, { name: 'C', min: 98 }]).map((l) => l.name), ['A', 'B', 'C'], 'ordena por promedio mínimo');
+
+  // Regla de negocio: el reconocimiento actual es el más alto cuyo promedio mínimo ya cumples; el promedio se compara redondeado a 2 decimales (el mismo que se muestra).
+  const lvl = (S, W) => ev(S, W, 10).current?.name || null;
+  assert.equal(lvl(899, 10), null, '89.9: ninguno');
+  assert.equal(lvl(900, 10), 'Cum Laude', 'justo 90');
+  assert.equal(lvl(899.96, 10), 'Cum Laude', '89.996 se muestra 90.00 y cuenta como 90');
+  assert.equal(lvl(949, 10), 'Cum Laude', '94.9');
+  assert.equal(lvl(950, 10), 'Magna Cum Laude', 'justo 95');
+  assert.equal(lvl(979, 10), 'Magna Cum Laude', '97.9');
+  assert.equal(lvl(980, 10), 'Summa Cum Laude', 'justo 98');
+  assert.equal(lvl(1000, 10), 'Summa Cum Laude', '100');
+  assert.equal(ev(1000, 10, 10).next, null, 'en el nivel más alto no hay siguiente');
+  assert.equal(ev(900, 10, 10).next.name, 'Magna Cum Laude', 'desde Cum Laude el siguiente es Magna');
+  assert.equal(ev(850, 10, 10).next.name, 'Cum Laude', 'sin nivel, el siguiente es el primero');
+  assert.equal(ev(850, 10, 10).average, 85);
+  const none = ev(0, 0, 10);
+  assert.equal(none.status, 'no-grades', 'sin notas no hay promedio');
+  assert.equal(none.average, null);
+  assert.equal(none.current, null);
+  assert.equal(none.toReach.requiredAvg, 90, 'sin notas, para el primer nivel necesitas promediar 90 en todo lo que falta');
+  assert.equal(ev(925, 10, 10).progressToNext, 50, 'a mitad de camino entre 90 y 95');
+  assert.equal(ev(900, 10, 10).progressToNext, 0);
+  assert.equal(ev(900, 10, 10).toReach.gap, 5, 'faltan 5 puntos de promedio para Magna');
+
+  // Regla de negocio: para llegar a un nivel al graduarte debes promediar ((meta × (créditos con nota + créditos que faltan)) − puntos acumulados) ÷ créditos que faltan; si pide más de 100 no es posible; para conservar el nivel actual rige la misma fórmula, y nunca se pide menos que la nota mínima de aprobar.
+  const a = ev(900, 10, 10);
+  assert.equal(a.toReach.requiredAvg, 100, '(95×20−900)/10 = 100');
+  assert.equal(a.toReach.feasible, true, 'justo 100 todavía es posible');
+  const b = ev(8800, 100, 10);
+  assert.equal(b.toReach.requiredAvg, 110, '(90×110−8800)/10');
+  assert.equal(b.toReach.feasible, false, 'ni con 100 en todo');
+  const c = ev(8900, 100, 10);
+  assert.equal(c.toReach.requiredAvg, 100);
+  assert.equal(c.toReach.feasible, true, 'justo en el límite');
+  assert.equal(ev(850, 10, 7).toReach.requiredAvg, 97.2, '97.14… se redondea hacia arriba a 97.2 para no quedarse corto');
+  const d = ev(9600, 100, 10);
+  assert.equal(d.current.name, 'Magna Cum Laude');
+  assert.equal(d.toKeep.requiredAvg, 85, 'conservar Magna: (95×110−9600)/10');
+  assert.equal(d.toKeep.onlyPassing, false);
+  assert.equal(d.toReach.requiredAvg, 118);
+  assert.equal(d.toReach.feasible, false, 'Summa ya no es alcanzable');
+  const e = ev(9900, 100, 2);
+  assert.equal(e.current.name, 'Summa Cum Laude');
+  assert.equal(e.toKeep.requiredAvg, 70, 'la fórmula da 48, pero se pide al menos la nota de aprobar');
+  assert.equal(e.toKeep.onlyPassing, true);
+  assert.equal(e.toReach, null, 'en el nivel más alto no hay meta siguiente');
+  assert.equal(ev(0, 0, 0).status, 'no-grades');
+  const fin = ev(9000, 100, 0);
+  assert.equal(fin.finished, true, 'sin créditos por cursar ya no se puede mover el promedio');
+  assert.equal(fin.current.name, 'Cum Laude');
+  assert.equal(fin.toReach.feasible, false);
+  assert.equal(fin.toKeep.secure, true, 'el nivel actual ya está asegurado');
+
+  // Regla de negocio: se ofrecen caminos concretos para subir de nivel: cuántas materias (y períodos) con una nota mayor que la meta hacen falta, y se avisa si los créditos que faltan no alcanzan.
+  const opt = ev(900, 10, 10, { typicalCredits: 3, perPeriodCredits: 12 });
+  sameData(opt.toReach.options.map((o) => o.grade), [100], 'solo notas mayores que la meta 95');
+  assert.equal(opt.toReach.options[0].credits, 10, '(95×10−900)/(100−95) = 10 créditos');
+  assert.equal(opt.toReach.options[0].subjects, 4, '10 créditos / 3 por materia = 3.3 → 4');
+  assert.equal(opt.toReach.options[0].periods, 1, '10 créditos en períodos de 12');
+  assert.equal(opt.toReach.options[0].enough, true, 'justo los 10 créditos que faltan');
+  assert.equal(ev(900, 10, 9, { typicalCredits: 3 }).toReach.options[0].enough, false, 'con 9 créditos por cursar no alcanza');
+  const two = ev(850, 10, 20, { typicalCredits: 3, perPeriodCredits: 12 });
+  sameData(two.toReach.options.map((o) => [o.grade, o.credits, o.subjects]), [[100, 5, 2], [95, 10, 4]], 'con meta 90: notas 100 y 95; la de 90 no ayuda');
+  assert.equal(ev(850, 10, 20, { typicalCredits: 3 }).toReach.options[0].periods, null, 'sin carga por período no se estiman períodos');
+
+  // Regla de negocio: se avisa qué evitar: la nota mínima que debes sacar en una sola materia (típica y la de más créditos) para no perder tu nivel; si bastaría con aprobar, se dice que no hay riesgo.
+  const r = ev(960, 10, 20, { typicalCredits: 3, heaviestCredits: 6 });
+  assert.equal(r.current.name, 'Magna Cum Laude');
+  assert.equal(r.risk.typical.minGrade, 91.7, '(95×13−960)/3 = 91.67');
+  assert.equal(r.risk.typical.safe, false);
+  assert.equal(r.risk.heaviest.minGrade, 93.4, '(95×16−960)/6 = 93.33');
+  assert.equal(r.risk.heaviest.credits, 6);
+  const safe = ev(9600, 100, 20, { typicalCredits: 3, heaviestCredits: 6 });
+  assert.equal(safe.risk.typical.safe, true, '61.7 es menos que aprobar: una materia no te baja de nivel');
+  assert.equal(ev(850, 10, 20, { typicalCredits: 3, heaviestCredits: 6 }).risk, null, 'sin nivel actual no hay nada que perder');
+
+  // Regla de negocio: el promedio de reconocimientos es el mismo "Índice" de la app: ponderado por créditos sobre toda materia con nota (también las no aprobadas); las aprobadas sin nota se avisan aparte y lo que falta cuenta solo si es obligatorio y sin nota.
+  const curr = cur(
+    sub('A', 3, { name: 'A' }), sub('B', 4), sub('C', 3), sub('D', 3), sub('E', 6), sub('F', 3, { is_optional: true }), sub('G', 3), sub('H', 0));
+  const prog = {
+    A: { status: 'approved', grade: '85,5' }, B: { status: 'approved', grade: 90 }, C: { status: 'approved', grade: '' },
+    E: { status: 'enrolled' }, G: { status: 'pending', grade: 50 }
+  };
+  const sum = plainData(H.summarizeGrades(curr, prog));
+  assert.equal(sum.weightedSum, 766.5, '85.5×3 + 90×4 + 50×3');
+  assert.equal(sum.weightBase, 10, 'A, B y G tienen nota');
+  assert.equal(sum.remainingCredits, 9, 'faltan D (3) y E (6); F es optativa, G ya tiene nota, H vale 0 créditos');
+  assert.equal(sum.typicalCredits, 4.5);
+  assert.equal(sum.heaviestCredits, 6);
+  sameData(sum.ungradedApproved, { count: 1, credits: 3 }, 'C está aprobada sin nota');
+  const academic = plainData(StudyTrackAcademics.calculateAcademicSummary(curr, prog));
+  assert.equal(Math.round((sum.weightedSum / sum.weightBase) * 100) / 100, Math.round(academic.globalAvg * 100) / 100, 'mismo promedio que el Índice de la app');
+  const empty = plainData(H.summarizeGrades(null, null));
+  sameData([empty.weightedSum, empty.weightBase, empty.remainingCredits, empty.typicalCredits, empty.heaviestCredits], [0, 0, 0, 0, 0], 'currículo nulo');
+}
 }
 
 console.log('Logic checks passed');

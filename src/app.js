@@ -72,6 +72,7 @@
             scheduleSplashDismiss(); // the splash overlay dismisses itself on a short timer, independent of init work below
             milestonesReady = false; // silence celebrations during (re)init — incl. cloud-pull re-runs
             loadSettings(); // refresh cloud-synced settings (so a sync pull applies without reload)
+            applyDevMode();
             if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
 
             // Check persistence first
@@ -112,6 +113,9 @@
             if (currentView === 'profile') renderProfileView();
             milestonesReady = true; // baseline is stamped; from here new achievements celebrate
             maybeShowSharedCard(); // if opened from a shared QR/link, show the received card
+            ['app-version-label', 'more-version-label'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = `v${StudyTrackVersion.APP_VERSION}`; });
+            maybeShowWhatsNew(Boolean(storedCurriculum));
+            renderSyncIndicator(window.StudyTrackFirebaseSync?.getSyncUiState?.());
         }
 
         // ============================================================
@@ -212,7 +216,7 @@
             if (!selectedItem) return;
 
             // Warning if switching careers via settings
-            if (origin === 'settings' && !confirm(`¿Cargar ${selectedItem.career_name}? \n⚠️ Se reiniciará tu progreso actual.`)) {
+            if (origin === 'settings' && !(await askConfirm({ title: `¿Cargar ${selectedItem.career_name}?`, message: 'Se reiniciará tu progreso actual. Esta acción no se puede deshacer.', confirmLabel: 'Cargar carrera', danger: true }))) {
                 return;
             }
 
@@ -624,7 +628,7 @@
         function saveCurriculum() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.curriculum, currentCurriculum); notifySyncChange(); }
         function saveUserProgress() { StudyTrackStorage.setJson(APP_CONFIG.storageKeys.progress, userProgress); notifySyncChange(); }
         let appEventListenersReady = false;
-        function setupEventListeners() { if (appEventListenersReady) return; appEventListenersReady = true; document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value)); }
+        function setupEventListeners() { if (appEventListenersReady) return; appEventListenersReady = true; const searchInput = document.getElementById('search-input'); let searchTimer = null; searchInput.addEventListener('input', (e) => { clearTimeout(searchTimer); const text = e.target.value; searchTimer = setTimeout(() => handleSearch(text), 150); }); searchInput.addEventListener('search', (e) => { clearTimeout(searchTimer); handleSearch(e.target.value); }); setupDialogLayers(); }
         function handleSearch(text) { renderPeriods(text); }
         function checkPrerequisites(prereqs) { return StudyTrackPrerequisites.checkPrerequisites(prereqs, userProgress, currentCurriculum); }
         function areAllOtherSubjectsCompleted() { return StudyTrackPrerequisites.areAllOtherSubjectsCompleted(currentCurriculum, userProgress); }
@@ -729,7 +733,28 @@
             periodIndexes.forEach(idx => updatePeriodHeaderDOM(idx));
         }
 
+        // Names what is still missing (first 3) and offers a shortcut to the first missing subject.
+        function showPrerequisiteBlockedToast(prerequisites) {
+            const missing = StudyTrackPrerequisites.getMissingPrerequisites(prerequisites, userProgress, currentCurriculum);
+            const nameOf = (id) => findSubjectLocation(id)?.subject.name || id;
+            const label = (group) => group === 'ALL' ? 'el resto de la carrera' : Array.isArray(group) ? `(${group.map(nameOf).join(' o ')})` : nameOf(group);
+            const shown = missing.slice(0, 3).map(label).join(', ') + (missing.length > 3 ? ` y ${missing.length - 3} más` : '');
+            const firstId = [].concat(missing[0] || []).find((id) => id !== 'ALL' && findSubjectLocation(id));
+            showToast(`🔒 Te falta aprobar: ${shown || 'un prerrequisito'}`, 'error', {
+                key: 'prereq-blocked', duration: 5000,
+                action: firstId ? { label: 'Ver', run: () => navigateToSubject(firstId) } : undefined
+            });
+        }
+        // Undo for a single subject's progress change (approve / unapprove / enroll / unenroll).
+        function snapshotSubjectProgress(id) { return userProgress[id] ? JSON.parse(JSON.stringify(userProgress[id])) : null; }
+        function offerUndo(id, snapshot, message) {
+            showToast(message, 'success', {
+                key: 'undo', duration: 5000,
+                action: { label: 'Deshacer', run: () => { if (snapshot) userProgress[id] = snapshot; else delete userProgress[id]; saveUserProgress(); refreshAffectedSubjects(id); calculateStatistics(); } }
+            });
+        }
         function toggleSubjectStatus(id) {
+            const undoSnapshot = snapshotSubjectProgress(id);
             if (!userProgress[id]) userProgress[id] = StudyTrackProgress.createDefaultSubjectProgress();
 
             const loc = findSubjectLocation(id);
@@ -738,7 +763,8 @@
             if (!isCurrentlyApproved && loc) {
                 const prereqsMet = checkPrerequisites(loc.subject.prerequisites);
                 if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) {
-                    showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error');
+                    if (!undoSnapshot) delete userProgress[id];
+                    showPrerequisiteBlockedToast(loc.subject.prerequisites);
                     return;
                 }
             }
@@ -748,6 +774,7 @@
             refreshAffectedSubjects(id);
             calculateStatistics();
             if (userProgress[id].status === 'approved') popSubjectOrb(id);
+            offerUndo(id, undoSnapshot, userProgress[id].status === 'approved' ? 'Materia aprobada' : 'Aprobación quitada');
         }
         function popSubjectOrb(id) {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -768,7 +795,9 @@
         function updateCompletionDate(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].completionDate = val; saveUserProgress(); }
         function toggleSubjectDetails(id) {
             const card = document.getElementById(`subject-card-${id}`);
-            if (card) card.classList.toggle('open');
+            if (!card) return;
+            card.classList.toggle('open');
+            card.querySelector('.stk-expand-btn')?.setAttribute('aria-expanded', card.classList.contains('open') ? 'true' : 'false');
         }
         function prepareSubjectReport(subjectId) {
             const loc = findSubjectLocation(subjectId);
@@ -872,7 +901,7 @@
                 : recommendation.category === 'close-period' ? 'bg-blue-500'
                     : recommendation.category === 'light-load' ? 'bg-amber-500'
                         : 'bg-slate-500';
-            return `<button data-action="handleHomeAction" data-args='["pending"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
+            return `<button data-action="handleHomeAction" data-args='["pending"]' class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"><div class="w-2.5 h-2.5 rounded-full ${categoryClass} shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 min-w-0"><div class="text-sm font-bold text-slate-900 dark:text-white truncate">${safeName}</div><span class="shrink-0 rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-500 dark:text-slate-300">${safeBadge}</span></div><div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${safeCode} · ${safeReason}</div></div><i class="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i></button>`;
         }
 
         function renderHomeEmpty(icon, title, detail) {
@@ -1136,6 +1165,27 @@
             return html;
         }
 
+        // "Frenan tu avance": the unapproved, takeable subjects that hold back the most locked ones.
+        const URGENCY_ICON = { high: 'fa-triangle-exclamation', medium: 'fa-circle-exclamation', low: 'fa-circle-info' };
+        function renderHomeBlockers() {
+            const card = document.getElementById('home-blockers');
+            if (!card) return;
+            const { lockedCount, blockers } = StudyTrackBlockers.analyzeBlockers(currentCurriculum, userProgress);
+            if (!blockers.length) { card.classList.add('hidden'); return; }
+            const top = blockers.slice(0, 3);
+            document.getElementById('home-blockers-count').textContent = `${lockedCount} ${lockedCount === 1 ? 'materia bloqueada' : 'materias bloqueadas'}`;
+            document.getElementById('home-blockers-list').innerHTML = top.map((b) => {
+                const text = StudyTrackBlockers.describeBlocker(b);
+                const level = b.urgency || 'low';
+                const label = StudyTrackBlockers.URGENCY_LABELS[level];
+                return `<button type="button" data-action="navigateToSubject" data-args="${actionArgs(b.id)}" class="stk-urg-row stk-urg-row--${level} w-full text-left px-4 py-3 flex flex-col gap-2 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors" style="min-height:44px"><span class="flex items-start gap-2"><span class="flex-1 min-w-0"><span class="block text-sm font-bold truncate" style="color:var(--stk-text-1)">${escapeHtml(b.name || b.code)}</span><span class="block text-[11px]" style="color:var(--stk-text-2)">${escapeHtml(b.code)} · Período ${escapeHtml(b.period)}${b.status === 'enrolled' ? ' · En curso' : ''}</span></span><span class="stk-urg stk-urg--${level}"><i class="fas ${URGENCY_ICON[level]}"></i> ${label}</span></span><span class="stk-urg-bar" role="img" aria-label="${escapeHtml(text.headline)}"><span style="width:${b.percent}%"></span></span><span class="block text-[11px] leading-snug" style="color:var(--stk-text-2)"><strong style="color:var(--stk-text-1)">${escapeHtml(text.headline)}</strong><br>${escapeHtml(text.detail)}</span></button>`;
+            }).join('');
+            const more = document.getElementById('home-blockers-more');
+            more.textContent = blockers.length > top.length ? `y ${blockers.length - top.length} más que también frenan materias` : '';
+            more.classList.toggle('hidden', blockers.length <= top.length);
+            card.classList.remove('hidden');
+        }
+
         function renderHomeView(summary = null) {
             renderHomeMotivation();
             renderHomeUniEvents();
@@ -1200,6 +1250,7 @@
             document.getElementById('home-recommended-list').innerHTML = recommended.length
                 ? recommended.map((subject) => renderHomeRecommendationRow(subject)).join('')
                 : renderHomeEmpty('fas fa-check-circle', 'Sin recomendaciones pendientes', 'Cuando haya materias disponibles aparecerán aquí.');
+            renderHomeBlockers();
         }
 
         function handleHomeAction(target) {
@@ -1232,6 +1283,7 @@
             // in that case fall back to the full re-render (previous behavior).
             if (!textFilter && currentFilter === 'all' && content && content.classList.contains('collapsible-content')) {
                 content.classList.toggle('open', willOpen);
+                headerContent.parentElement.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
                 const chev = headerContent.parentElement.querySelector('.stk-chev');
                 if (chev) chev.style.transform = willOpen ? 'rotate(180deg)' : '';
                 if (willOpen) staggerCardsIn(content.querySelectorAll('.stk-subject-card'));
@@ -1290,6 +1342,19 @@
                 });
                 c.appendChild(div);
             });
+            if (!c.children.length && currentCurriculum) {
+                const msg = StudyTrackPeriods.getEmptyListMessage(filter, currentFilter);
+                const empty = document.createElement('div');
+                empty.className = 'text-center py-10 px-4';
+                empty.setAttribute('role', 'status');
+                empty.innerHTML = `<div class="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:var(--stk-surface-2);color:var(--stk-text-3)"><i class="fas fa-magnifying-glass"></i></div><p class="text-sm font-bold" style="color:var(--stk-text-1)">${escapeHtml(msg.title)}</p><p class="text-xs mt-1" style="color:var(--stk-text-2)">${escapeHtml(msg.hint)}</p>${msg.showClear ? '<button data-action="clearSubjectFilters" class="stk-btn-primary mt-4 px-5 text-sm" style="min-height:44px">Ver todas las materias</button>' : ''}`;
+                c.appendChild(empty);
+            }
+        }
+        function clearSubjectFilters() {
+            const input = document.getElementById('search-input');
+            if (input) input.value = '';
+            setFilter('all');
         }
         function staggerCardsIn(cards) {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1308,24 +1373,352 @@
         function animateSubjectEntrance() {
             staggerCardsIn(document.querySelectorAll('#subjects-view .stk-period-card, #subjects-view .stk-subject-card'));
         }
-        function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
+        function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); btn.setAttribute('aria-pressed', 'false'); }); const activeBtn = document.getElementById(`filter-${filter}`); activeBtn.setAttribute('aria-pressed', 'true'); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
         function updateFilterCounts() { if (!currentCurriculum) return; const counts = StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress); document.getElementById('count-all').textContent = counts.all; document.getElementById('count-enrolled').textContent = counts.enrolled; document.getElementById('count-completed').textContent = counts.completed; document.getElementById('count-pending').textContent = counts.pending; }
         function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; notifySyncChange(); }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
+        // ── App version + "what's new" ─────────────────────────────────────
+        function renderWhatsNewBody(releases) {
+            return releases.map((r) => `<section><div class="flex items-baseline justify-between gap-2"><h3 class="text-sm font-extrabold" style="color:var(--stk-text-1)">${escapeHtml(r.title)}</h3><span class="text-[11px] font-bold shrink-0" style="color:var(--stk-tint)">v${escapeHtml(r.version)}</span></div><ul class="mt-2 space-y-2">${r.items.map((item) => `<li class="flex gap-2 text-[13px] leading-snug" style="color:var(--stk-text-2)"><i class="fas fa-check text-[10px] mt-1" style="color:var(--stk-accent-approved)"></i><span>${escapeHtml(item)}</span></li>`).join('')}</ul></section>`).join('');
+        }
+        function showWhatsNew(releases, subtitle) {
+            if (!releases.length) return;
+            document.getElementById('whats-new-body').innerHTML = renderWhatsNewBody(releases);
+            document.getElementById('whats-new-subtitle').textContent = subtitle;
+            document.getElementById('whats-new-modal').classList.remove('hidden');
+        }
+        function openWhatsNew() {
+            showWhatsNew(StudyTrackVersion.CHANGELOG.slice(0, 5), `Versión ${StudyTrackVersion.APP_VERSION}`);
+        }
+        function closeWhatsNew() {
+            document.getElementById('whats-new-modal').classList.add('hidden');
+            StudyTrackStorage.setItem(StudyTrackStorage.KEYS.lastSeenVersion, StudyTrackVersion.APP_VERSION);
+        }
+        let whatsNewChecked = false;
+        // Runs once per page load (initApp re-runs on cloud pulls). A brand-new install is only
+        // stamped with the current version; an existing user who never had a stamp sees every release.
+        function maybeShowWhatsNew(hasData) {
+            if (whatsNewChecked) return;
+            whatsNewChecked = true;
+            const K = StudyTrackStorage.KEYS.lastSeenVersion;
+            const current = StudyTrackVersion.APP_VERSION;
+            let lastSeen = StudyTrackStorage.getItem(K);
+            if (!lastSeen && !hasData) { StudyTrackStorage.setItem(K, current); return; }
+            if (!lastSeen) lastSeen = '0.0.0';
+            const releases = StudyTrackVersion.getUnseenReleases(StudyTrackVersion.CHANGELOG, lastSeen, current);
+            if (!releases.length) { StudyTrackStorage.setItem(K, current); return; }
+            setTimeout(() => showWhatsNew(releases, `Actualizaste a la versión ${current}`), isReducedMotion() ? 300 : 1500);
+        }
+
+        // ── Developer mode (hidden) ────────────────────────────────────────
+        // Tapping the app version 7 times unlocks a "Desarrollador" sheet in Más. It holds the switches for
+        // features that ship hidden (QR / NFC card sharing). Device-local: never synced.
+        let versionTapState = null;
+        function getDevState() {
+            return {
+                unlocked: StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.devMode, false),
+                flags: StudyTrackDevMode.normalizeFlags(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.devFlags, null))
+            };
+        }
+        function applyDevMode() {
+            const { unlocked, flags } = getDevState();
+            StudyTrackDevMode.FEATURES.forEach((f) => document.documentElement.classList.toggle(`dev-${f.id}`, StudyTrackDevMode.isFeatureOn(unlocked, flags, f.id)));
+            document.getElementById('more-dev-row')?.classList.toggle('hidden', !unlocked);
+        }
+        function tapAppVersion() {
+            if (getDevState().unlocked) { showToast('El modo desarrollador ya está activo', 'info', { key: 'dev-tap', duration: 1500 }); return; }
+            versionTapState = StudyTrackDevMode.registerVersionTap(versionTapState, Date.now());
+            if (versionTapState.unlocked) {
+                StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.devMode, true);
+                applyDevMode();
+                try { navigator.vibrate && navigator.vibrate(30); } catch (e) { /* vibration is optional */ }
+                showToast('Modo desarrollador activado. Lo encuentras en «Más».', 'success', { key: 'dev-tap' });
+            } else if (versionTapState.count >= 3) {
+                const n = versionTapState.remaining;
+                showToast(`Estás a ${n} toque${n === 1 ? '' : 's'} del modo desarrollador`, 'info', { key: 'dev-tap', duration: 1200 });
+            }
+        }
+        function renderDevSheet() {
+            const { flags } = getDevState();
+            document.getElementById('dev-sheet-list').innerHTML = StudyTrackDevMode.FEATURES.map((f) => {
+                const on = flags[f.id];
+                return `<button type="button" role="switch" aria-checked="${on}" data-action="toggleDevFeature" data-args='["${f.id}"]' class="stk-settings-row w-full p-3 text-left flex items-center gap-3" style="min-height:56px"><span class="flex-1"><span class="block text-sm font-bold">${escapeHtml(f.label)}</span><span class="block text-[11px]" style="color:var(--stk-text-2)">${escapeHtml(f.hint)}</span></span><span class="toggle-switch shrink-0 ${on ? 'active' : ''}" aria-hidden="true"></span></button>`;
+            }).join('');
+        }
+        function openDevSheet() { renderDevSheet(); document.getElementById('dev-sheet').classList.remove('hidden'); }
+        function closeDevSheet() { document.getElementById('dev-sheet').classList.add('hidden'); }
+        function toggleDevFeature(id) {
+            const flags = StudyTrackDevMode.toggleFlag(getDevState().flags, id);
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.devFlags, flags);
+            applyDevMode();
+            renderDevSheet();
+            const feature = StudyTrackDevMode.FEATURES.find((f) => f.id === id);
+            if (feature) showToast(`${feature.label}: ${flags[id] ? 'activado' : 'desactivado'}`, 'info', { key: 'dev-flag', duration: 1500 });
+        }
+        function disableDevMode() {
+            StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.devMode, false);
+            applyDevMode();
+            closeDevSheet();
+            showToast('Modo desarrollador oculto', 'info', { key: 'dev-tap' });
+        }
+
+        // ── Header sync indicator ──────────────────────────────────────────
+        // firebase-sync.js publishes the raw facts ('studytrack:sync-state'); StudyTrackSyncStatus decides
+        // the state and this paints it: a dot on the account button plus words for assistive tech.
+        let lastSyncFacts = { signedIn: false, syncing: false, error: false, dirty: false };
+        function renderSyncIndicator(facts) {
+            if (facts) lastSyncFacts = facts;
+            const model = StudyTrackSyncStatus.getSyncIndicator({ ...lastSyncFacts, online: navigator.onLine });
+            const dot = document.getElementById('sync-dot');
+            if (dot) dot.dataset.state = model.state;
+            const btn = document.getElementById('auth-header-btn');
+            if (btn) {
+                const text = model.label ? `Cuenta de Google y sincronización: ${model.label}` : 'Cuenta de Google y sincronización';
+                btn.setAttribute('aria-label', text);
+                btn.title = text;
+            }
+            const more = document.getElementById('more-sync-label');
+            if (more) more.textContent = model.label ? `Sincronización · ${model.label}` : 'Sincronización';
+        }
+        window.addEventListener('studytrack:sync-state', (e) => renderSyncIndicator(e.detail));
+        window.addEventListener('online', () => renderSyncIndicator());
+        window.addEventListener('offline', () => renderSyncIndicator());
+
+        // ── Updates ────────────────────────────────────────────────────────
+        // A new version activates with skipWaiting/clients.claim, but this page keeps running the scripts it
+        // already loaded. We never reload by ourselves: we show what improved and let the user pick
+        // "Actualizar ahora" or "Más tarde". Later just keeps the old page; the new version is used on the
+        // next launch. tests/smoke.mjs pins this rule.
+        const UPDATE_CHECK_MIN_INTERVAL_MS = 30 * 60 * 1000;
+        let swRegistration = null;
+        let lastUpdateCheck = null;
+        let updatePrompted = false;
+        let pendingUpdate = null; // { version, notes } once a new version is active but not applied
         function registerServiceWorker() {
             if (!('serviceWorker' in navigator) || !/^https?:$/.test(window.location.protocol)) return;
-            // A new version activates with skipWaiting/clients.claim; until then this page may run old
-            // cached scripts under new HTML. Reload once when the new worker takes control, but not on
-            // the very first install (there was no previous version to replace).
-            const hadController = Boolean(navigator.serviceWorker.controller);
-            let reloading = false;
+            // Tracked across changes: the first takeover of a fresh install has no previous version, but a
+            // later one in the same session does.
+            let hasController = Boolean(navigator.serviceWorker.controller);
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!hadController || reloading) return;
-                reloading = true;
-                location.reload();
+                const hadPrevious = hasController;
+                hasController = true;
+                if (hadPrevious && pendingUpdate) pendingUpdate = null; // an even newer version: re-read its notes when asked
+                if (!StudyTrackVersion.shouldPromptForUpdate(hadPrevious, updatePrompted)) return;
+                updatePrompted = true;
+                offerAppUpdate();
             });
-            navigator.serviceWorker.register('./sw.js').then((registration) => registration.update()).catch(() => { });
+            navigator.serviceWorker.register('./sw.js').then((registration) => {
+                swRegistration = registration;
+                lastUpdateCheck = Date.now();
+                return registration.update();
+            }).catch(() => { });
+            // Installed PWAs stay alive for days: look for updates whenever the app comes back to the foreground.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible' || !swRegistration) return;
+                if (!StudyTrackVersion.shouldCheckForUpdate(lastUpdateCheck, Date.now(), UPDATE_CHECK_MIN_INTERVAL_MS)) return;
+                lastUpdateCheck = Date.now();
+                swRegistration.update().catch(() => { });
+            });
+        }
+        // Load the version module a second time (it registers itself as StudyTrackVersionIncoming) to read the
+        // incoming release notes. The unique query defeats the in-memory copy of the script this page already
+        // loaded; the new worker lets it through to the network, which now serves the new file.
+        function loadIncomingVersion() {
+            return new Promise((resolve) => {
+                delete window.StudyTrackVersionIncoming;
+                const s = document.createElement('script');
+                s.src = `./src/app-version.js?incoming=${Date.now()}`;
+                s.onload = () => { s.remove(); resolve(window.StudyTrackVersionIncoming || null); };
+                s.onerror = () => { s.remove(); resolve(null); };
+                document.head.appendChild(s);
+            });
+        }
+        async function offerAppUpdate() {
+            if (!pendingUpdate) {
+                const incoming = await loadIncomingVersion();
+                const running = StudyTrackVersion.APP_VERSION;
+                const version = incoming ? incoming.APP_VERSION : null;
+                const notes = incoming ? StudyTrackVersion.getUnseenReleases(incoming.CHANGELOG, running, version) : [];
+                pendingUpdate = { version, notes };
+            }
+            const { version, notes } = pendingUpdate;
+            const body = notes.length ? renderWhatsNewBody(notes) : '<p class="text-[13px] leading-snug" style="color:var(--stk-text-2)">Mejoras y correcciones para que la app funcione mejor.</p>';
+            document.getElementById('update-modal-body').innerHTML = body;
+            document.getElementById('update-modal-subtitle').textContent = version ? `v${StudyTrackVersion.APP_VERSION} → v${version}` : '';
+            const pendingText = version ? `Instalar actualización (v${version})` : 'Instalar actualización';
+            ['update-check-label', 'more-update-label'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = pendingText; });
+            document.querySelectorAll('#toast-container [data-toast-key="update-check"]').forEach((t) => t.remove());
+            document.getElementById('update-modal').classList.remove('hidden');
+        }
+        function applyAppUpdate() {
+            // The user already read the notes, so don't show them again as "Novedades" after the reload.
+            if (pendingUpdate && pendingUpdate.version) StudyTrackStorage.setItem(StudyTrackStorage.KEYS.lastSeenVersion, pendingUpdate.version);
+            location.reload();
+        }
+        function postponeAppUpdate() {
+            const modal = document.getElementById('update-modal');
+            if (modal.classList.contains('hidden')) return;
+            modal.classList.add('hidden');
+            showToast('Listo. Usarás la nueva versión la próxima vez que abras la app.', 'info', { key: 'update-later' });
+        }
+        async function checkForAppUpdate() {
+            if (pendingUpdate) { offerAppUpdate(); return; }
+            if (!swRegistration) { showToast('Las actualizaciones automáticas no están disponibles en este navegador', 'info'); return; }
+            showToast('Buscando actualizaciones…', 'info', { key: 'update-check' });
+            try {
+                await swRegistration.update();
+                lastUpdateCheck = Date.now();
+            } catch (e) { showToast('No se pudo buscar. Revisa tu conexión.', 'error', { key: 'update-check' }); return; }
+            if (pendingUpdate) return;
+            if (swRegistration.installing || swRegistration.waiting) showToast('Descargando la nueva versión…', 'info', { key: 'update-check' });
+            else showToast(`Ya tienes la última versión (v${StudyTrackVersion.APP_VERSION})`, 'success', { key: 'update-check' });
+        }
+
+        // ── Dialog layers: back button, Escape and focus ───────────────────
+        // Every open modal is a "layer". The phone's back button closes the top layer instead of leaving
+        // the app, so history must hold exactly one entry per open layer (historyDepth). It is reconciled
+        // once per tick, so swapping one layer for another (e.g. the "Más" sheet opening Configuración)
+        // costs no history operations, and never while one of our own history.go() calls is in flight.
+        const modalLayers = [];
+        let historyDepth = 0;
+        let ignoredPops = 0;
+        let historySyncQueued = false;
+        function scheduleHistorySync() {
+            if (historySyncQueued) return;
+            historySyncQueued = true;
+            queueMicrotask(() => { historySyncQueued = false; syncHistory(); });
+        }
+        function syncHistory() {
+            if (ignoredPops > 0) return; // retried when that traversal's popstate arrives
+            while (historyDepth < modalLayers.length) {
+                try { history.pushState({ stkLayer: historyDepth + 1 }, ''); } catch (e) { historyDepth = modalLayers.length; return; }
+                historyDepth++;
+            }
+            if (historyDepth > modalLayers.length) {
+                const extra = historyDepth - modalLayers.length;
+                historyDepth = modalLayers.length;
+                ignoredPops = 1;
+                try { history.go(-extra); } catch (e) { ignoredPops = 0; }
+            }
+        }
+        function layerOpened(el, close) {
+            if (modalLayers.some((l) => l.el === el)) return;
+            if (!el.getAttribute('role')) el.setAttribute('role', 'dialog');
+            el.setAttribute('aria-modal', 'true');
+            modalLayers.push({ el, close, opener: document.activeElement });
+            scheduleHistorySync();
+            if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+            requestAnimationFrame(() => { try { el.focus({ preventScroll: true }); } catch (e) { } });
+        }
+        function layerClosed(el) {
+            const i = modalLayers.findIndex((l) => l.el === el);
+            if (i < 0) return;
+            const [layer] = modalLayers.splice(i, 1);
+            scheduleHistorySync();
+            if (layer.opener && layer.opener.isConnected && typeof layer.opener.focus === 'function') { try { layer.opener.focus({ preventScroll: true }); } catch (e) { } }
+        }
+        function dismissTopLayer() {
+            const top = modalLayers[modalLayers.length - 1];
+            if (!top) return false;
+            top.close();
+            return true;
+        }
+        function setupDialogLayers() {
+            // A reload with a dialog open leaves its history marker on the entry; no layer is open now.
+            try { if (history.state && history.state.stkLayer) history.replaceState(null, ''); } catch (e) { /* history may be unavailable */ }
+            const dialogs = [
+                ['settings-modal', () => closeSettings()],
+                ['schedule-modal', () => closeScheduleModal()],
+                ['schedule-details-modal', () => closeDetailsModal()],
+                ['whats-new-modal', () => closeWhatsNew()],
+                ['update-modal', () => postponeAppUpdate()],
+                ['more-sheet', () => closeMoreSheet()],
+                ['dev-sheet', () => closeDevSheet()]
+            ];
+            dialogs.forEach(([id, close]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const sync = () => { if (el.classList.contains('hidden')) layerClosed(el); else layerOpened(el, close); };
+                new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['class'] });
+                sync();
+            });
+            // Dialogs created in code (QR, shared card, scan progress) become layers too: back and Escape close them.
+            const isOverlay = (n) => n.nodeType === 1 && n.classList.contains('fixed') && n.classList.contains('inset-0');
+            new MutationObserver((records) => records.forEach((rec) => {
+                rec.addedNodes.forEach((n) => { if (isOverlay(n) && !n.hasAttribute('data-static-overlay')) layerOpened(n, () => n.remove()); });
+                rec.removedNodes.forEach((n) => { if (isOverlay(n)) layerClosed(n); });
+            })).observe(document.body, { childList: true });
+            window.addEventListener('popstate', () => {
+                if (ignoredPops > 0) { ignoredPops--; if (ignoredPops === 0) syncHistory(); return; }
+                if (historyDepth > 0) historyDepth--; // the user's back press consumed one of our entries
+                dismissTopLayer();
+            });
+            document.addEventListener('keydown', (event) => {
+                const top = modalLayers[modalLayers.length - 1];
+                if (!top) return;
+                if (event.key === 'Escape') { event.preventDefault(); dismissTopLayer(); return; }
+                if (event.key !== 'Tab') return;
+                const focusable = [...top.el.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter((n) => n.offsetParent !== null);
+                if (!focusable.length) { event.preventDefault(); return; }
+                const first = focusable[0], last = focusable[focusable.length - 1];
+                if (event.shiftKey && (document.activeElement === first || document.activeElement === top.el)) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+            });
+        }
+
+        // Styled replacement for window.confirm: resolves true only on the confirm button.
+        function askConfirm({ title, message = '', confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false } = {}) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4';
+                overlay.style.zIndex = '140';
+                overlay.setAttribute('role', 'alertdialog');
+                const panel = document.createElement('div');
+                panel.className = 'w-full rounded-3xl p-6 animate-slide-up';
+                panel.style.cssText = 'max-width:380px;background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);margin-bottom:env(safe-area-inset-bottom,0px)';
+                const h = document.createElement('h2');
+                h.id = 'confirm-title';
+                h.className = 'text-lg font-bold';
+                h.style.cssText = 'font-family:var(--stk-font-display);color:var(--stk-text-1)';
+                h.textContent = title || '';
+                const p = document.createElement('p');
+                p.id = 'confirm-message';
+                p.className = 'text-sm mt-2 leading-normal';
+                p.style.color = 'var(--stk-text-2)';
+                p.textContent = message;
+                overlay.setAttribute('aria-labelledby', 'confirm-title');
+                overlay.setAttribute('aria-describedby', 'confirm-message');
+                const row = document.createElement('div');
+                row.className = 'flex gap-3 mt-6';
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'stk-settings-row flex-1 font-bold text-sm';
+                cancel.style.minHeight = '48px';
+                cancel.textContent = cancelLabel;
+                const ok = document.createElement('button');
+                ok.type = 'button';
+                ok.className = 'stk-btn-primary flex-1 text-sm';
+                ok.style.cssText = `min-height:48px;${danger ? 'background:var(--stk-accent-goal)' : ''}`;
+                ok.textContent = confirmLabel;
+                row.append(cancel, ok);
+                panel.append(h, p, row);
+                overlay.appendChild(panel);
+                let settled = false;
+                const finish = (value) => {
+                    if (settled) return;
+                    settled = true;
+                    layerClosed(overlay);
+                    overlay.remove();
+                    resolve(value);
+                };
+                cancel.onclick = () => finish(false);
+                ok.onclick = () => finish(true);
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false); });
+                document.body.appendChild(overlay);
+                layerOpened(overlay, () => finish(false));
+                requestAnimationFrame(() => cancel.focus({ preventScroll: true })); // safer default for destructive actions
+            });
         }
         function getSubjectStatusLabel(subjectId) {
             const status = userProgress[subjectId]?.status || 'pending';
@@ -1474,7 +1867,7 @@
                     <input type="text" value="${safeLabel}" data-change="updateGradeRange" data-args="${actionArgs(i, 'label', '$value')}" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${safeColor}" placeholder="Letra">
                     <span class="text-xs text-slate-400">=</span>
                     <input type="number" step="0.1" value="${safePoints}" data-change="updateGradeRange" data-args="${actionArgs(i, 'points', '$value')}" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
-                    <button data-action="removeGradeRange" data-args="${actionArgs(i)}" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
+                    <button data-action="removeGradeRange" data-args="${actionArgs(i)}" aria-label="Quitar rango" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
                 </div>
             `;
             }).join('');
@@ -1482,16 +1875,17 @@
 
         function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : currentView === 'subjects' ? 'nav-subjects' : currentView === 'profile' ? 'nav-progress' : 'nav-home'; }
         function setActiveMobileNav(activeId) {
-            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId));
             const sideId = activeId.replace('nav-', 'side-');
-            document.querySelectorAll('.side-tab').forEach(btn => btn.classList.toggle('active', btn.id === sideId));
+            const mark = (btn, isActive) => { btn.classList.toggle('active', isActive); if (isActive) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current'); };
+            document.querySelectorAll('.nav-tab').forEach(btn => mark(btn, btn.id === activeId));
+            document.querySelectorAll('.side-tab').forEach(btn => mark(btn, btn.id === sideId));
         }
-        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
+        function openSettings() { renderGradeScaleSettings(); renderHonorSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
-        function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
+        function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { toggle.setAttribute('aria-checked', APP_CONFIG.allowSkipPrerequisites ? 'true' : 'false'); if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
-        function toggleEnrollment(id) { if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { showToast(`🔒 Debes completar los prerrequisitos primero o habilitar "Saltar prerrequisitos" en Ajustes.`, 'error'); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); }
+        function toggleEnrollment(id) { const undoSnapshot = snapshotSubjectProgress(id); if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { if (!undoSnapshot) delete userProgress[id]; showPrerequisiteBlockedToast(loc.subject.prerequisites); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); offerUndo(id, undoSnapshot, userProgress[id].status === 'enrolled' ? 'Materia inscrita' : 'Inscripción quitada'); }
         function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; notifySyncChange(); showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
         function updatePassingGrade(val) {
             const parsed = parseFloat(val);
@@ -1516,14 +1910,51 @@
             showToast(`Nota mínima para aprobar: ${newPassing}`, 'success');
         }
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
-        function openMobileMore() { setActiveMobileNav('nav-more'); openSettings(); }
-        function showToast(msg, type = 'info') { const t = document.createElement('div'); const s = { success: 'background:var(--stk-surface);color:var(--stk-ink-approved);border-left:4px solid var(--stk-accent-approved);box-shadow:var(--stk-shadow-hover)', error: 'background:var(--stk-surface);color:var(--stk-ink-goal);border-left:4px solid var(--stk-accent-goal);box-shadow:var(--stk-shadow-hover)', info: 'background:var(--stk-navy);color:#fff;box-shadow:var(--stk-shadow-hover)' }; t.className = 'px-4 py-3 rounded-lg fixed top-20 right-4 z-[120] animate-slide-up font-medium text-sm'; t.style.cssText = s[type] || s.info; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        function openMobileMore() { setActiveMobileNav('nav-more'); document.getElementById('more-sheet').classList.remove('hidden'); }
+        function closeMoreSheet() { document.getElementById('more-sheet').classList.add('hidden'); setActiveMobileNav(getCurrentViewNavId()); }
+        // Rows of the sheet close it first, then run the named action (resolved on window like data-action).
+        function moreAction(name, ...args) { closeMoreSheet(); const fn = window[name]; if (typeof fn === 'function') fn(...args); }
+        function moreOpenSettings(sectionId) { closeMoreSheet(); openSettings(); requestAnimationFrame(() => scrollSettingsSection(sectionId)); }
+        // Toasts stack in #toast-container (bottom, above the tab bar, role=status so screen readers
+        // announce them). opts: { duration: ms (0 = stays until dismissed), key: replaces a toast with the
+        // same key, action: { label, run } adds a button }.
+        function showToast(msg, type = 'info', opts = {}) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const key = opts.key || '';
+            if (key) container.querySelectorAll('[data-toast-key]').forEach((el) => { if (el.dataset.toastKey === key) el.remove(); });
+            const palette = {
+                success: 'background:var(--stk-surface);color:var(--stk-ink-approved);border-left:4px solid var(--stk-accent-approved);box-shadow:var(--stk-shadow-hover)',
+                error: 'background:var(--stk-surface);color:var(--stk-ink-goal);border-left:4px solid var(--stk-accent-goal);box-shadow:var(--stk-shadow-hover)',
+                info: 'background:var(--stk-navy);color:#fff;box-shadow:var(--stk-shadow-hover)'
+            };
+            const t = document.createElement('div');
+            t.className = 'px-4 py-3 rounded-xl animate-slide-up font-medium text-sm flex items-center gap-3';
+            t.style.cssText = `${palette[type] || palette.info};pointer-events:auto;max-width:100%`;
+            if (key) t.dataset.toastKey = key;
+            const text = document.createElement('span');
+            text.textContent = msg;
+            t.appendChild(text);
+            if (opts.action) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = opts.action.label;
+                btn.className = 'font-extrabold shrink-0 px-3 rounded-lg';
+                btn.style.cssText = 'min-height:36px;background:rgba(255,255,255,.18);color:inherit';
+                btn.onclick = () => { t.remove(); opts.action.run(); };
+                t.appendChild(btn);
+            }
+            container.appendChild(t);
+            while (container.children.length > 3) container.firstElementChild.remove();
+            const duration = opts.duration === undefined ? (type === 'error' ? 4500 : 3000) : opts.duration;
+            if (duration > 0) setTimeout(() => t.remove(), duration);
+        }
         function calculatePeriodAverage(p) { return StudyTrackAcademics.calculatePeriodAverage(p, userProgress); }
 
         function calculatePeriodGPA4(p) { return StudyTrackAcademics.calculatePeriodGPA4(p, userProgress, getGradePoints); }
 
         function toggleCustomJson() { document.getElementById('custom-json-area').classList.toggle('hidden'); }
-        function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Cargar?')) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
+        async function loadCustomJSON() { try { const d = JSON.parse(document.getElementById('custom-json-input').value); const validation = StudyTrackCurriculum.validateCurriculum(d); if (!validation.valid) throw new Error(validation.errors[0]); if (await askConfirm({ title: '¿Cargar esta carrera?', message: 'Se reiniciará tu progreso actual. Esta acción no se puede deshacer.', confirmLabel: 'Cargar', danger: true })) { currentCurriculum = d; userProgress = {}; saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Cargado', 'success'); } } catch (e) { showToast('Error en JSON: ' + (e.message || 'formato invalido'), 'error'); } }
         function exportProgress() { const b = new Blob([JSON.stringify({ curriculum: currentCurriculum, progress: userProgress }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup.json'; a.click(); }
 
         // ── NFC Student Card (Carné por NFC) ───────────────────────────────
@@ -1755,6 +2186,151 @@
             notifySyncChange();
             applyCarneVariant(true);
         }
+        // ── Reconocimientos (Perfil + Ajustes) ─────────────────────────────
+        // Levels are device-local (Cum Laude 90 / Magna 95 / Summa 98 until edited in Ajustes). The average is the
+        // same "Índice" the rest of the app shows; StudyTrackHonors does the math, this only words it.
+        function getHonorLevels() { return StudyTrackHonors.normalizeHonorLevels(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.honorLevels, null)); }
+        function saveHonorLevels(levels) { StudyTrackStorage.setJson(StudyTrackStorage.KEYS.honorLevels, StudyTrackHonors.normalizeHonorLevels(levels)); renderHonorSettings(); renderHonors(); }
+        function updateHonorLevel(index, field, value) { const levels = getHonorLevels(); if (!levels[index]) return; levels[index] = { ...levels[index], [field]: value }; saveHonorLevels(levels); }
+        function resetHonorLevels() { StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.honorLevels); renderHonorSettings(); renderHonors(); showToast('Reconocimientos restablecidos', 'success', { key: 'honors-reset' }); }
+        function renderHonorSettings() {
+            const box = document.getElementById('honor-settings-list');
+            if (!box) return;
+            box.innerHTML = getHonorLevels().map((l, i) => `<div class="flex items-center gap-2"><input type="text" maxlength="30" value="${escapeHtml(l.name)}" aria-label="Nombre del reconocimiento ${i + 1}" data-change="updateHonorLevel" data-args="${actionArgs(i, 'name', '$value')}" class="stk-input flex-1 min-w-0"><input type="number" inputmode="decimal" min="1" max="100" step="0.5" value="${escapeHtml(l.min)}" aria-label="Promedio mínimo de ${escapeHtml(l.name)}" data-change="updateHonorLevel" data-args="${actionArgs(i, 'min', '$value')}" class="stk-input" style="width:5.5rem"></div>`).join('');
+        }
+        function openHonorSettings() { openSettings(); requestAnimationFrame(() => scrollSettingsSection('settings-section-honors')); }
+        function renderHonors() {
+            const box = document.getElementById('honors-result');
+            if (!box || !currentCurriculum) return;
+            const H = StudyTrackHonors;
+            const summary = H.summarizeGrades(currentCurriculum, userProgress);
+            const plan = getPlanSettings().settings;
+            const perPeriodCredits = plan.mode === 'credits' ? plan.perPeriod : plan.perPeriod * summary.typicalCredits;
+            const res = H.evaluateHonors({ levels: getHonorLevels(), ...summary, perPeriodCredits, passingGrade: APP_CONFIG.passingGrade });
+            const noun = (n) => StudyTrackGraduation.periodNoun(currentCurriculum.metadata?.period_type, n);
+            const num = (n) => Number(n).toFixed(2).replace(/\.?0+$/, '');
+            const block = (icon, title, body) => `<div class="mt-3 flex gap-2.5"><i class="fas ${icon} mt-0.5 w-4 text-center text-xs shrink-0" style="color:var(--stk-tint)"></i><div class="min-w-0"><div class="text-xs font-bold" style="color:var(--stk-text-1)">${escapeHtml(title)}</div><div class="text-xs leading-snug mt-0.5" style="color:var(--stk-text-2)">${body}</div></div></div>`;
+            const e = escapeHtml;
+            let html = '';
+
+            if (res.status === 'no-grades') {
+                html = `<div class="text-sm font-bold" style="color:var(--stk-text-1)">Aún no tienes notas</div><div class="text-xs mt-1" style="color:var(--stk-text-2)">Registra las notas de tus materias aprobadas para ver a qué reconocimiento calificas.</div>`;
+                if (res.toReach) html += block('fa-bullseye', `Para llegar a ${res.toReach.level.name}`, `Necesitarás promediar <strong>${num(res.toReach.requiredAvg)}</strong> en toda la carrera.`);
+            } else {
+                const badge = res.current
+                    ? `<span class="stk-urg stk-urg--low" style="background:var(--stk-soft-approved);color:var(--stk-ink-approved)"><i class="fas fa-award"></i> ${e(res.current.name)}</span>`
+                    : `<span class="stk-urg stk-urg--low"><i class="fas fa-circle-info"></i> Sin reconocimiento aún</span>`;
+                html = `<div class="flex items-center justify-between gap-3"><div><div class="text-[11px] font-bold" style="color:var(--stk-text-2)">Tu promedio (Índice)</div><div class="text-2xl font-black leading-tight" style="font-family:var(--stk-font-numeric);color:var(--stk-text-1)">${num(res.average)}</div></div>${badge}</div>`;
+                if (res.next) {
+                    html += `<div class="mt-3"><div class="stk-urg-bar" role="img" aria-label="${e(`${res.progressToNext}% del camino hacia ${res.next.name}`)}"><span style="width:${res.progressToNext}%;--urg-color:var(--stk-tint)"></span></div><div class="text-[11px] mt-1" style="color:var(--stk-text-2)">Te faltan <strong>${num(res.toReach.gap)}</strong> puntos de promedio para ${e(res.next.name)} (${num(res.next.min)})</div></div>`;
+                } else {
+                    html += `<div class="text-[11px] mt-2 font-semibold" style="color:var(--stk-ink-approved)">¡Tienes el reconocimiento más alto!</div>`;
+                }
+                if (res.finished) {
+                    html += block('fa-flag-checkered', 'Ya cursaste todo', `Tu promedio final ya no puede cambiar${res.current ? `: terminas con ${e(res.current.name)}` : ''}.`);
+                } else {
+                    html += block('fa-chart-line', 'Si mantienes tu promedio', `Terminarías con <strong>${num(res.average)}</strong>: ${res.current ? e(res.current.name) : 'sin reconocimiento'}.`);
+                    if (res.toReach) {
+                        const t = res.toReach;
+                        let body;
+                        if (!t.feasible) body = `Ya no es alcanzable: ni con 100 en todo lo que te falta (${num(res.remainingCredits)} créditos) llegarías a ${num(t.target)}.`;
+                        else {
+                            body = `Necesitas promediar <strong>${num(t.requiredAvg)}</strong> en tus ${num(res.remainingCredits)} créditos restantes (${num(t.requiredAvg - res.average)} más que ahora).`;
+                            const lines = t.options.map((o) => o.enough
+                                ? `Con notas de ${o.grade}: <strong>${o.subjects === null ? `${num(o.credits)} créditos` : `${o.subjects} ${o.subjects === 1 ? 'materia' : 'materias'}`}</strong> más${o.periods ? ` (≈ ${o.periods} ${noun(o.periods)})` : ''}.`
+                                : `Con notas de ${o.grade} no alcanzan los créditos que te faltan.`);
+                            if (lines.length) body += `<ul class="mt-1 space-y-0.5 list-disc pl-4">${lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
+                        }
+                        html += block('fa-bullseye', `Para llegar a ${t.level.name}`, body);
+                    }
+                    if (res.toKeep) {
+                        const k = res.toKeep;
+                        html += block('fa-shield-halved', `Para conservar ${k.level.name}`, k.onlyPassing
+                            ? 'Mientras apruebes tus materias, lo conservas.'
+                            : `Mantén al menos <strong>${num(k.requiredAvg)}</strong> de promedio en lo que te falta.`);
+                    }
+                    if (res.risk) {
+                        const lines = [];
+                        const heavy = res.risk.heaviest;
+                        const typ = res.risk.typical;
+                        if (heavy && !heavy.safe) lines.push(`Las materias de más créditos pesan más: en una de ${num(heavy.credits)} créditos, menos de <strong>${num(heavy.minGrade)}</strong> te saca de ${e(res.risk.levelName)}.`);
+                        if (typ && !typ.safe) lines.push(`En una materia típica (${num(typ.credits)} créditos) el mínimo es <strong>${num(typ.minGrade)}</strong>.`);
+                        if (!lines.length) lines.push(`Una sola materia no te saca de ${e(res.risk.levelName)} mientras la apruebes.`);
+                        html += block('fa-triangle-exclamation', 'Qué evitar', lines.join('<br>'));
+                    }
+                }
+            }
+            if (summary.ungradedApproved.count) html += block('fa-pen', 'Faltan notas', `Tienes ${summary.ungradedApproved.count} ${summary.ungradedApproved.count === 1 ? 'materia aprobada' : 'materias aprobadas'} sin nota (${num(summary.ungradedApproved.credits)} créditos). Agrégalas para que el cálculo sea exacto.`);
+            html += `<div class="mt-4"><button type="button" data-action="openHonorSettings" class="text-xs font-bold" style="color:var(--stk-tint);min-height:44px">Cambiar los promedios mínimos</button></div>`;
+            box.innerHTML = html;
+        }
+
+        // ── Tiempo para terminar (Perfil) ──────────────────────────────────
+        // The student's plan (period length, load per period) is device-local. Until they change it, the card
+        // starts from values derived from the loaded curriculum and says so.
+        function getPlanSettings() {
+            const defaults = StudyTrackGraduation.defaultPlanSettings(currentCurriculum);
+            const saved = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.gradPlan, null);
+            return { settings: StudyTrackGraduation.normalizePlanSettings(saved, defaults), isDefault: !saved };
+        }
+        function savePlanSettings(patch) {
+            const { settings } = getPlanSettings();
+            const next = StudyTrackGraduation.normalizePlanSettings({ ...settings, ...patch }, StudyTrackGraduation.defaultPlanSettings(currentCurriculum));
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.gradPlan, next);
+            renderGraduationPlan();
+        }
+        function updatePlanMonths(val) { savePlanSettings({ periodMonths: val }); }
+        function updatePlanPerPeriod(val) { savePlanSettings({ perPeriod: val }); }
+        function setPlanMode(mode) {
+            const perPeriod = mode === 'credits' ? StudyTrackGraduation.defaultCreditsPerPeriod(currentCurriculum) : StudyTrackGraduation.defaultPlanSettings(currentCurriculum).perPeriod;
+            savePlanSettings({ mode, perPeriod });
+        }
+        function renderGraduationPlan() {
+            const box = document.getElementById('plan-result');
+            if (!box || !currentCurriculum) return;
+            const G = StudyTrackGraduation;
+            const { settings, isDefault } = getPlanSettings();
+            const monthsInput = document.getElementById('plan-months');
+            const perInput = document.getElementById('plan-per-period');
+            if (monthsInput && document.activeElement !== monthsInput) monthsInput.value = settings.periodMonths;
+            if (perInput && document.activeElement !== perInput) perInput.value = settings.perPeriod;
+            perInput.max = G.LIMITS[settings.mode].max;
+            document.getElementById('plan-per-label').textContent = settings.mode === 'credits' ? 'Créditos por período' : 'Materias por período';
+            ['subjects', 'credits'].forEach((m) => {
+                const btn = document.getElementById(`plan-mode-${m}`);
+                btn.classList.toggle('stk-sched-pill--active', settings.mode === m);
+                btn.setAttribute('aria-pressed', settings.mode === m ? 'true' : 'false');
+            });
+
+            const result = G.planGraduation(currentCurriculum, userProgress, settings);
+            const noun = (n) => G.periodNoun(currentCurriculum.metadata?.period_type, n);
+            const big = (text) => `<div class="text-2xl font-black leading-tight" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">${escapeHtml(text)}</div>`;
+            const line = (text) => `<div class="text-xs mt-1" style="color:var(--stk-text-2)">${escapeHtml(text)}</div>`;
+            let html = '';
+            if (result.status === 'done') {
+                html = big('¡Ya completaste todas tus materias!') + line('No te falta ninguna materia obligatoria.');
+            } else if (result.status === 'stuck') {
+                html = big('No puedo estimarlo todavía') + line(result.reason === 'capacity'
+                    ? 'Con ese límite no cabe una de tus materias pendientes. Sube la carga por período.'
+                    : 'Hay materias cuyos prerrequisitos no se pueden cumplir. Revisa la carrera cargada.');
+            } else {
+                const end = G.estimateEnd(result.periods, settings.periodMonths, Date.now());
+                const endText = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(end.endMs));
+                html = big(G.formatDuration(end.months))
+                    + line(`Terminarías hacia ${endText} · ${result.periods} ${noun(result.periods)}`)
+                    + line(`Te faltan ${result.remainingSubjects} ${result.remainingSubjects === 1 ? 'materia' : 'materias'} y ${result.remainingCredits} créditos.`);
+                if (result.limitedBy === 'prerequisites') {
+                    html += line('Tus prerrequisitos marcan el ritmo: aunque tomaras más materias por período, no terminarías antes.');
+                } else if (result.minPeriods !== null) {
+                    const saved = G.formatDuration((result.periods - result.minPeriods) * settings.periodMonths);
+                    html += line(`Con más carga podrías terminar en ${result.minPeriods} ${noun(result.minPeriods)} (${saved} menos): es lo mínimo que permiten los prerrequisitos.`);
+                }
+            }
+            box.innerHTML = html;
+            document.getElementById('plan-note').textContent = (isDefault ? 'Valores iniciales según tu carrera: ajústalos a tu ritmo. ' : '')
+                + 'Estimación que supone que empiezas ahora y apruebas todo lo que cursas.';
+        }
+
         function renderProfileView() {
             renderProfileAvatar();
             renderMilestones();
@@ -1782,6 +2358,8 @@
                 setTxt('carne-bands-career', 'Sin carrera seleccionada');
                 return;
             }
+            renderGraduationPlan();
+            renderHonors();
             const card = collectStudentCard();
             setTxt('profile-career', card.career || 'Sin carrera');
             setTxt('profile-institution', card.institution || '');
@@ -2189,13 +2767,13 @@
             try { history.replaceState(null, '', location.origin + location.pathname); } catch (e) { /* history may be unavailable */ }
             showStudentCardModal(card);
         }
-        function resetProgress() { if (confirm('¿Reiniciar?')) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
-        function deleteAllData() { if (confirm('¿Borrar todo?')) { StudyTrackStorage.clearAll(); location.reload(); } }
+        async function resetProgress() { if (await askConfirm({ title: '¿Reiniciar notas?', message: 'Se borrarán tus notas y el estado de tus materias (aprobadas e inscritas). Tu carrera y tu perfil se conservan.', confirmLabel: 'Reiniciar', danger: true })) { userProgress = {}; saveUserProgress(); initApp(); showToast('Reiniciado', 'success'); } }
+        async function deleteAllData() { if (await askConfirm({ title: '¿Borrar todos tus datos?', message: 'Se eliminarán tu carrera, notas, horario y perfil de este dispositivo. No se puede deshacer.', confirmLabel: 'Borrar todo', danger: true })) { StudyTrackStorage.clearAll(); location.reload(); } }
         // Force the PWA to fetch the latest version: unregister the service worker
         // and clear the Cache Storage shell, then reload. Deliberately does NOT touch
         // localStorage, so the user's curriculum, grades and profile are preserved.
         async function forceAppRefresh() {
-            if (!confirm('Recargar la app con la última versión. Tus datos (carrera, notas, perfil) se conservan. ¿Continuar?')) return;
+            if (!(await askConfirm({ title: '¿Recargar con la última versión?', message: 'Tus datos (carrera, notas, perfil) se conservan.', confirmLabel: 'Recargar' }))) return;
             showToast('Actualizando…', 'info');
             try {
                 if ('serviceWorker' in navigator) {
@@ -2209,7 +2787,7 @@
             } catch (e) { /* best-effort: a reload still helps even if clearing partially fails */ }
             location.reload();
         }
-        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (confirm('¿Importar?')) { currentCurriculum = d.curriculum; userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum); saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
+        function importData(inp) { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = async e => { try { const d = JSON.parse(e.target.result); if (!d.curriculum || !d.progress) throw new Error('Backup incompleto'); const validation = StudyTrackCurriculum.validateCurriculum(d.curriculum); if (!validation.valid) throw new Error(validation.errors[0]); if (await askConfirm({ title: '¿Importar este respaldo?', message: 'Reemplazará la carrera y las notas que tienes ahora en este dispositivo.', confirmLabel: 'Importar', danger: true })) { currentCurriculum = d.curriculum; userProgress = StudyTrackProgress.normalizeUserProgress(d.progress, d.curriculum); saveCurriculum(); saveUserProgress(); dependencyGraph = buildDependencyGraph(currentCurriculum); renderUI(); calculateStatistics(); renderRequirementsWidget(); closeSettings(); showToast('Éxito', 'success'); } } catch (e) { showToast('Error: ' + (e.message || 'archivo invalido'), 'error'); } }; r.readAsText(f); }
 
         let isRequirementsExpanded = true;
         function toggleRequirementsWidget() {
@@ -2228,7 +2806,7 @@
 
         function renderSettingsRequirements() { const c = document.getElementById('settings-requirements-list'); if (!currentCurriculum) return; c.innerHTML = StudyTrackRequirements.renderSettingsRequirementsHTML(currentCurriculum.requirements, { escapeHtml }); }
         function toggleRequirement(i) { const result = StudyTrackRequirements.toggleRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); }
-        function deleteRequirement(i) { if (confirm('¿Borrar?')) { const result = StudyTrackRequirements.deleteRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
+        async function deleteRequirement(i) { if (await askConfirm({ title: '¿Borrar este requisito?', confirmLabel: 'Borrar', danger: true })) { const result = StudyTrackRequirements.deleteRequirement(currentCurriculum.requirements, i); if (!result.changed) return; currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); } }
         function toggleAddReqForm() { document.getElementById('new-req-form').classList.toggle('hidden'); document.getElementById('add-req-btn').classList.toggle('hidden'); }
         function confirmAddRequirement() { const input = document.getElementById('new-req-name'); const result = StudyTrackRequirements.addRequirement(currentCurriculum.requirements, input.value, () => `req-${Date.now()}`); if (result.changed) { currentCurriculum.requirements = result.requirements; saveCurriculum(); renderRequirementsWidget(); renderSettingsRequirements(); toggleAddReqForm(); input.value = ''; } }
         let currentView = 'home';
@@ -2271,6 +2849,7 @@
         }
 
         function switchView(view) {
+            if (view !== currentView) window.scrollTo(0, 0);
             currentView = view;
             const homeView = document.getElementById('home-view');
             const subjectsView = document.getElementById('subjects-view');
@@ -2341,7 +2920,7 @@
 
         function closeScheduleModal() { document.getElementById('schedule-modal').classList.add('hidden'); currentEditingBlock = null; }
 
-        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; setScheduleRoomDetails(block.room); const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = () => { if (confirm('¿Eliminar este horario?')) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
+        function showBlockDetails(subjectId, blockId) { const blocks = scheduleData[subjectId] || []; const block = blocks.find(b => b.id === blockId); const subject = getEnrolledSubjects().find(s => s.id === subjectId); if (!block || !subject) return; document.getElementById('details-subject').innerText = subject.name; document.getElementById('details-code').innerText = subject.code; document.getElementById('details-day').innerText = DAY_NAMES[block.day]; document.getElementById('details-time').innerText = `${formatTime12h(block.startTime)} - ${formatTime12h(block.endTime)}`; setScheduleRoomDetails(block.room); const btnEdit = document.getElementById('btn-edit-block'); const btnDelete = document.getElementById('btn-delete-block'); btnEdit.onclick = () => { closeDetailsModal(); openScheduleModal(subjectId, subject.name, block); }; btnDelete.onclick = async () => { if (await askConfirm({ title: '¿Eliminar este horario?', confirmLabel: 'Eliminar', danger: true })) { deleteScheduleBlock(subjectId, blockId); closeDetailsModal(); } }; const modal = document.getElementById('schedule-details-modal'); modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); document.getElementById('details-modal-content').classList.remove('scale-95'); }); }
 
         function closeDetailsModal() { const modal = document.getElementById('schedule-details-modal'); modal.classList.add('opacity-0'); document.getElementById('details-modal-content').classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 200); }
 
@@ -2631,8 +3210,8 @@
             }
         }
 
-        function clearUniCalendar() {
-            if (!confirm('¿Quitar el enlace del calendario y las entregas importadas de este dispositivo?')) return;
+        async function clearUniCalendar() {
+            if (!(await askConfirm({ title: '¿Quitar el calendario?', message: 'Se borrarán el enlace y las entregas importadas de este dispositivo.', confirmLabel: 'Quitar', danger: true }))) return;
             StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.uniCalendarUrl);
             StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.uniEvents);
             renderUniCalendarSettings();
@@ -2671,6 +3250,14 @@
             }
             runAction(el.getAttribute('data-action'), el, event);
         });
+        // Non-button elements that act as buttons/switches (role set in markup) respond to Enter and Space.
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const el = event.target;
+            if (!el.matches || !el.matches('[data-action][role="button"], [data-action][role="switch"]')) return;
+            event.preventDefault();
+            el.click();
+        });
         document.addEventListener('change', (event) => {
             const el = event.target.closest('[data-change]');
             if (!el || el !== event.target) return;
@@ -2680,4 +3267,4 @@
         window.addEventListener('DOMContentLoaded', initApp);
         window.addEventListener('load', registerServiceWorker);
         document.getElementById('settings-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });
-        window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); if (window.scrollY > 300) { btn.classList.remove('opacity-0', 'pointer-events-none'); btn.classList.add('opacity-100'); } else { btn.classList.add('opacity-0', 'pointer-events-none'); btn.classList.remove('opacity-100'); } });
+        window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); const show = window.scrollY > 300; btn.classList.toggle('opacity-0', !show); btn.classList.toggle('pointer-events-none', !show); btn.classList.toggle('opacity-100', show); btn.tabIndex = show ? 0 : -1; btn.setAttribute('aria-hidden', show ? 'false' : 'true'); });

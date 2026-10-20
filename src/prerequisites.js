@@ -33,6 +33,16 @@
     return others.every((group) => isGroupSatisfied(group, progress));
   }
 
+  // The prerequisites still unmet, in the order they were declared: a subject id, a group (any one of the
+  // ids satisfies it) or 'ALL' (the rest of the curriculum). Empty means the subject is not blocked.
+  function getMissingPrerequisites(prerequisites, progress, curriculum) {
+    if (!prerequisites || !prerequisites.length) return [];
+    return prerequisites.filter((group) => {
+      if (group === 'ALL') return !areAllOtherSubjectsCompleted(curriculum, progress);
+      return !isGroupSatisfied(group, progress);
+    });
+  }
+
   function formatPrerequisiteString(prerequisites) {
     if (!prerequisites?.length) return '';
     return prerequisites
@@ -70,6 +80,7 @@
     areAllOtherSubjectsCompleted,
     buildDependencyGraph,
     checkPrerequisites,
+    getMissingPrerequisites,
     formatPrerequisiteString
   };
 })(typeof window !== 'undefined' ? window : globalThis);

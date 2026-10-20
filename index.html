@@ -7,13 +7,14 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://eva.uapa.edu.do https://studytrack-ics-proxy.ecamilo-ec.workers.dev; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
+        content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://eva.uapa.edu.do https://studytrack-ics-proxy.ecamilo-ec.workers.dev; frame-src 'self' https://*.firebaseapp.com; manifest-src 'self'; worker-src 'self';">
     <meta name="theme-color" content="#1D4ED8" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#15161C" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Tu copiloto académico inteligente">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">
-    <link rel="apple-touch-icon" href="icons/studytrack-icon.svg">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MiRuta">
@@ -21,9 +22,9 @@
     <title>MiRuta - Tu Copiloto Académico</title>
     <!-- Tailwind compiled locally (see tailwind.config.js + npm/binary build). Replaces the Play CDN. -->
     <link rel="stylesheet" href="dist/tailwind.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap"
-        rel="stylesheet">
+    <!-- Icons and fonts are self-hosted (src/vendor) so they also work offline. -->
+    <link rel="stylesheet" href="src/vendor/fa/css/all.min.css">
+    <link rel="stylesheet" href="src/vendor/fonts/fonts.css">
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -45,6 +46,12 @@
     <script src="./src/uni-events-ui.js"></script>
     <script src="./src/insights.js"></script>
     <script src="./src/milestones.js"></script>
+    <script src="./src/app-version.js"></script>
+    <script src="./src/sync-status.js"></script>
+    <script src="./src/dev-mode.js"></script>
+    <script src="./src/blockers.js"></script>
+    <script src="./src/graduation.js"></script>
+    <script src="./src/honors.js"></script>
     <script src="./src/nfc.js"></script>
     <script src="./src/vendor/qrcode.min.js"></script>
     <script src="./src/vendor/jsqr.min.js"></script>
@@ -366,8 +373,8 @@
             --stk-surface: #ffffff;
             --stk-surface-2: #edf1fb;
             --stk-text-1: #111633;
-            --stk-text-2: #636b8c;
-            --stk-text-3: #a6adc2;
+            --stk-text-2: #4f5675;
+            --stk-text-3: #6b7290;
             --stk-hairline: rgba(17, 22, 51, 0.08);
             --stk-shadow: 0 1px 2px rgba(17, 22, 51, .04), 0 8px 22px rgba(17, 22, 51, .08);
             --stk-radius: 18px;
@@ -504,7 +511,7 @@
         .stk-pill--enrolled { padding: 5px 10px; background: var(--stk-accent-enrolled); color: #fff; font-size: 10px; }
         .stk-pill--inscribir { padding: 7px 14px; background: var(--stk-soft-goal); color: var(--stk-accent-goal); font-size: 10.5px; }
 
-        .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 36px; min-height: 36px; padding: 7px; margin: -4px -3px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 44px; min-height: 44px; padding: 7px; margin: -8px -7px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .stk-chev { color: var(--stk-text-3); font-size: 12px; flex-shrink: 0; transition: transform .35s var(--stk-spring); }
         .stk-subject-card.open .stk-chev { transform: rotate(180deg); }
 
@@ -578,7 +585,7 @@
         button.stk-surface-card:active, a.stk-surface-card:active { transform: scale(.985); }
         /* Round icon button (header chrome) */
         .stk-icon-btn {
-            width: 40px; height: 40px; border-radius: var(--stk-radius-sm);
+            width: 44px; height: 44px; border-radius: var(--stk-radius-sm);
             display: flex; align-items: center; justify-content: center;
             background: var(--stk-surface-2); color: var(--stk-text-2); border: none; cursor: pointer;
             transition: background-color .2s var(--stk-ease), transform .2s var(--stk-spring);
@@ -884,6 +891,46 @@
         .stk-cal-nav .stk-sched-pill i { margin: 0; }
         .stk-cal-month { font-size: 11px; font-weight: 800; color: var(--stk-text-1); padding: 0 4px; white-space: nowrap; text-transform: capitalize; min-width: 92px; text-align: center; }
 
+        /* ---- Developer-mode gating: hidden unless <html> has dev-qr / dev-nfc (set by applyDevMode) ---- */
+        html:not(.dev-qr) [data-dev-feature="qr"], html:not(.dev-nfc) [data-dev-feature="nfc"],
+        html:not(.dev-qr):not(.dev-nfc) [data-dev-feature="any"] { display: none; }
+
+        /* ---- Blockers card (urgency = icon + words + colour, never colour alone) ---- */
+        .stk-urg { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+        .stk-urg--high { background: var(--stk-soft-goal); color: var(--stk-ink-goal); }
+        .stk-urg--medium { background: var(--stk-soft-warning); color: var(--stk-ink-warning); }
+        .stk-urg--low { background: var(--stk-soft-locked); color: var(--stk-ink-locked); }
+        .stk-urg-row { --urg-color: var(--stk-accent-locked); }
+        .stk-urg-row--high { --urg-color: var(--stk-accent-goal); }
+        .stk-urg-row--medium { --urg-color: var(--stk-accent-warning); }
+        .stk-urg-bar { height: 6px; border-radius: 99px; background: var(--stk-surface-2); overflow: hidden; }
+        .stk-urg-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--urg-color); }
+
+        /* ---- Header sync indicator (state is also spelled out in the button's aria-label and the Más sheet) ---- */
+        .stk-sync-dot { position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--stk-surface); background: var(--stk-accent-approved); pointer-events: none; display: none; }
+        .stk-sync-dot:not([data-state="none"]) { display: block; }
+        .stk-sync-dot[data-state="syncing"] { background: var(--stk-accent-enrolled); animation: stkSyncPulse 1.2s ease-in-out infinite; }
+        .stk-sync-dot[data-state="pending"], .stk-sync-dot[data-state="offline"] { background: var(--stk-accent-warning); }
+        .stk-sync-dot[data-state="error"] { background: var(--stk-accent-goal); }
+        @keyframes stkSyncPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: .6; } }
+        /* ---- Mobile ergonomics ---- */
+        .filter-btn { min-height: 44px; }
+        .stk-sched-pill { min-height: 44px; }
+        /* iOS Safari zooms the page when a focused field is below 16px. */
+        @media (max-width: 640px) {
+            .stk-input.stk-input, .stk-field input, .stk-search.stk-search { font-size: 16px; }
+        }
+        /* 100vh ignores the mobile browser bars; dvh follows them. */
+        @supports (height: 1dvh) {
+            #settings-modal > div, #schedule-modal > div { max-height: 90dvh; }
+        }
+        #whats-new-modal, #schedule-modal, #settings-modal, #more-sheet, #update-modal { overscroll-behavior: contain; }
+        /* Blur over the whole screen is the costliest paint on mid-range phones: use opaque surfaces instead. */
+        @media (max-width: 640px) {
+            .glass, .dark .glass, .stk-tabbar { background: var(--stk-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+            .backdrop-blur-sm { backdrop-filter: none; -webkit-backdrop-filter: none; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
             .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
@@ -892,7 +939,7 @@
             .stk-route-pulse, .stk-sched-pill, .stk-sched-add-btn, .stk-sched-chip, .stk-class-block,
             .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim, .stk-cal-cell, .stk-due-row,
             .loading-spinner, .stk-spinner, .stk-splash-pulse, .stk-splash-draw-a, .stk-splash-draw-b,
-            .stk-splash-pin, .stk-splash-detail, .stk-splash-word,
+            .stk-splash-pin, .stk-splash-detail, .stk-splash-word, .stk-sync-dot,
             .ob-step, .ob-scale-in, .ob-trophy, .ob-award-card {
                 transition: none !important; animation: none !important;
             }
@@ -1129,13 +1176,14 @@
                     <button data-action="toggleDarkMode" class="stk-icon-btn" aria-label="Cambiar tema"><i
                             id="theme-icon" class="fas fa-moon text-sm"></i></button>
                     <!-- Google Account / Sync Button -->
-                    <button id="auth-header-btn" data-action="openGoogleSyncSettings"
-                        class="stk-icon-btn overflow-hidden" style="border-radius:50%"
-                        title="Cuenta de Google y Sincronización">
-                        <i id="auth-header-icon" class="fas fa-user text-sm"></i>
-                    </button>
-                    <button data-action="openSettings" class="stk-icon-btn" aria-label="Configuración"><i
-                            class="fas fa-cog text-sm"></i></button>
+                    <span class="relative inline-flex">
+                        <button id="auth-header-btn" data-action="openGoogleSyncSettings"
+                            class="stk-icon-btn overflow-hidden" style="border-radius:50%"
+                            title="Cuenta de Google y Sincronización" aria-label="Cuenta de Google y sincronización">
+                            <i id="auth-header-icon" class="fas fa-user text-sm"></i>
+                        </button>
+                        <span id="sync-dot" class="stk-sync-dot" data-state="none" aria-hidden="true"></span>
+                    </span>
                 </div>
             </div>
 
@@ -1257,6 +1305,15 @@
                     <div id="home-uni-events-list"></div>
                 </div>
 
+                <div id="home-blockers" class="stk-surface-card overflow-hidden hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
+                        <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-lock-open" style="color:var(--stk-tint)"></i> Frenan tu avance</h3>
+                        <span id="home-blockers-count" class="text-[11px] font-bold" style="color:var(--stk-text-2)"></span>
+                    </div>
+                    <div id="home-blockers-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+                    <p id="home-blockers-more" class="hidden px-4 py-2 text-[11px] font-semibold" style="color:var(--stk-text-2)"></p>
+                </div>
+
                 <div class="stk-surface-card overflow-hidden">
                     <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                         <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-star text-amber-500"></i> Recomendadas</h3>
@@ -1278,7 +1335,7 @@
                         style="background: conic-gradient(var(--stk-accent-approved) 0deg, var(--stk-surface-2) 0deg);">
                         <div class="w-full h-full rounded-full flex flex-col items-center justify-center" style="background: var(--stk-surface)">
                             <div id="mobile-progress-value" class="text-xl font-black text-emerald-600 dark:text-emerald-400">0%</div>
-                            <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500">avance</div>
+                            <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500">avance</div>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -1287,19 +1344,19 @@
                         <div class="grid grid-cols-4 gap-1.5">
                             <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5 text-center">
                                 <div id="mobile-earned-credits" class="text-sm font-black text-emerald-700 dark:text-emerald-300">0</div>
-                                <div class="text-[9px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
+                                <div class="text-[10px] leading-tight text-emerald-700/70 dark:text-emerald-300/70">créditos</div>
                             </div>
                             <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5 text-center">
                                 <div id="mobile-index" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
-                                <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
+                                <div class="text-[10px] leading-tight text-blue-700/70 dark:text-blue-300/70">índice</div>
                             </div>
                             <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5 text-center">
                                 <div id="mobile-letter" class="text-sm font-black text-blue-700 dark:text-blue-300">N/A</div>
-                                <div class="text-[9px] leading-tight text-blue-700/70 dark:text-blue-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
+                                <div class="text-[10px] leading-tight text-blue-700/70 dark:text-blue-300/70">GPA <span id="mobile-gpa-points">N/A</span></div>
                             </div>
                             <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 px-2 py-1.5 text-center">
                                 <div id="mobile-remaining-subjects" class="text-sm font-black text-slate-700 dark:text-slate-200">0</div>
-                                <div class="text-[9px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
+                                <div class="text-[10px] leading-tight text-slate-500 dark:text-slate-400">faltantes</div>
                             </div>
                         </div>
                     </div>
@@ -1339,19 +1396,19 @@
 
         <div id="filter-bar" class="py-0 sm:py-1">
             <div class="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
-                <button data-action="setFilter" data-args='["all"]' id="filter-all"
+                <button data-action="setFilter" data-args='["all"]' id="filter-all" aria-pressed="true"
                     class="filter-btn active shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Todas <span id="count-all" class="ml-1 opacity-70">0</span>
                 </button>
-                <button data-action="setFilter" data-args='["enrolled"]' id="filter-enrolled"
+                <button data-action="setFilter" data-args='["enrolled"]' id="filter-enrolled" aria-pressed="false"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Inscritas <span id="count-enrolled" class="ml-1 opacity-70">0</span>
                 </button>
-                <button data-action="setFilter" data-args='["completed"]' id="filter-completed"
+                <button data-action="setFilter" data-args='["completed"]' id="filter-completed" aria-pressed="false"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Cursadas <span id="count-completed" class="ml-1 opacity-70">0</span>
                 </button>
-                <button data-action="setFilter" data-args='["pending"]' id="filter-pending"
+                <button data-action="setFilter" data-args='["pending"]' id="filter-pending" aria-pressed="false"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Faltantes <span id="count-pending" class="ml-1 opacity-70">0</span>
                 </button>
@@ -1542,7 +1599,7 @@
             </div>
 
             <button type="button" data-action="flipCarneVariant" class="stk-carne-flip-btn"><i class="fas fa-rotate" style="font-size:11px"></i>Cambiar diseño del carné</button>
-            <button type="button" data-action="shareStudentCardViaNfc" class="stk-carne-nfc-btn"><i class="fas fa-share-nodes" style="font-size:11px"></i>Compartir por NFC</button>
+            <button type="button" data-action="shareStudentCardViaNfc" data-dev-feature="nfc" class="stk-carne-nfc-btn"><i class="fas fa-share-nodes" style="font-size:11px"></i>Compartir por NFC</button>
         </div>
 
         <!-- Identidad -->
@@ -1605,6 +1662,42 @@
                 <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-index">N/A</div><div class="text-[11px]" style="color:var(--stk-text-2)">Índice</div></div>
                 <div><div class="text-lg font-black" style="color:var(--stk-text-1)" id="profile-periods">0</div><div class="text-[11px]" style="color:var(--stk-text-2)">Períodos cursados</div></div>
             </div>
+        </section>
+
+        <!-- Tiempo para terminar -->
+        <section id="profile-plan" class="stk-surface-card p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-hourglass-half" style="color:var(--stk-tint)"></i>
+                <h3 class="text-sm font-black" style="color:var(--stk-text-1)">Tiempo para terminar</h3>
+            </div>
+            <div id="plan-result" role="status" aria-live="polite"></div>
+            <div class="grid grid-cols-2 gap-3 mt-4 items-end">
+                <div>
+                    <label for="plan-months" class="block text-[11px] font-bold mb-1" style="color:var(--stk-text-2)">Duración de cada período (meses)</label>
+                    <input type="number" id="plan-months" inputmode="decimal" min="0.5" max="12" step="0.5" class="stk-input" data-change="updatePlanMonths" data-args='["$value"]'>
+                </div>
+                <div>
+                    <label for="plan-per-period" id="plan-per-label" class="block text-[11px] font-bold mb-1" style="color:var(--stk-text-2)">Materias por período</label>
+                    <input type="number" id="plan-per-period" inputmode="numeric" min="1" step="1" class="stk-input" data-change="updatePlanPerPeriod" data-args='["$value"]'>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center gap-3">
+                <span class="text-[11px] font-bold" style="color:var(--stk-text-2)">Medir la carga en</span>
+                <div class="stk-sched-pill-track flex-1" role="group" aria-label="Medir la carga en">
+                    <button type="button" data-action="setPlanMode" data-args='["subjects"]' id="plan-mode-subjects" aria-pressed="true" class="stk-sched-pill stk-sched-pill--active flex-1">Materias</button>
+                    <button type="button" data-action="setPlanMode" data-args='["credits"]' id="plan-mode-credits" aria-pressed="false" class="stk-sched-pill flex-1">Créditos</button>
+                </div>
+            </div>
+            <p id="plan-note" class="text-[11px] mt-3 leading-snug" style="color:var(--stk-text-2)"></p>
+        </section>
+
+        <!-- Reconocimientos -->
+        <section id="profile-honors" class="stk-surface-card p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-award" style="color:var(--stk-tint)"></i>
+                <h3 class="text-sm font-black" style="color:var(--stk-text-1)">Reconocimientos</h3>
+            </div>
+            <div id="honors-result" role="status" aria-live="polite"></div>
         </section>
 
         <!-- Milestones -->
@@ -1684,8 +1777,8 @@
             id="details-modal-content">
             <div id="details-header"
                 class="px-6 py-6 text-white bg-gradient-to-br from-slate-700 to-slate-800 relative">
-                <button data-action="closeDetailsModal"
-                    class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition-all backdrop-blur-sm">
+                <button data-action="closeDetailsModal" aria-label="Cerrar" style="width:44px;height:44px"
+                    class="absolute top-3 right-3 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition-all backdrop-blur-sm">
                     <i class="fas fa-times text-sm"></i>
                 </button>
                 <div
@@ -1733,7 +1826,7 @@
     </div>
 
     <!-- SCROLL TO TOP BUTTON -->
-    <button id="scroll-top-btn" data-action="scrollToTop"
+    <button id="scroll-top-btn" data-action="scrollToTop" aria-label="Volver arriba" tabindex="-1" aria-hidden="true"
         style="box-shadow:var(--stk-shadow-hover)"
         class="stk-press fixed bottom-20 right-4 w-12 h-12 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none">
         <i class="fas fa-arrow-up text-lg"></i>
@@ -1791,8 +1884,9 @@
                     <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-requirements"]' class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-grades"]' class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-honors"]' class="settings-quick-link px-3 py-2 text-xs font-black">Honores</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-data"]' class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-share"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carné NFC</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-share"]' data-dev-feature="any" class="settings-quick-link px-3 py-2 text-xs font-black">Carné NFC</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-cloud"]' class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
                 </div>
             </div>
@@ -1912,6 +2006,9 @@
                         <button data-action="exportProgress"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
+                        <button data-action="checkForAppUpdate"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-cloud-arrow-down mr-2" style="color:var(--stk-tint)"></i> <span id="update-check-label">Buscar actualizaciones</span></button>
                         <button data-action="forceAppRefresh"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
@@ -1925,7 +2022,7 @@
                 </section>
 
                 <!-- NFC STUDENT CARD SECTION -->
-                <section id="settings-section-share" class="settings-section scroll-mt-4">
+                <section id="settings-section-share" data-dev-feature="any" class="settings-section scroll-mt-4">
                     <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
                             class="fas fa-id-card"></i> Compartir carné</h3>
                     <div class="space-y-2">
@@ -1937,18 +2034,18 @@
                                 data-change="setStudentName" data-args='["$value"]'
                                 class="stk-input text-sm font-bold">
                         </div>
-                        <button data-action="shareStudentCardViaNfc"
+                        <button data-action="shareStudentCardViaNfc" data-dev-feature="nfc"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-share-nodes mr-2" style="color:var(--stk-tint)"></i> Compartir carné por NFC</button>
-                        <button data-action="readStudentCardViaNfc"
+                        <button data-action="readStudentCardViaNfc" data-dev-feature="nfc"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-wifi mr-2" style="color:var(--stk-tint)"></i> Leer carné NFC</button>
-                        <button data-action="openQrShareModal"
+                        <button data-action="openQrShareModal" data-dev-feature="qr"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-qrcode mr-2" style="color:var(--stk-tint)"></i> Compartir o leer carné (QR)</button>
                         <input type="file" id="qr-scan-input" accept="image/*" class="hidden"
                             data-change="onQrPhotoSelected" data-args='["$this"]'>
-                        <p class="text-[11px]" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
+                        <p class="text-[11px]" data-dev-feature="any" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
                             funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
                     </div>
                 </section>
@@ -1968,7 +2065,7 @@
                                 <p class="text-[11px]" style="color:var(--stk-text-3)">Marcar materias sin cumplir
                                     requisitos (⚠️ amarillo)</p>
                             </div>
-                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites"
+                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites" role="switch" tabindex="0" aria-checked="true" aria-label="Saltar prerrequisitos"
                                 class="toggle-switch active shrink-0"></div>
                         </div>
 
@@ -2015,6 +2112,16 @@
                                 class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
                         </div>
                     </div>
+                </section>
+
+                <!-- HONORS SECTION -->
+                <section id="settings-section-honors" class="settings-section scroll-mt-4">
+                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
+                            class="fas fa-award"></i> Reconocimientos</h3>
+                    <p class="text-[11px] mb-3" style="color:var(--stk-text-2)">Promedio mínimo (base 100) para cada reconocimiento. Se compara con tu Índice.</p>
+                    <div id="honor-settings-list" class="space-y-2"></div>
+                    <button data-action="resetHonorLevels" class="stk-settings-row w-full p-3 text-left text-sm font-bold mt-2"><i
+                            class="fas fa-rotate-left mr-2" style="color:var(--stk-tint)"></i> Restablecer valores</button>
                 </section>
 
                 <!-- CLOUD SYNC SECTION (FIREBASE) -->
@@ -2102,6 +2209,14 @@
                     </div>
                 </section>
 
+                <!-- APP VERSION -->
+                <section class="pt-4 text-center">
+                    <p class="text-[11px] font-semibold" style="color:var(--stk-text-2)"><button type="button" data-action="tapAppVersion" class="px-3 py-2" style="font:inherit;color:inherit">MiRuta <span id="app-version-label">v1.0.0</span></button></p>
+                    <button data-action="openWhatsNew" class="mt-1 text-xs font-bold px-3 py-2" style="color:var(--stk-tint)">
+                        <i class="fas fa-wand-magic-sparkles mr-1"></i> Novedades
+                    </button>
+                </section>
+
                 <!-- CLOSE BUTTON FOR MOBILE -->
                 <div class="pt-4 pb-2 sm:hidden">
                     <button data-action="closeSettings"
@@ -2113,7 +2228,106 @@
         </div>
     </div>
 
-    <div id="toast-container" class="fixed top-20 right-4 z-[110] space-y-2 max-w-sm"></div>
+    <!-- WHAT'S NEW MODAL -->
+    <div id="whats-new-modal" role="dialog" aria-modal="true" aria-labelledby="whats-new-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:115" data-action-self="closeWhatsNew">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px;max-height:85dvh"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div class="px-6 pb-3 shrink-0" style="padding-top:1.5rem">
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center mb-3" style="background:var(--stk-tint-soft);color:var(--stk-tint)">
+                    <i class="fas fa-wand-magic-sparkles text-lg"></i>
+                </div>
+                <h2 id="whats-new-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Novedades</h2>
+                <p id="whats-new-subtitle" class="text-xs mt-1" style="color:var(--stk-text-2)"></p>
+            </div>
+            <div id="whats-new-body" class="px-6 pb-2 overflow-y-auto space-y-5"></div>
+            <div class="p-6 pt-3 shrink-0 safe-area-bottom">
+                <button data-action="closeWhatsNew" class="stk-btn-primary w-full py-3 text-sm" style="min-height:48px">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE "MAS" SHEET -->
+    <div id="more-sheet" role="dialog" aria-modal="true" aria-labelledby="more-sheet-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:100" data-action-self="closeMoreSheet">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up">
+            <div class="px-6 pb-2 flex items-center justify-between" style="padding-top:1.25rem">
+                <h2 id="more-sheet-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Más</h2>
+                <button data-action="closeMoreSheet" class="stk-icon-btn" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="px-4 pb-2 space-y-2">
+                <button data-action="moreAction" data-args='["toggleDarkMode"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-circle-half-stroke w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Cambiar tema</span>
+                </button>
+                <button data-action="moreOpenSettings" data-args='["settings-section-cloud"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-cloud w-5 text-center" style="color:var(--stk-tint)"></i> <span id="more-sync-label" class="flex-1">Sincronización</span>
+                </button>
+                <button data-action="moreOpenSettings" data-args='["settings-section-data"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-shield-halved w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Datos y respaldo</span>
+                </button>
+                <button data-action="moreAction" data-args='["checkForAppUpdate"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-cloud-arrow-down w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1"><span id="more-update-label">Buscar actualizaciones</span></span>
+                </button>
+                <button data-action="moreAction" data-args='["openWhatsNew"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-wand-magic-sparkles w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Novedades</span>
+                </button>
+                <button id="more-dev-row" data-action="moreAction" data-args='["openDevSheet"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3 hidden" style="min-height:48px">
+                    <i class="fas fa-flask w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Desarrollador</span>
+                </button>
+                <button data-action="moreAction" data-args='["openSettings"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
+                    <i class="fas fa-gear w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Configuración completa</span><i class="fas fa-chevron-right text-xs" style="color:var(--stk-text-3)"></i>
+                </button>
+            </div>
+            <p class="text-center text-[11px] font-semibold pb-4 safe-area-bottom" style="color:var(--stk-text-2)"><button type="button" data-action="tapAppVersion" class="px-3 py-2" style="font:inherit;color:inherit">MiRuta <span id="more-version-label"></span></button></p>
+        </div>
+    </div>
+
+    <!-- DEVELOPER / TEST SHEET (hidden until unlocked from the app version) -->
+    <div id="dev-sheet" role="dialog" aria-modal="true" aria-labelledby="dev-sheet-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:100" data-action-self="closeDevSheet">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px;max-height:85dvh"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div class="px-6 pb-2 flex items-center justify-between shrink-0" style="padding-top:1.25rem">
+                <div>
+                    <h2 id="dev-sheet-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Desarrollador</h2>
+                    <p class="text-xs mt-1" style="color:var(--stk-text-2)">Funciones en prueba. Están apagadas por defecto.</p>
+                </div>
+                <button data-action="closeDevSheet" class="stk-icon-btn" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="dev-sheet-list" class="px-4 pb-2 pt-2 space-y-2 overflow-y-auto"></div>
+            <div class="px-4 pb-4 pt-1 safe-area-bottom shrink-0">
+                <button data-action="disableDevMode" class="stk-settings-row w-full p-3 text-sm font-bold" style="min-height:48px;color:var(--stk-ink-warning)">Ocultar modo desarrollador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATE AVAILABLE MODAL -->
+    <div id="update-modal" role="dialog" aria-modal="true" aria-labelledby="update-modal-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:120" data-action-self="postponeAppUpdate">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px;max-height:85dvh"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div class="px-6 pb-3 shrink-0" style="padding-top:1.5rem">
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center mb-3" style="background:var(--stk-tint-soft);color:var(--stk-tint)">
+                    <i class="fas fa-cloud-arrow-down text-lg"></i>
+                </div>
+                <h2 id="update-modal-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Nueva versión disponible</h2>
+                <p id="update-modal-subtitle" class="text-xs mt-1" style="color:var(--stk-text-2)"></p>
+            </div>
+            <div id="update-modal-body" class="px-6 pb-2 overflow-y-auto space-y-5"></div>
+            <div class="p-6 pt-3 shrink-0 safe-area-bottom flex flex-col gap-2">
+                <button data-action="applyAppUpdate" class="stk-btn-primary w-full py-3 text-sm" style="min-height:48px">Actualizar ahora</button>
+                <button data-action="postponeAppUpdate" class="stk-settings-row w-full font-bold text-sm" style="min-height:48px">Más tarde</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" role="status" aria-live="polite" aria-atomic="false" class="fixed left-0 right-0 flex flex-col items-center gap-2 px-4 pointer-events-none"
+        style="z-index:130;bottom:calc(84px + env(safe-area-inset-bottom, 0px))"></div>
 
     <script src="./src/app.js"></script>
 </body>

@@ -59,15 +59,24 @@ new Function(serviceWorker);
 assert.ok(serviceWorker.includes('CACHE_NAME'));
 
 // Regla de negocio: al publicar una versión nueva, la app no mezcla la pantalla nueva con el código viejo:
-// el service worker descarga los archivos frescos (sin la caché HTTP) y la página se recarga una sola vez
-// cuando la versión nueva toma el control (no en la primera instalación).
+// el service worker descarga los archivos frescos (sin la caché HTTP) y, cuando la versión nueva toma el control
+// (no en la primera instalación), la app le pregunta al usuario si actualiza ahora o más tarde, mostrando las mejoras.
+// Solo "Actualizar ahora" recarga la página; "Más tarde" no la toca. (Regla cambiada con confirmación del usuario:
+// antes la página se recargaba sola.)
 assert.match(serviceWorker, /cache:\s*'reload'/, 'install must bypass the HTTP cache so the new shell is really new');
 {
   const appJs = fs.readFileSync('src/app.js', 'utf8');
   const register = appJs.slice(appJs.indexOf('function registerServiceWorker'), appJs.indexOf('function registerServiceWorker') + 900);
-  assert.ok(register.includes("'controllerchange'"), 'reload when the new service worker takes control');
+  assert.ok(register.includes("'controllerchange'"), 'react when the new service worker takes control');
   assert.match(register, /navigator\.serviceWorker\.controller/, 'only when a previous version was in control (not on first install)');
-  assert.ok(register.includes('location.reload()'), 'the page reloads into the new version');
+  assert.ok(register.includes('shouldPromptForUpdate'), 'the prompt decision lives in the tested pure helper');
+  assert.ok(!register.includes('location.reload()'), 'the service worker taking control must not reload the page by itself');
+  const apply = appJs.slice(appJs.indexOf('function applyAppUpdate'), appJs.indexOf('function applyAppUpdate') + 600);
+  assert.ok(apply.includes('location.reload()'), 'Actualizar ahora reloads into the new version');
+  const later = appJs.slice(appJs.indexOf('function postponeAppUpdate'), appJs.indexOf('function postponeAppUpdate') + 500);
+  assert.ok(!later.includes('location.reload()'), 'Más tarde must not reload');
+  for (const id of ['update-modal', 'update-modal-body']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+  assert.ok(html.includes('data-action="applyAppUpdate"') && html.includes('data-action="postponeAppUpdate"'), 'both choices are offered');
 }
 assert.ok(serviceWorker.includes('./index.html'));
 assert.ok(serviceWorker.includes('./src/academics.js'));
@@ -94,7 +103,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -148,6 +157,78 @@ assert.ok(code.includes('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-
 assert.ok(code.includes('<script src="./src/firebase-sync.js"></script>'));
 assert.ok(code.includes('<script src="./src/app.js"></script>'), 'index.html must load the externalized controller');
 assert.ok(code.includes('<script src="./src/milestones.js"></script>'), 'index.html must load the milestones module');
+assert.ok(code.includes('<script src="./src/app-version.js"></script>'), 'index.html must load the app-version module before app.js');
+assert.ok(serviceWorker.includes('./src/app-version.js'), 'Service worker should cache the app-version module');
+for (const id of ['app-version-label', 'whats-new-modal', 'whats-new-body']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+for (const fn of ['openWhatsNew', 'closeWhatsNew']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn} for the delegated dispatcher`);
+assert.ok(html.includes('data-action="openWhatsNew"'), 'Settings must offer a way to reopen the news');
+// Mobile / PWA hardening
+assert.ok(!/\bconfirm\(/.test(appJs), 'app.js must use askConfirm instead of the native confirm()');
+for (const fn of ['askConfirm', 'checkForAppUpdate', 'setupDialogLayers']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(/id="toast-container"[^>]*aria-live="polite"/.test(html), 'toasts must be announced to screen readers');
+assert.ok(appJs.includes("addEventListener('popstate'") && appJs.includes("'Escape'"), 'dialogs must close with the back button and Escape');
+assert.ok(html.includes('data-action="checkForAppUpdate"'), 'Settings must offer a manual update check');
+assert.ok(!html.includes('text-[9px]') && !appJs.includes('text-[9px]'), 'no 9px text on mobile');
+assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs must be 16px on phones to avoid the iOS focus zoom');
+assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
+assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
+assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Profile: academic honors
+assert.ok(code.includes('<script src="./src/honors.js"></script>') && serviceWorker.includes('./src/honors.js'), 'honors module is loaded and cached');
+for (const id of ['profile-honors', 'honors-result', 'settings-section-honors', 'honor-settings-list']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+for (const fn of ['renderHonors', 'renderHonorSettings', 'updateHonorLevel', 'resetHonorLevels', 'openHonorSettings']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(/renderGraduationPlan\(\);\s*renderHonors\(\);/.test(appJs), 'the profile view renders the honors card');
+assert.ok(html.includes('data-action="resetHonorLevels"'), 'honor minimums can be reset');
+
+// Profile: time to graduate
+assert.ok(code.includes('<script src="./src/graduation.js"></script>') && serviceWorker.includes('./src/graduation.js'), 'graduation module is loaded and cached');
+for (const id of ['profile-plan', 'plan-result', 'plan-months', 'plan-per-period', 'plan-mode-subjects', 'plan-mode-credits', 'plan-note']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+assert.ok(/for="plan-months"/.test(html) && /for="plan-per-period"/.test(html), 'plan inputs have visible labels');
+for (const fn of ['renderGraduationPlan', 'updatePlanMonths', 'updatePlanPerPeriod', 'setPlanMode', 'savePlanSettings']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(/renderGraduationPlan\(\);\s*renderHonors\(\);\s*const card = collectStudentCard\(\)/.test(appJs), 'the profile view renders the plan and the honors');
+
+// Home: subjects that hold back progress
+assert.ok(code.includes('<script src="./src/blockers.js"></script>') && serviceWorker.includes('./src/blockers.js'), 'blockers module is loaded and cached');
+for (const id of ['home-blockers', 'home-blockers-list', 'home-blockers-count']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+assert.ok(appJs.includes('function renderHomeBlockers(') && /renderHomeBlockers\(\);\s*\}/.test(appJs), 'the home view renders the blockers card');
+assert.ok(/\.stk-urg--high/.test(html) && appJs.includes('URGENCY_ICON') && appJs.includes('URGENCY_LABELS'), 'urgency is shown with icon + words, not colour alone');
+
+// Developer mode: QR/NFC hidden by default, unlocked from the app version, no header gear
+assert.ok(code.includes('<script src="./src/dev-mode.js"></script>') && serviceWorker.includes('./src/dev-mode.js'), 'dev-mode module is loaded and cached');
+assert.ok(!/data-action="openSettings"[^>]*aria-label="Configuración"/.test(html), 'the header gear next to the account button is gone');
+assert.ok(html.includes('data-action="openSettings" class="side-tab"') && html.includes('data-args=\'["openSettings"]\''), 'Configuración stays reachable from the sidebar and the Más sheet');
+for (const [act, feat] of [['shareStudentCardViaNfc', 'nfc'], ['readStudentCardViaNfc', 'nfc'], ['openQrShareModal', 'qr']]) assert.ok(new RegExp(`data-action="${act}"[^>]*data-dev-feature="${feat}"`).test(html), `${act} must be gated by data-dev-feature=${feat}`);
+assert.ok(/html:not\(\.dev-qr\) \[data-dev-feature="qr"\]/.test(html) && /html:not\(\.dev-nfc\) \[data-dev-feature="nfc"\]/.test(html), 'gated features are hidden unless <html> carries dev-qr / dev-nfc');
+for (const id of ['dev-sheet', 'dev-sheet-list', 'more-dev-row']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+assert.ok(/id="more-dev-row"[^>]*hidden/.test(html), 'the Desarrollador row starts hidden');
+assert.ok(html.includes('data-action="tapAppVersion"') && ['tapAppVersion', 'applyDevMode', 'openDevSheet', 'closeDevSheet', 'toggleDevFeature', 'disableDevMode'].every((fn) => appJs.includes(`function ${fn}(`)), 'version taps and the dev sheet are wired');
+
+// Header sync indicator
+assert.ok(code.includes('<script src="./src/sync-status.js"></script>') && serviceWorker.includes('./src/sync-status.js'), 'sync-status module is loaded and cached');
+assert.ok(html.includes('id="sync-dot"') && html.includes('id="more-sync-label"'), 'indicator markup exists');
+assert.ok(appJs.includes("'studytrack:sync-state'") && fs.readFileSync('src/firebase-sync.js', 'utf8').includes("'studytrack:sync-state'"), 'firebase-sync publishes and app listens');
+assert.ok(/syncing:\s*true,\s*error:\s*false/.test(fs.readFileSync('src/firebase-sync.js', 'utf8')), 'sync start clears the previous error');
+
+// Keyboard / screen-reader support
+assert.ok(/data-action="togglePeriod"[^>]*role="button"[^>]*tabindex="0"[^>]*aria-expanded/.test(fs.readFileSync('src/periods.js', 'utf8')), 'period headers are keyboard-operable');
+assert.ok(/class="stk-expand-btn" aria-expanded="false"/.test(cardsJs) && !/role="button"/.test(cardsJs), 'subject cards expose one real expand button (no nested role=button headers)');
+assert.ok(/id="toggle-skip-prereqs"[^>]*role="switch"[^>]*aria-checked/.test(html), 'the prerequisites toggle is a switch');
+for (const f of ['all', 'enrolled', 'completed', 'pending']) assert.ok(html.includes(`id="filter-${f}" aria-pressed=`), `filter ${f} exposes aria-pressed`);
+assert.ok(appJs.includes("'aria-current'") && appJs.includes('clearSubjectFilters') && appJs.includes('getEmptyListMessage'), 'tabs expose the current page and empty lists offer a way out');
+assert.ok(/data-action="scrollToTop" aria-label=/.test(html) && /data-action="closeDetailsModal" aria-label=/.test(html), 'icon-only buttons are labelled');
+
+// Self-hosted icons/fonts (work offline) and the mobile "Más" sheet
+assert.ok(!/https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)/.test(html), 'icons and fonts must be self-hosted, not loaded from CDNs');
+for (const f of ['src/vendor/fa/css/all.min.css', 'src/vendor/fa/webfonts/fa-solid-900.woff2', 'src/vendor/fa/webfonts/fa-regular-400.woff2', 'src/vendor/fonts/fonts.css', 'src/vendor/fonts/outfit.woff2', 'src/vendor/fonts/sora.woff2', 'src/vendor/fonts/space-grotesk.woff2']) { assert.ok(fs.existsSync(f), `Missing ${f}`); assert.ok(serviceWorker.includes('./' + f), `Service worker should precache ${f}`); }
+assert.ok(html.includes("font-src 'self' data:;"), 'CSP font-src must only need our own origin');
+for (const id of ['more-sheet', 'more-update-label', 'more-version-label']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+for (const fn of ['closeMoreSheet', 'moreAction', 'moreOpenSettings', 'showPrerequisiteBlockedToast', 'offerUndo']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(!appJs.includes('Debes completar los prerrequisitos primero'), 'blocked toasts must name the missing prerequisites');
+assert.ok(/openMobileMore\(\) \{[^}]*more-sheet/.test(appJs), 'the Más tab opens the short sheet, not the full settings');
+
+for (const png of ['icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']) { assert.ok(fs.existsSync(png), `Missing ${png}`); assert.ok(serviceWorker.includes('./' + png), `Service worker should cache ${png}`); }
+
+
 assert.ok(code.includes('<script src="./src/vendor/qrcode.min.js"></script>'), 'index.html must load the vendored QR library');
 assert.ok(code.includes('<script src="./src/vendor/jsqr.min.js"></script>'), 'index.html must load the vendored QR decoder');
 assert.ok(code.includes('<script src="./src/qr-share.js"></script>'), 'index.html must load the QR share module');
@@ -193,7 +274,7 @@ assert.ok(code.includes('Hoy en tu carrera'));
 assert.ok(code.includes('id="mobile-letter"'));
 assert.ok(code.includes('id="mobile-gpa-points"'));
 assert.ok(code.includes('<link rel="icon" type="image/svg+xml" href="icons/studytrack-icon.svg">'));
-assert.ok(code.includes('<link rel="apple-touch-icon" href="icons/studytrack-icon.svg">'));
+assert.ok(code.includes('<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">'), 'iOS ignores SVG touch icons: use the PNG');
 assert.ok(code.includes('function registerServiceWorker()'));
 assert.ok(code.includes("window.addEventListener('load', registerServiceWorker);"));
 assert.ok(code.includes("navigator.serviceWorker.register('./sw.js')"));

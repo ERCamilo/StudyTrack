@@ -135,7 +135,7 @@
 
   function expandButtonHTML(data, { escapeHtml, actionArgs }) {
     const safeSubjectName = escapeHtml(data.name);
-    return `<button class="stk-expand-btn" aria-label="Ver detalles de ${safeSubjectName}" data-action="toggleSubjectDetails" data-args="${actionArgs(data.id)}"><i class="fas fa-chevron-down stk-chev" id="chevron-${escapeHtml(data.id)}"></i></button>`;
+    return `<button class="stk-expand-btn" aria-expanded="false" aria-label="Ver detalles de ${safeSubjectName}" data-action="toggleSubjectDetails" data-args="${actionArgs(data.id)}"><i class="fas fa-chevron-down stk-chev" id="chevron-${escapeHtml(data.id)}"></i></button>`;
   }
 
   function gradeInputHTML(data, { escapeHtml, actionArgs }, extraAttrs = '') {

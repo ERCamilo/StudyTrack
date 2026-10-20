@@ -1,9 +1,16 @@
-const CACHE_NAME = 'studytrack-shell-v20';
+const CACHE_NAME = 'studytrack-shell-v30';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './dist/tailwind.css',
+  './src/vendor/fa/css/all.min.css',
+  './src/vendor/fa/webfonts/fa-solid-900.woff2',
+  './src/vendor/fa/webfonts/fa-regular-400.woff2',
+  './src/vendor/fonts/fonts.css',
+  './src/vendor/fonts/outfit.woff2',
+  './src/vendor/fonts/sora.woff2',
+  './src/vendor/fonts/space-grotesk.woff2',
   './src/storage.js',
   './src/sanitize.js',
   './src/curriculum.js',
@@ -20,6 +27,12 @@ const APP_SHELL = [
   './src/uni-events-ui.js',
   './src/insights.js',
   './src/milestones.js',
+  './src/app-version.js',
+  './src/sync-status.js',
+  './src/dev-mode.js',
+  './src/blockers.js',
+  './src/graduation.js',
+  './src/honors.js',
   './src/nfc.js',
   './src/vendor/qrcode.min.js',
   './src/vendor/jsqr.min.js',
@@ -27,7 +40,11 @@ const APP_SHELL = [
   './src/firebase-sync.js',
   './src/app.js',
   './icons/studytrack-icon.svg',
-  './icons/studytrack-maskable.svg'
+  './icons/studytrack-maskable.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
