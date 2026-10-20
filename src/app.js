@@ -72,6 +72,7 @@
             scheduleSplashDismiss(); // the splash overlay dismisses itself on a short timer, independent of init work below
             milestonesReady = false; // silence celebrations during (re)init — incl. cloud-pull re-runs
             loadSettings(); // refresh cloud-synced settings (so a sync pull applies without reload)
+            applyDevMode();
             if (APP_CONFIG.darkMode) { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun text-sm'; }
 
             // Check persistence first
@@ -1388,6 +1389,58 @@
             setTimeout(() => showWhatsNew(releases, `Actualizaste a la versión ${current}`), isReducedMotion() ? 300 : 1500);
         }
 
+        // ── Developer mode (hidden) ────────────────────────────────────────
+        // Tapping the app version 7 times unlocks a "Desarrollador" sheet in Más. It holds the switches for
+        // features that ship hidden (QR / NFC card sharing). Device-local: never synced.
+        let versionTapState = null;
+        function getDevState() {
+            return {
+                unlocked: StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.devMode, false),
+                flags: StudyTrackDevMode.normalizeFlags(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.devFlags, null))
+            };
+        }
+        function applyDevMode() {
+            const { unlocked, flags } = getDevState();
+            StudyTrackDevMode.FEATURES.forEach((f) => document.documentElement.classList.toggle(`dev-${f.id}`, StudyTrackDevMode.isFeatureOn(unlocked, flags, f.id)));
+            document.getElementById('more-dev-row')?.classList.toggle('hidden', !unlocked);
+        }
+        function tapAppVersion() {
+            if (getDevState().unlocked) { showToast('El modo desarrollador ya está activo', 'info', { key: 'dev-tap', duration: 1500 }); return; }
+            versionTapState = StudyTrackDevMode.registerVersionTap(versionTapState, Date.now());
+            if (versionTapState.unlocked) {
+                StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.devMode, true);
+                applyDevMode();
+                try { navigator.vibrate && navigator.vibrate(30); } catch (e) { /* vibration is optional */ }
+                showToast('Modo desarrollador activado. Lo encuentras en «Más».', 'success', { key: 'dev-tap' });
+            } else if (versionTapState.count >= 3) {
+                const n = versionTapState.remaining;
+                showToast(`Estás a ${n} toque${n === 1 ? '' : 's'} del modo desarrollador`, 'info', { key: 'dev-tap', duration: 1200 });
+            }
+        }
+        function renderDevSheet() {
+            const { flags } = getDevState();
+            document.getElementById('dev-sheet-list').innerHTML = StudyTrackDevMode.FEATURES.map((f) => {
+                const on = flags[f.id];
+                return `<button type="button" role="switch" aria-checked="${on}" data-action="toggleDevFeature" data-args='["${f.id}"]' class="stk-settings-row w-full p-3 text-left flex items-center gap-3" style="min-height:56px"><span class="flex-1"><span class="block text-sm font-bold">${escapeHtml(f.label)}</span><span class="block text-[11px]" style="color:var(--stk-text-2)">${escapeHtml(f.hint)}</span></span><span class="toggle-switch shrink-0 ${on ? 'active' : ''}" aria-hidden="true"></span></button>`;
+            }).join('');
+        }
+        function openDevSheet() { renderDevSheet(); document.getElementById('dev-sheet').classList.remove('hidden'); }
+        function closeDevSheet() { document.getElementById('dev-sheet').classList.add('hidden'); }
+        function toggleDevFeature(id) {
+            const flags = StudyTrackDevMode.toggleFlag(getDevState().flags, id);
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.devFlags, flags);
+            applyDevMode();
+            renderDevSheet();
+            const feature = StudyTrackDevMode.FEATURES.find((f) => f.id === id);
+            if (feature) showToast(`${feature.label}: ${flags[id] ? 'activado' : 'desactivado'}`, 'info', { key: 'dev-flag', duration: 1500 });
+        }
+        function disableDevMode() {
+            StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.devMode, false);
+            applyDevMode();
+            closeDevSheet();
+            showToast('Modo desarrollador oculto', 'info', { key: 'dev-tap' });
+        }
+
         // ── Header sync indicator ──────────────────────────────────────────
         // firebase-sync.js publishes the raw facts ('studytrack:sync-state'); StudyTrackSyncStatus decides
         // the state and this paints it: a dot on the account button plus words for assistive tech.
@@ -1550,13 +1603,16 @@
             return true;
         }
         function setupDialogLayers() {
+            // A reload with a dialog open leaves its history marker on the entry; no layer is open now.
+            try { if (history.state && history.state.stkLayer) history.replaceState(null, ''); } catch (e) { /* history may be unavailable */ }
             const dialogs = [
                 ['settings-modal', () => closeSettings()],
                 ['schedule-modal', () => closeScheduleModal()],
                 ['schedule-details-modal', () => closeDetailsModal()],
                 ['whats-new-modal', () => closeWhatsNew()],
                 ['update-modal', () => postponeAppUpdate()],
-                ['more-sheet', () => closeMoreSheet()]
+                ['more-sheet', () => closeMoreSheet()],
+                ['dev-sheet', () => closeDevSheet()]
             ];
             dialogs.forEach(([id, close]) => {
                 const el = document.getElementById(id);

@@ -103,7 +103,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -173,6 +173,16 @@ assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs mus
 assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
 assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
 assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Developer mode: QR/NFC hidden by default, unlocked from the app version, no header gear
+assert.ok(code.includes('<script src="./src/dev-mode.js"></script>') && serviceWorker.includes('./src/dev-mode.js'), 'dev-mode module is loaded and cached');
+assert.ok(!/data-action="openSettings"[^>]*aria-label="Configuración"/.test(html), 'the header gear next to the account button is gone');
+assert.ok(html.includes('data-action="openSettings" class="side-tab"') && html.includes('data-args=\'["openSettings"]\''), 'Configuración stays reachable from the sidebar and the Más sheet');
+for (const [act, feat] of [['shareStudentCardViaNfc', 'nfc'], ['readStudentCardViaNfc', 'nfc'], ['openQrShareModal', 'qr']]) assert.ok(new RegExp(`data-action="${act}"[^>]*data-dev-feature="${feat}"`).test(html), `${act} must be gated by data-dev-feature=${feat}`);
+assert.ok(/html:not\(\.dev-qr\) \[data-dev-feature="qr"\]/.test(html) && /html:not\(\.dev-nfc\) \[data-dev-feature="nfc"\]/.test(html), 'gated features are hidden unless <html> carries dev-qr / dev-nfc');
+for (const id of ['dev-sheet', 'dev-sheet-list', 'more-dev-row']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+assert.ok(/id="more-dev-row"[^>]*hidden/.test(html), 'the Desarrollador row starts hidden');
+assert.ok(html.includes('data-action="tapAppVersion"') && ['tapAppVersion', 'applyDevMode', 'openDevSheet', 'closeDevSheet', 'toggleDevFeature', 'disableDevMode'].every((fn) => appJs.includes(`function ${fn}(`)), 'version taps and the dev sheet are wired');
+
 // Header sync indicator
 assert.ok(code.includes('<script src="./src/sync-status.js"></script>') && serviceWorker.includes('./src/sync-status.js'), 'sync-status module is loaded and cached');
 assert.ok(html.includes('id="sync-dot"') && html.includes('id="more-sync-label"'), 'indicator markup exists');

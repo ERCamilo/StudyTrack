@@ -48,6 +48,7 @@
     <script src="./src/milestones.js"></script>
     <script src="./src/app-version.js"></script>
     <script src="./src/sync-status.js"></script>
+    <script src="./src/dev-mode.js"></script>
     <script src="./src/nfc.js"></script>
     <script src="./src/vendor/qrcode.min.js"></script>
     <script src="./src/vendor/jsqr.min.js"></script>
@@ -887,6 +888,10 @@
         .stk-cal-nav .stk-sched-pill i { margin: 0; }
         .stk-cal-month { font-size: 11px; font-weight: 800; color: var(--stk-text-1); padding: 0 4px; white-space: nowrap; text-transform: capitalize; min-width: 92px; text-align: center; }
 
+        /* ---- Developer-mode gating: hidden unless <html> has dev-qr / dev-nfc (set by applyDevMode) ---- */
+        html:not(.dev-qr) [data-dev-feature="qr"], html:not(.dev-nfc) [data-dev-feature="nfc"],
+        html:not(.dev-qr):not(.dev-nfc) [data-dev-feature="any"] { display: none; }
+
         /* ---- Header sync indicator (state is also spelled out in the button's aria-label and the Más sheet) ---- */
         .stk-sync-dot { position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--stk-surface); background: var(--stk-accent-approved); pointer-events: none; display: none; }
         .stk-sync-dot:not([data-state="none"]) { display: block; }
@@ -1165,8 +1170,6 @@
                         </button>
                         <span id="sync-dot" class="stk-sync-dot" data-state="none" aria-hidden="true"></span>
                     </span>
-                    <button data-action="openSettings" class="stk-icon-btn" aria-label="Configuración"><i
-                            class="fas fa-cog text-sm"></i></button>
                 </div>
             </div>
 
@@ -1573,7 +1576,7 @@
             </div>
 
             <button type="button" data-action="flipCarneVariant" class="stk-carne-flip-btn"><i class="fas fa-rotate" style="font-size:11px"></i>Cambiar diseño del carné</button>
-            <button type="button" data-action="shareStudentCardViaNfc" class="stk-carne-nfc-btn"><i class="fas fa-share-nodes" style="font-size:11px"></i>Compartir por NFC</button>
+            <button type="button" data-action="shareStudentCardViaNfc" data-dev-feature="nfc" class="stk-carne-nfc-btn"><i class="fas fa-share-nodes" style="font-size:11px"></i>Compartir por NFC</button>
         </div>
 
         <!-- Identidad -->
@@ -1823,7 +1826,7 @@
                     <button data-action="scrollSettingsSection" data-args='["settings-section-requirements"]' class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-grades"]' class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-data"]' class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-share"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carné NFC</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-share"]' data-dev-feature="any" class="settings-quick-link px-3 py-2 text-xs font-black">Carné NFC</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-cloud"]' class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
                 </div>
             </div>
@@ -1959,7 +1962,7 @@
                 </section>
 
                 <!-- NFC STUDENT CARD SECTION -->
-                <section id="settings-section-share" class="settings-section scroll-mt-4">
+                <section id="settings-section-share" data-dev-feature="any" class="settings-section scroll-mt-4">
                     <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
                             class="fas fa-id-card"></i> Compartir carné</h3>
                     <div class="space-y-2">
@@ -1971,18 +1974,18 @@
                                 data-change="setStudentName" data-args='["$value"]'
                                 class="stk-input text-sm font-bold">
                         </div>
-                        <button data-action="shareStudentCardViaNfc"
+                        <button data-action="shareStudentCardViaNfc" data-dev-feature="nfc"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-share-nodes mr-2" style="color:var(--stk-tint)"></i> Compartir carné por NFC</button>
-                        <button data-action="readStudentCardViaNfc"
+                        <button data-action="readStudentCardViaNfc" data-dev-feature="nfc"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-wifi mr-2" style="color:var(--stk-tint)"></i> Leer carné NFC</button>
-                        <button data-action="openQrShareModal"
+                        <button data-action="openQrShareModal" data-dev-feature="qr"
                             class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
                                 class="fas fa-qrcode mr-2" style="color:var(--stk-tint)"></i> Compartir o leer carné (QR)</button>
                         <input type="file" id="qr-scan-input" accept="image/*" class="hidden"
                             data-change="onQrPhotoSelected" data-args='["$this"]'>
-                        <p class="text-[11px]" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
+                        <p class="text-[11px]" data-dev-feature="any" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
                             funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
                     </div>
                 </section>
@@ -2138,7 +2141,7 @@
 
                 <!-- APP VERSION -->
                 <section class="pt-4 text-center">
-                    <p class="text-[11px] font-semibold" style="color:var(--stk-text-2)">MiRuta <span id="app-version-label">v1.0.0</span></p>
+                    <p class="text-[11px] font-semibold" style="color:var(--stk-text-2)"><button type="button" data-action="tapAppVersion" class="px-3 py-2" style="font:inherit;color:inherit">MiRuta <span id="app-version-label">v1.0.0</span></button></p>
                     <button data-action="openWhatsNew" class="mt-1 text-xs font-bold px-3 py-2" style="color:var(--stk-tint)">
                         <i class="fas fa-wand-magic-sparkles mr-1"></i> Novedades
                     </button>
@@ -2201,11 +2204,34 @@
                 <button data-action="moreAction" data-args='["openWhatsNew"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
                     <i class="fas fa-wand-magic-sparkles w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Novedades</span>
                 </button>
+                <button id="more-dev-row" data-action="moreAction" data-args='["openDevSheet"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3 hidden" style="min-height:48px">
+                    <i class="fas fa-flask w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Desarrollador</span>
+                </button>
                 <button data-action="moreAction" data-args='["openSettings"]' class="stk-settings-row w-full p-3 text-left text-sm font-bold flex items-center gap-3" style="min-height:48px">
                     <i class="fas fa-gear w-5 text-center" style="color:var(--stk-tint)"></i> <span class="flex-1">Configuración completa</span><i class="fas fa-chevron-right text-xs" style="color:var(--stk-text-3)"></i>
                 </button>
             </div>
-            <p class="text-center text-[11px] font-semibold pb-4 safe-area-bottom" style="color:var(--stk-text-2)">MiRuta <span id="more-version-label"></span></p>
+            <p class="text-center text-[11px] font-semibold pb-4 safe-area-bottom" style="color:var(--stk-text-2)"><button type="button" data-action="tapAppVersion" class="px-3 py-2" style="font:inherit;color:inherit">MiRuta <span id="more-version-label"></span></button></p>
+        </div>
+    </div>
+
+    <!-- DEVELOPER / TEST SHEET (hidden until unlocked from the app version) -->
+    <div id="dev-sheet" role="dialog" aria-modal="true" aria-labelledby="dev-sheet-title"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center"
+        style="z-index:100" data-action-self="closeDevSheet">
+        <div style="background:var(--stk-surface);box-shadow:var(--stk-shadow-hover);max-width:420px;max-height:85dvh"
+            class="w-full rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up flex flex-col">
+            <div class="px-6 pb-2 flex items-center justify-between shrink-0" style="padding-top:1.25rem">
+                <div>
+                    <h2 id="dev-sheet-title" class="text-xl font-bold" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">Desarrollador</h2>
+                    <p class="text-xs mt-1" style="color:var(--stk-text-2)">Funciones en prueba. Están apagadas por defecto.</p>
+                </div>
+                <button data-action="closeDevSheet" class="stk-icon-btn" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="dev-sheet-list" class="px-4 pb-2 pt-2 space-y-2 overflow-y-auto"></div>
+            <div class="px-4 pb-4 pt-1 safe-area-bottom shrink-0">
+                <button data-action="disableDevMode" class="stk-settings-row w-full p-3 text-sm font-bold" style="min-height:48px;color:var(--stk-ink-warning)">Ocultar modo desarrollador</button>
+            </div>
         </div>
     </div>
 

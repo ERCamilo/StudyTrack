@@ -3,9 +3,18 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.5.0';
+  const APP_VERSION = '1.6.0';
 
   const CHANGELOG = [
+    {
+      version: '1.6.0',
+      date: '2026-10-20',
+      title: 'Una cabecera más limpia',
+      items: [
+        'El carné por QR y por NFC pasa a ser una función avanzada, oculta por defecto.',
+        'Se quitó el engranaje de la cabecera: la configuración sigue en «Más».'
+      ]
+    },
     {
       version: '1.5.0',
       date: '2026-10-20',

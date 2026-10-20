@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1272,6 +1272,51 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
     assert.ok(m.label.length > 0, `${state} has a label`);
   }
   assert.equal(S.getSyncIndicator({}).label, '');
+}
+
+{
+  const D = StudyTrackDevMode;
+  // Simula N toques seguidos separados por `gap` ms y devuelve el estado final.
+  const tapMany = (n, gap, start = null) => { let st = start, t = 1000; for (let i = 0; i < n; i++) { st = D.registerVersionTap(st, t); t += gap; } return st; };
+
+  // Regla de negocio: el modo desarrollador se activa con 7 toques seguidos sobre la versión de la app; cada toque debe llegar a lo sumo 2 segundos después del anterior, si no la cuenta empieza de nuevo.
+  const six = tapMany(6, 500);
+  assert.equal(six.unlocked, false, '6 toques no bastan');
+  assert.equal(six.remaining, 1);
+  const seven = tapMany(7, 500);
+  assert.equal(seven.unlocked, true, 'el 7.º toque activa (límite)');
+  assert.equal(seven.remaining, 0);
+  assert.equal(tapMany(7, 2000).unlocked, true, 'justo en el límite: 2000 ms entre toques todavía cuenta');
+  assert.equal(tapMany(7, 2001).unlocked, false, '2001 ms entre toques reinicia la cuenta');
+  assert.equal(tapMany(7, 2001).count, 1, 'tras reiniciar queda el toque actual como primero');
+  // Un descanso en medio reinicia: 4 toques, pausa larga, 3 toques más no suman 7.
+  let mid = tapMany(4, 300);
+  mid = D.registerVersionTap(mid, 1000 + 4 * 300 + 5000);
+  assert.equal(mid.count, 1);
+  assert.equal(D.registerVersionTap(null, 0).count, 1, 'sin estado previo empieza en 1');
+  assert.equal(D.registerVersionTap(undefined, 0).unlocked, false);
+  // Reloj hacia atrás: no cuenta como seguido.
+  assert.equal(D.registerVersionTap({ count: 5, last: 9000 }, 1000).count, 1);
+  // Tras activarse, la cuenta queda en cero para poder volver a empezar.
+  assert.equal(seven.count, 0);
+
+  // Regla de negocio: el QR y el NFC están ocultos por defecto; una función solo se muestra si el modo desarrollador está activo y su interruptor está encendido.
+  assert.equal(D.isFeatureOn(false, {}, 'qr'), false, 'por defecto oculto');
+  assert.equal(D.isFeatureOn(true, {}, 'qr'), false, 'modo activo pero interruptor apagado (por defecto)');
+  assert.equal(D.isFeatureOn(true, { qr: true }, 'qr'), true);
+  assert.equal(D.isFeatureOn(false, { qr: true }, 'qr'), false, 'si se oculta el modo desarrollador, las funciones se ocultan aunque el interruptor siga encendido');
+  assert.equal(D.isFeatureOn(true, { qr: true }, 'nfc'), false, 'cada función tiene su propio interruptor');
+  assert.equal(D.isFeatureOn(true, null, 'qr'), false, 'flags nulos');
+  assert.equal(D.isFeatureOn(true, { zzz: true }, 'zzz'), false, 'función desconocida');
+  assert.equal(D.isFeatureOn(true, { qr: 'true' }, 'qr'), false, 'solo true booleano cuenta');
+  sameData(D.normalizeFlags({ qr: true, nfc: 1, zzz: true }), { qr: true, nfc: false }, 'solo funciones conocidas, solo booleanos');
+  sameData(D.normalizeFlags(null), { qr: false, nfc: false });
+  sameData(D.toggleFlag({ qr: false, nfc: true }, 'qr'), { qr: true, nfc: true });
+  sameData(D.toggleFlag({ qr: true, nfc: true }, 'qr'), { qr: false, nfc: true });
+  sameData(D.toggleFlag({ qr: false, nfc: false }, 'zzz'), { qr: false, nfc: false }, 'función desconocida se ignora');
+  const frozen = Object.freeze({ qr: false, nfc: false });
+  assert.notEqual(D.toggleFlag(frozen, 'qr'), frozen, 'no muta el original');
+  assert.ok(D.FEATURES.every((f) => f.id && f.label && f.hint));
 }
 }
 
