@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers, StudyTrackGraduation } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1403,6 +1403,117 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.doesNotThrow(() => B.analyzeBlockers(cyc, {}));
   // Un prerrequisito que no existe en el currículo no bloquea a nadie por sí solo.
   sameData(B.analyzeBlockers(cur([sub('A'), sub('B', ['A', 'FANTASMA'])]), {}).blockers.map((b) => b.id), ['A']);
+}
+
+{
+  const G = StudyTrackGraduation;
+  const ap = { status: 'approved' };
+  const sub = (id, prerequisites = [], extra = {}) => ({ id, code: id, name: `Materia ${id}`, credits: 3, prerequisites, ...extra });
+  const cur = (...periods) => ({ periods: periods.map((subjects, i) => ({ period_number: i + 1, name: `P${i + 1}`, subjects })) });
+  const bySubjects = (n) => ({ mode: 'subjects', perPeriod: n, periodMonths: 3 });
+  const byCredits = (n) => ({ mode: 'credits', perPeriod: n, periodMonths: 3 });
+  const plan = (c, p, settings) => G.planGraduation(c, p, settings);
+
+  // Regla de negocio: los períodos que faltan salen de simular período por período: cada uno toma, hasta tu límite, las materias que ya puedes cursar (prerrequisitos aprobados en períodos anteriores), dando prioridad a las que abren cadenas más largas.
+  assert.equal(plan(cur([sub('A'), sub('B'), sub('C')]), {}, bySubjects(2)).periods, 2, '3 materias, 2 por período');
+  assert.equal(plan(cur([sub('A'), sub('B'), sub('C'), sub('D')]), {}, bySubjects(4)).periods, 1, 'justo en el límite de la carga: caben todas');
+  assert.equal(plan(cur([sub('A'), sub('B'), sub('C'), sub('D'), sub('E')]), {}, bySubjects(4)).periods, 2, 'una más que la carga: otro período');
+  const chainPlan = plan(cur([sub('A'), sub('B', ['A']), sub('C', ['B'])]), {}, bySubjects(10));
+  assert.equal(chainPlan.periods, 3, 'una cadena A>B>C no se acorta con más carga');
+  assert.equal(chainPlan.minPeriods, 3);
+  assert.equal(chainPlan.limitedBy, 'prerequisites');
+  const wide = plan(cur([sub('A'), sub('B'), sub('C'), sub('D'), sub('E'), sub('F')]), {}, bySubjects(2));
+  assert.equal(wide.periods, 3);
+  assert.equal(wide.minPeriods, 1, 'con carga ilimitada bastaría 1 período');
+  assert.equal(wide.limitedBy, 'capacity');
+  sameData(wide.plan.map((p) => p.ids.length), [2, 2, 2]);
+  // Prioridad: la materia que abre la cadena más larga va primero aunque haya otras libres.
+  const prio = plan(cur([sub('Z'), sub('A'), sub('B', ['A']), sub('C', ['B'])]), {}, bySubjects(1));
+  assert.equal(prio.plan[0].ids[0], 'A', 'A abre la cadena más larga');
+  assert.equal(prio.periods, 4);
+
+  // Regla de negocio: la carga puede medirse en créditos; las materias de 0 créditos siempre caben, y si una materia pendiente no cabe nunca en tu límite, no hay estimación.
+  const four = cur([sub('A'), sub('B'), sub('C'), sub('D')]);
+  assert.equal(plan(four, {}, byCredits(6)).periods, 2, '2 materias de 3 créditos caben justo en 6');
+  assert.equal(plan(four, {}, byCredits(5)).periods, 4, 'con 5 créditos solo cabe una de 3 por período');
+  assert.equal(plan(cur([sub('Z0', [], { credits: 0 }), sub('A')]), {}, byCredits(3)).periods, 1, 'la de 0 créditos no ocupa cupo');
+  const tooSmall = plan(cur([sub('G', [], { credits: 4 })]), {}, byCredits(3));
+  assert.equal(tooSmall.status, 'stuck');
+  assert.equal(tooSmall.reason, 'capacity');
+  assert.equal(plan(cur([sub('G', [], { credits: 4 })]), {}, byCredits(4)).periods, 1, 'justo en el límite');
+
+  // Regla de negocio: lo aprobado no cuenta; si no falta nada, ya terminaste; las materias en curso van en el primer período aunque superen tu límite.
+  const done = plan(four, { A: ap, B: ap, C: ap, D: ap }, bySubjects(2));
+  assert.equal(done.status, 'done');
+  assert.equal(done.periods, 0);
+  assert.equal(plan(four, { A: ap, B: ap }, bySubjects(2)).periods, 1, 'solo faltan 2');
+  const enr = plan(cur([sub('A'), sub('B'), sub('C')]), { A: { status: 'enrolled' }, B: { status: 'enrolled' } }, bySubjects(1));
+  sameData(enr.plan[0].ids.slice().sort(), ['A', 'B'], 'las dos inscritas van juntas en el período 1');
+  assert.equal(enr.periods, 2, 'C queda para el período 2');
+  assert.equal(plan(null, {}, bySubjects(2)).status, 'done', 'currículo nulo: nada que cursar');
+
+  // Regla de negocio: una materia que exige "ALL" va después de todas las demás, en su propio período; las optativas solo cuentan si alguna materia obligatoria las exige.
+  const allCur = cur([sub('A'), sub('B'), sub('TES', ['ALL'])]);
+  const allPlan = plan(allCur, {}, bySubjects(5));
+  assert.equal(allPlan.periods, 2, 'A y B en el 1; TES sola en el 2');
+  sameData(allPlan.plan[1].ids, ['TES']);
+  const opt = cur([sub('A'), sub('OPT', [], { is_optional: true }), sub('B', ['A'])]);
+  assert.equal(plan(opt, {}, bySubjects(5)).remainingSubjects, 2, 'la optativa que nadie exige no cuenta');
+  const optReq = cur([sub('SEM', [], { is_optional: true }), sub('TES', ['SEM'])]);
+  assert.equal(plan(optReq, {}, bySubjects(5)).remainingSubjects, 2, 'la optativa que TES exige sí cuenta');
+  assert.equal(plan(optReq, {}, bySubjects(5)).periods, 2);
+
+  // Un prerrequisito que nunca se podrá cumplir (no existe) deja la estimación en "atascada", sin colgar.
+  const stuck = plan(cur([sub('A', ['FANTASMA']), sub('B')]), {}, bySubjects(2));
+  assert.equal(stuck.status, 'stuck');
+  assert.equal(stuck.reason, 'prerequisites');
+  sameData(stuck.stuckIds, ['A']);
+  assert.doesNotThrow(() => plan(cur([sub('A', ['B']), sub('B', ['A'])]), {}, bySubjects(2)), 'un ciclo no cuelga');
+  assert.equal(plan(cur([sub('A', [['B', 'C']]), sub('B'), sub('C')]), {}, bySubjects(5)).periods, 2, 'grupo "o": basta con una alternativa, A queda para el 2.º período');
+  assert.equal(plan(four, {}, { mode: 'subjects', perPeriod: 0, periodMonths: 3 }).status, 'stuck', 'carga 0 no avanza');
+  assert.equal(plan(four, {}, bySubjects(2)).remainingCredits, 12);
+
+  // Regla de negocio: la duración total es períodos × meses por período, y la fecha de fin suma esos meses al día de inicio (sin pasarse de fin de mes).
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const start = Date.UTC(2026, 9, 20);
+  assert.equal(G.estimateEnd(11, 3, start).months, 33);
+  assert.equal(iso(G.estimateEnd(11, 3, start).endMs), '2029-07-20', '33 meses desde oct 2026');
+  assert.equal(iso(G.estimateEnd(0, 3, start).endMs), '2026-10-20', '0 períodos: hoy');
+  assert.equal(iso(G.estimateEnd(1, 1, Date.UTC(2026, 0, 31)).endMs), '2026-02-28', '31 de enero + 1 mes = fin de febrero');
+  assert.equal(iso(G.estimateEnd(1, 1, Date.UTC(2028, 0, 31)).endMs), '2028-02-29', 'año bisiesto');
+  assert.equal(G.estimateEnd(3, 3.5, start).months, 10.5, 'meses con decimales');
+  assert.equal(G.formatDuration(0), 'menos de un mes');
+  assert.equal(G.formatDuration(1), '1 mes');
+  assert.equal(G.formatDuration(11), '11 meses');
+  assert.equal(G.formatDuration(12), '1 año');
+  assert.equal(G.formatDuration(13), '1 año y 1 mes');
+  assert.equal(G.formatDuration(33), '2 años y 9 meses');
+  assert.equal(G.formatDuration(24), '2 años');
+  assert.equal(G.formatDuration(10.5), '11 meses', 'redondea al mes más cercano');
+
+  // Valores por defecto y validación de lo que escribe el usuario (se limita a rangos razonables).
+  const real = { metadata: { duration_years: 4, total_credits: 209 }, periods: Array.from({ length: 16 }, (_, i) => ({ period_number: i + 1, subjects: [sub(`S${i}a`, [], { credits: 13 }), sub(`S${i}b`, [], { credits: 0 }), sub(`S${i}c`), sub(`S${i}d`)] })) };
+  sameData(G.defaultPlanSettings(real), { mode: 'subjects', perPeriod: 4, periodMonths: 3 }, '4 años / 16 períodos = 3 meses; 64 materias / 16 = 4');
+  assert.equal(G.defaultPlanSettings(null).periodMonths, 4, 'sin datos: 4 meses');
+  assert.equal(G.defaultPlanSettings(null).perPeriod, 4);
+  const d = G.defaultPlanSettings(real);
+  sameData(G.normalizePlanSettings({ mode: 'credits', perPeriod: 14, periodMonths: 2.5 }, d), { mode: 'credits', perPeriod: 14, periodMonths: 2.5 });
+  assert.equal(G.normalizePlanSettings({ periodMonths: 0 }, d).periodMonths, 0.5, 'mínimo 0.5 meses');
+  assert.equal(G.normalizePlanSettings({ periodMonths: 13 }, d).periodMonths, 12, 'máximo 12 meses');
+  assert.equal(G.normalizePlanSettings({ periodMonths: 'abc' }, d).periodMonths, 3, 'inválido: el predeterminado');
+  assert.equal(G.normalizePlanSettings({ mode: 'subjects', perPeriod: 0 }, d).perPeriod, 1, 'mínimo 1 materia');
+  assert.equal(G.normalizePlanSettings({ mode: 'subjects', perPeriod: 99 }, d).perPeriod, 15, 'máximo 15 materias');
+  assert.equal(G.normalizePlanSettings({ mode: 'credits', perPeriod: 99 }, d).perPeriod, 60, 'máximo 60 créditos');
+  assert.equal(G.normalizePlanSettings({ mode: 'zzz' }, d).mode, 'subjects', 'modo desconocido');
+  sameData(G.normalizePlanSettings(null, d), plainData(d), 'sin datos guardados: los predeterminados');
+  assert.equal(G.defaultCreditsPerPeriod(real), 14, '209 créditos / 16 períodos, redondeado hacia arriba');
+  assert.equal(G.defaultCreditsPerPeriod(cur([sub('A'), sub('B')])), 6, 'sin total declarado: suma de créditos / períodos');
+  assert.equal(G.defaultCreditsPerPeriod(null), 15, 'sin datos: 15');
+  assert.equal(G.periodNoun('Trimestre', 1), 'trimestre');
+  assert.equal(G.periodNoun('Trimestre', 11), 'trimestres');
+  assert.equal(G.periodNoun('Mes', 3), 'meses', 'termina en consonante: +es');
+  assert.equal(G.periodNoun(undefined, 2), 'períodos');
+  assert.equal(G.periodNoun('', 1), 'período');
 }
 }
 

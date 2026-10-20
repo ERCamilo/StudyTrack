@@ -23,7 +23,8 @@
     onboarded: 'studytrack_onboarded_v1',
     lastSeenVersion: 'studytrack_last_seen_version',
     devMode: 'studytrack_dev_mode',
-    devFlags: 'studytrack_dev_flags'
+    devFlags: 'studytrack_dev_flags',
+    gradPlan: 'studytrack_grad_plan'
   };
 
   function getStorage() {

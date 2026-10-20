@@ -103,7 +103,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -173,6 +173,13 @@ assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs mus
 assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
 assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
 assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Profile: time to graduate
+assert.ok(code.includes('<script src="./src/graduation.js"></script>') && serviceWorker.includes('./src/graduation.js'), 'graduation module is loaded and cached');
+for (const id of ['profile-plan', 'plan-result', 'plan-months', 'plan-per-period', 'plan-mode-subjects', 'plan-mode-credits', 'plan-note']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+assert.ok(/for="plan-months"/.test(html) && /for="plan-per-period"/.test(html), 'plan inputs have visible labels');
+for (const fn of ['renderGraduationPlan', 'updatePlanMonths', 'updatePlanPerPeriod', 'setPlanMode', 'savePlanSettings']) assert.ok(appJs.includes(`function ${fn}(`), `app.js must define ${fn}`);
+assert.ok(/renderGraduationPlan\(\);\s*const card = collectStudentCard\(\)/.test(appJs), 'the profile view renders the plan');
+
 // Home: subjects that hold back progress
 assert.ok(code.includes('<script src="./src/blockers.js"></script>') && serviceWorker.includes('./src/blockers.js'), 'blockers module is loaded and cached');
 for (const id of ['home-blockers', 'home-blockers-list', 'home-blockers-count']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);

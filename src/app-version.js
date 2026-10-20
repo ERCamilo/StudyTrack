@@ -3,9 +3,19 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.7.0';
+  const APP_VERSION = '1.8.0';
 
   const CHANGELOG = [
+    {
+      version: '1.8.0',
+      date: '2026-10-20',
+      title: 'Cuándo terminas tu carrera',
+      items: [
+        'En Perfil, «Tiempo para terminar» estima cuándo te graduarías según lo que dura cada período y cuántas materias o créditos tomas por período.',
+        'La estimación respeta los prerrequisitos: te dice si tu carga o tus cadenas de materias marcan el ritmo, y cuánto tiempo ahorrarías con más carga.',
+        'Empieza con valores de tu carrera y los puedes ajustar.'
+      ]
+    },
     {
       version: '1.7.0',
       date: '2026-10-20',

@@ -2186,6 +2186,72 @@
             notifySyncChange();
             applyCarneVariant(true);
         }
+        // ── Tiempo para terminar (Perfil) ──────────────────────────────────
+        // The student's plan (period length, load per period) is device-local. Until they change it, the card
+        // starts from values derived from the loaded curriculum and says so.
+        function getPlanSettings() {
+            const defaults = StudyTrackGraduation.defaultPlanSettings(currentCurriculum);
+            const saved = StudyTrackStorage.getJson(StudyTrackStorage.KEYS.gradPlan, null);
+            return { settings: StudyTrackGraduation.normalizePlanSettings(saved, defaults), isDefault: !saved };
+        }
+        function savePlanSettings(patch) {
+            const { settings } = getPlanSettings();
+            const next = StudyTrackGraduation.normalizePlanSettings({ ...settings, ...patch }, StudyTrackGraduation.defaultPlanSettings(currentCurriculum));
+            StudyTrackStorage.setJson(StudyTrackStorage.KEYS.gradPlan, next);
+            renderGraduationPlan();
+        }
+        function updatePlanMonths(val) { savePlanSettings({ periodMonths: val }); }
+        function updatePlanPerPeriod(val) { savePlanSettings({ perPeriod: val }); }
+        function setPlanMode(mode) {
+            const perPeriod = mode === 'credits' ? StudyTrackGraduation.defaultCreditsPerPeriod(currentCurriculum) : StudyTrackGraduation.defaultPlanSettings(currentCurriculum).perPeriod;
+            savePlanSettings({ mode, perPeriod });
+        }
+        function renderGraduationPlan() {
+            const box = document.getElementById('plan-result');
+            if (!box || !currentCurriculum) return;
+            const G = StudyTrackGraduation;
+            const { settings, isDefault } = getPlanSettings();
+            const monthsInput = document.getElementById('plan-months');
+            const perInput = document.getElementById('plan-per-period');
+            if (monthsInput && document.activeElement !== monthsInput) monthsInput.value = settings.periodMonths;
+            if (perInput && document.activeElement !== perInput) perInput.value = settings.perPeriod;
+            perInput.max = G.LIMITS[settings.mode].max;
+            document.getElementById('plan-per-label').textContent = settings.mode === 'credits' ? 'Créditos por período' : 'Materias por período';
+            ['subjects', 'credits'].forEach((m) => {
+                const btn = document.getElementById(`plan-mode-${m}`);
+                btn.classList.toggle('stk-sched-pill--active', settings.mode === m);
+                btn.setAttribute('aria-pressed', settings.mode === m ? 'true' : 'false');
+            });
+
+            const result = G.planGraduation(currentCurriculum, userProgress, settings);
+            const noun = (n) => G.periodNoun(currentCurriculum.metadata?.period_type, n);
+            const big = (text) => `<div class="text-2xl font-black leading-tight" style="font-family:var(--stk-font-display);color:var(--stk-text-1)">${escapeHtml(text)}</div>`;
+            const line = (text) => `<div class="text-xs mt-1" style="color:var(--stk-text-2)">${escapeHtml(text)}</div>`;
+            let html = '';
+            if (result.status === 'done') {
+                html = big('¡Ya completaste todas tus materias!') + line('No te falta ninguna materia obligatoria.');
+            } else if (result.status === 'stuck') {
+                html = big('No puedo estimarlo todavía') + line(result.reason === 'capacity'
+                    ? 'Con ese límite no cabe una de tus materias pendientes. Sube la carga por período.'
+                    : 'Hay materias cuyos prerrequisitos no se pueden cumplir. Revisa la carrera cargada.');
+            } else {
+                const end = G.estimateEnd(result.periods, settings.periodMonths, Date.now());
+                const endText = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(end.endMs));
+                html = big(G.formatDuration(end.months))
+                    + line(`Terminarías hacia ${endText} · ${result.periods} ${noun(result.periods)}`)
+                    + line(`Te faltan ${result.remainingSubjects} ${result.remainingSubjects === 1 ? 'materia' : 'materias'} y ${result.remainingCredits} créditos.`);
+                if (result.limitedBy === 'prerequisites') {
+                    html += line('Tus prerrequisitos marcan el ritmo: aunque tomaras más materias por período, no terminarías antes.');
+                } else if (result.minPeriods !== null) {
+                    const saved = G.formatDuration((result.periods - result.minPeriods) * settings.periodMonths);
+                    html += line(`Con más carga podrías terminar en ${result.minPeriods} ${noun(result.minPeriods)} (${saved} menos): es lo mínimo que permiten los prerrequisitos.`);
+                }
+            }
+            box.innerHTML = html;
+            document.getElementById('plan-note').textContent = (isDefault ? 'Valores iniciales según tu carrera: ajústalos a tu ritmo. ' : '')
+                + 'Estimación que supone que empiezas ahora y apruebas todo lo que cursas.';
+        }
+
         function renderProfileView() {
             renderProfileAvatar();
             renderMilestones();
@@ -2213,6 +2279,7 @@
                 setTxt('carne-bands-career', 'Sin carrera seleccionada');
                 return;
             }
+            renderGraduationPlan();
             const card = collectStudentCard();
             setTxt('profile-career', card.career || 'Sin carrera');
             setTxt('profile-institution', card.institution || '');
