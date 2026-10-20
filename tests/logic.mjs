@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js', 'src/settings-summary.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers, StudyTrackGraduation, StudyTrackHonors } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers, StudyTrackGraduation, StudyTrackHonors, StudyTrackSettingsSummary } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1627,6 +1627,20 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   const empty = plainData(H.summarizeGrades(null, null));
   sameData([empty.weightedSum, empty.weightBase, empty.remainingCredits, empty.typicalCredits, empty.heaviestCredits], [0, 0, 0, 0, 0], 'currículo nulo');
 }
+}
+
+{
+  // Regla de negocio: cada fila de Ajustes muestra un resumen de una línea con el valor actual (sesión, carrera, calendario, límite de inscripción, nota de aprobación, requisitos, versión); si falta el dato muestra un texto neutro y nunca "undefined".
+  const S = StudyTrackSettingsSummary.buildSettingsSummary;
+  const full = plainData(S({ signedIn: true, syncLabel: 'Sincronizado', careerName: 'Ingeniería de Software', calendarSet: true, maxEnrolled: 10, passingGrade: 70, requirementsCount: 2, version: '2.0.0' }));
+  sameData(full, { cloud: 'Sincronizado', career: 'Ingeniería de Software', unical: 'Conectado', preferences: 'Hasta 10 materias inscritas', grades: 'Se aprueba con 70', requirements: '2 requisitos', data: 'Versión 2.0.0', share: '' }, 'todos los datos presentes');
+  const one = plainData(S({ maxEnrolled: 1, requirementsCount: 1 }));
+  assert.equal(one.preferences, 'Hasta 1 materia inscrita', 'límite justo en 1: singular');
+  assert.equal(one.requirements, '1 requisito', 'un requisito: singular');
+  const none = plainData(S(null));
+  sameData([none.cloud, none.career, none.unical, none.preferences, none.grades, none.requirements, none.data], ['Sin iniciar sesión', 'Sin carrera cargada', 'Sin conectar', '', '', 'Ninguno', ''], 'sin contexto');
+  assert.equal(plainData(S({ signedIn: true })).cloud, 'Conectada', 'sesión sin etiqueta de sincronía');
+  assert.equal(plainData(S({ requirementsCount: -3, passingGrade: 0, maxEnrolled: 'x' })).requirements, 'Ninguno', 'valores inválidos no rompen');
 }
 
 console.log('Logic checks passed');

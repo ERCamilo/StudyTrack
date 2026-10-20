@@ -103,7 +103,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js', 'src/settings-summary.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -302,7 +302,10 @@ assert.ok(code.includes('id="carne-bands-name"') && code.includes('id="carne-ban
 assert.ok(code.includes('id="carne-bands-avatar"') && code.includes('function renderCarneBandsAvatar('), 'Bands carné avatar tile must stay in sync with the profile photo');
 assert.ok(code.includes('id="profile-progress-bar"'), 'Recorrido card should render a progress bar alongside the ring');
 assert.ok(code.includes('function openMobileMore()'));
-assert.ok(code.includes('id="settings-quick-nav"'), 'Settings modal should expose quick navigation on mobile');
+assert.ok(!code.includes('id="settings-quick-nav"'), 'Settings is a short accordion list, not a chip row');
+for (const fn of ['toggleSettingsSection', 'closeAllSettingsSections', 'renderSettingsSummaries']) assert.ok(code.includes(`function ${fn}(`), `${fn} must exist`);
+assert.equal((code.match(/class="settings-section stk-acc"/g) || []).length, 8, 'Settings has 8 accordion rows');
+assert.ok(code.includes('<script src="./src/settings-summary.js"></script>') && serviceWorker.includes('./src/settings-summary.js'), 'settings-summary module is loaded and cached');
 for (const id of ['settings-section-career', 'settings-section-preferences', 'settings-section-requirements', 'settings-section-grades', 'settings-section-data']) {
   assert.ok(code.includes(`id="${id}"`), `Missing settings section ${id}`);
 }

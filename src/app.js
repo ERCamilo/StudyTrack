@@ -1880,8 +1880,41 @@
             document.querySelectorAll('.nav-tab').forEach(btn => mark(btn, btn.id === activeId));
             document.querySelectorAll('.side-tab').forEach(btn => mark(btn, btn.id === sideId));
         }
-        function openSettings() { renderGradeScaleSettings(); renderHonorSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
-        function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        function openSettings() { closeAllSettingsSections(); renderSettingsSummaries(); renderGradeScaleSettings(); renderHonorSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
+        // Settings rows are accordions: one open at a time. Any section (or a block inside one, like honors) can be asked for by id.
+        function setSettingsSectionOpen(row, open) {
+            row.classList.toggle('open', open);
+            row.querySelector(':scope > .stk-acc-head')?.setAttribute('aria-expanded', String(open));
+        }
+        function closeAllSettingsSections() { document.querySelectorAll('#settings-modal .stk-acc.open').forEach((row) => setSettingsSectionOpen(row, false)); }
+        function toggleSettingsSection(sectionId) {
+            const row = document.getElementById(sectionId);
+            if (!row) return;
+            const willOpen = !row.classList.contains('open');
+            closeAllSettingsSections();
+            if (willOpen) { setSettingsSectionOpen(row, true); requestAnimationFrame(() => row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })); }
+        }
+        function scrollSettingsSection(sectionId) {
+            const target = document.getElementById(sectionId);
+            const row = target?.closest('.stk-acc');
+            if (!target || !row) return;
+            closeAllSettingsSections();
+            setSettingsSectionOpen(row, true);
+            setTimeout(() => target.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60);
+        }
+        function renderSettingsSummaries() {
+            const summary = StudyTrackSettingsSummary.buildSettingsSummary({
+                signedIn: lastSyncFacts.signedIn,
+                syncLabel: StudyTrackSyncStatus.getSyncIndicator({ ...lastSyncFacts, online: navigator.onLine }).label,
+                careerName: currentCurriculum?.metadata?.career_name,
+                calendarSet: hasUniCalendar(),
+                maxEnrolled: APP_CONFIG.maxEnrolledSubjects,
+                passingGrade: APP_CONFIG.passingGrade,
+                requirementsCount: currentCurriculum?.requirements?.length || 0,
+                version: StudyTrackVersion.APP_VERSION
+            });
+            Object.keys(summary).forEach((key) => { const el = document.getElementById(`settings-sum-${key}`); if (el) el.textContent = summary[key]; });
+        }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { toggle.setAttribute('aria-checked', APP_CONFIG.allowSkipPrerequisites ? 'true' : 'false'); if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }

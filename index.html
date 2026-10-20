@@ -49,6 +49,7 @@
     <script src="./src/app-version.js"></script>
     <script src="./src/sync-status.js"></script>
     <script src="./src/dev-mode.js"></script>
+    <script src="./src/settings-summary.js"></script>
     <script src="./src/blockers.js"></script>
     <script src="./src/graduation.js"></script>
     <script src="./src/honors.js"></script>
@@ -106,7 +107,7 @@
         .collapsible-content {
             display: grid;
             grid-template-rows: 0fr;
-            transition: grid-template-rows 0.45s var(--stk-ease);
+            transition: grid-template-rows 0.28s var(--stk-ease);
         }
 
         .collapsible-content.open {
@@ -159,11 +160,11 @@
         }
 
         .animate-slide-up {
-            animation: slideInUp 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+            animation: slideInUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
         .animate-fade-in {
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.18s ease-out;
         }
 
         input[type="checkbox"] {
@@ -174,7 +175,7 @@
             border-radius: 0.5rem;
             cursor: pointer;
             position: relative;
-            transition: all 0.2s;
+            transition: background-color .15s var(--stk-ease), border-color .15s var(--stk-ease);
         }
 
         input[type="checkbox"]:checked {
@@ -512,7 +513,7 @@
         .stk-pill--inscribir { padding: 7px 14px; background: var(--stk-soft-goal); color: var(--stk-accent-goal); font-size: 10.5px; }
 
         .stk-expand-btn { border: none; background: transparent; cursor: pointer; min-width: 44px; min-height: 44px; padding: 7px; margin: -8px -7px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .stk-chev { color: var(--stk-text-3); font-size: 12px; flex-shrink: 0; transition: transform .35s var(--stk-spring); }
+        .stk-chev { color: var(--stk-text-3); font-size: 12px; flex-shrink: 0; transition: transform .22s var(--stk-ease); }
         .stk-subject-card.open .stk-chev { transform: rotate(180deg); }
 
         .stk-actions { display: flex; align-items: center; gap: 7px; margin-top: 11px; }
@@ -545,7 +546,7 @@
         .stk-subject-card--warning .stk-grade { color: var(--stk-ink-warning); }
         .stk-warn-text { font-size: 11px; font-weight: 700; color: var(--stk-ink-warning); display: flex; align-items: center; gap: 5px; margin-top: 3px; }
 
-        .stk-details { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--stk-ease); }
+        .stk-details { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .26s var(--stk-ease); }
         .stk-subject-card.open .stk-details { grid-template-rows: 1fr; }
         .stk-details-inner { overflow: hidden; }
         .stk-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding: 14px 0 0; margin-top: 12px; border-top: 1px solid var(--stk-hairline); }
@@ -556,13 +557,13 @@
 
         /* Entrada escalonada de la lista — estilo "Enfoque": las tarjetas pasan
            de desenfocadas a nítidas mientras asientan a su tamaño. */
-        @keyframes stkEnter { from { opacity: 0; transform: scale(1.05); filter: blur(9px); } to { opacity: 1; transform: none; filter: blur(0); } }
-        .stk-anim-in { animation: stkEnter .5s ease both; }
+        @keyframes stkEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .stk-anim-in { animation: stkEnter .24s var(--stk-ease) both; }
         /* Pop celebratorio al aprobar (Capa 2) */
         @keyframes stkPop { 0% { transform: scale(1); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
         @keyframes stkRing { from { box-shadow: 0 0 0 0 var(--stk-soft); opacity: 1; } to { box-shadow: 0 0 0 16px transparent; opacity: 0; } }
-        .stk-orb.stk-pop .stk-orb-tile { animation: stkPop .5s var(--stk-spring); }
-        .stk-orb.stk-pop .stk-orb-tile::after { content: ''; position: absolute; inset: 0; border-radius: inherit; animation: stkRing .5s var(--stk-spring); }
+        .stk-orb.stk-pop .stk-orb-tile { animation: stkPop .32s var(--stk-spring); }
+        .stk-orb.stk-pop .stk-orb-tile::after { content: ''; position: absolute; inset: 0; border-radius: inherit; animation: stkRing .36s var(--stk-ease); }
 
         /* ---- Global polish (Capa 3) ---- */
         body { background: var(--stk-bg); }
@@ -667,6 +668,22 @@
         }
         .settings-quick-link:hover { background: var(--stk-hairline); }
         .settings-quick-link:active { transform: scale(.95); }
+
+        /* Settings as a short list: one row per topic, one open at a time (less to read, nothing to scroll past). */
+        .stk-acc { background: var(--stk-surface); border: 1px solid var(--stk-hairline); border-radius: var(--stk-radius-sm, 14px); overflow: hidden; }
+        .stk-acc-head { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-align: left; background: transparent; border: 0; cursor: pointer; color: var(--stk-text-1); transition: background-color .15s var(--stk-ease); }
+        .stk-acc-head:active { background: var(--stk-hairline); }
+        .stk-acc-ico { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--stk-surface-2); color: var(--stk-tint); font-size: 14px; }
+        .stk-acc-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .stk-acc-title { font-size: 14px; font-weight: 700; }
+        .stk-acc-sum { font-size: 11.5px; font-weight: 500; color: var(--stk-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stk-acc-sum:empty { display: none; }
+        .stk-acc-chev { color: var(--stk-text-3); font-size: 12px; transition: transform .22s var(--stk-ease); }
+        .stk-acc.open .stk-acc-chev { transform: rotate(180deg); }
+        .stk-acc-body { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .26s var(--stk-ease), visibility 0s .26s; }
+        .stk-acc.open .stk-acc-body { grid-template-rows: 1fr; visibility: visible; transition-delay: 0s; }
+        .stk-acc-inner { overflow: hidden; min-height: 0; }
+        .stk-acc-pad { padding: 4px 14px 16px; }
         /* Settings action rows (Data / Share / Career sub-actions) */
         .stk-settings-row {
             background: var(--stk-surface-2); color: var(--stk-text-1);
@@ -696,11 +713,11 @@
         }
         .stk-search:focus { box-shadow: 0 0 0 2px var(--stk-tint); border-color: var(--stk-tint); }
         /* View transition between tabs */
-        @keyframes stkViewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .stk-view-in { animation: stkViewIn .4s var(--stk-spring) both; }
+        @keyframes stkViewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .stk-view-in { animation: stkViewIn .22s var(--stk-ease) both; }
         /* Popover / scale-in (referenced as animate-scale-up) */
         @keyframes stkScale { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
-        .animate-scale-up { animation: stkScale .3s var(--stk-spring); }
+        .animate-scale-up { animation: stkScale .2s var(--stk-ease); }
 
         /* ---- MiRuta home route map (Capa 4) ---- */
         .stk-route-map { position: relative; }
@@ -935,7 +952,7 @@
             .stk-subject-card, .stk-orb, .stk-orb-tile, .stk-chev, .stk-details, .stk-anim-in, .collapsible-content, .stk-orb.stk-pop, .stk-orb-tile::after,
             .stk-view-in, .animate-scale-up, .animate-slide-up, .stk-press,
             .nav-tab, .nav-tab i, .filter-btn, .stk-icon-btn, .stk-action-btn, .stk-btn-primary,
-            .settings-quick-link, .stk-settings-row, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,
+            .settings-quick-link, .stk-settings-row, .stk-acc-head, .stk-acc-chev, .stk-acc-body, .stk-surface-card, .toggle-switch, .toggle-switch::after, .side-tab,
             .stk-route-pulse, .stk-sched-pill, .stk-sched-add-btn, .stk-sched-chip, .stk-class-block,
             .stk-carne-flip-btn, .stk-carne-nfc-btn, .stk-carne-flip-anim, .stk-cal-cell, .stk-due-row,
             .loading-spinner, .stk-spinner, .stk-splash-pulse, .stk-splash-draw-a, .stk-splash-draw-b,
@@ -1877,259 +1894,15 @@
                         class="fas fa-times"></i></button>
             </div>
 
-            <div class="px-4 sm:px-6 pt-3 pb-0 overflow-x-auto shrink-0" style="border-bottom:1px solid var(--stk-hairline)">
-                <div id="settings-quick-nav" class="flex gap-2 min-w-max pb-3">
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-career"]' class="settings-quick-link px-3 py-2 text-xs font-black">Carrera</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-unical"]' class="settings-quick-link px-3 py-2 text-xs font-black">Calendario</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-requirements"]' class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-grades"]' class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-honors"]' class="settings-quick-link px-3 py-2 text-xs font-black">Honores</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-data"]' class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-share"]' data-dev-feature="any" class="settings-quick-link px-3 py-2 text-xs font-black">Carné NFC</button>
-                    <button data-action="scrollSettingsSection" data-args='["settings-section-cloud"]' class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-6 space-y-6 sm:space-y-8 overflow-y-auto flex-1 scroll-smooth">
+            <div class="p-4 sm:p-6 space-y-2 overflow-y-auto flex-1">
                 <!-- LIBRARY SECTION (DROPDOWNS) -->
-                <section id="settings-section-career" class="settings-section scroll-mt-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3
-                            class="text-xs font-bold uppercase flex items-center gap-2" style="color:var(--stk-text-3)">
-                            <i class="fas fa-book"></i> Cambiar Carrera
-                        </h3>
-                        <button data-action="updateLibraryFromCloud"
-                            class="text-xs font-bold hover:underline" style="color:var(--stk-tint)"><i
-                                class="fas fa-sync-alt mr-1"></i> Actualizar</button>
-                    </div>
-
-                    <div id="library-loading" class="hidden py-4 text-center">
-                        <div class="loading-spinner mx-auto mb-2"></div>
-                        <span class="text-xs" style="color:var(--stk-text-3)">Buscando en la nube...</span>
-                    </div>
-
-                    <!-- Settings Selectors -->
-                    <div
-                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Universidad</label>
-                            <select id="settings-uni-select" class="stk-input text-sm">
-                                <option value="" disabled selected>Selecciona...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Carrera</label>
-                            <select id="settings-career-select" class="stk-input text-sm"
-                                disabled>
-                                <option value="" disabled selected>Elige universidad primero...</option>
-                            </select>
-                        </div>
-                        <button id="settings-load-btn" data-action="startAppFromSettings"
-                            class="stk-btn-primary w-full py-2.5 text-sm opacity-50 pointer-events-none">
-                            Cargar Carrera Seleccionada
-                        </button>
-                    </div>
-
-                    <!-- Advanced Import -->
-                    <div class="mt-4 pt-4" style="border-top:1px solid var(--stk-hairline)">
-                        <label for="import-file"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold cursor-pointer flex items-center justify-center gap-2 border border-dashed" style="border-color:var(--stk-hairline)">
-                            <i class="fas fa-file-import"></i> Importar Archivo JSON
-                        </label>
-                        <input type="file" id="import-file" class="hidden" accept=".json" data-change="importData" data-args='["$this"]'>
-
-                        <button data-action="toggleCustomJson"
-                            class="mt-3 text-xs font-bold flex items-center gap-1 hover:underline w-full justify-center" style="color:var(--stk-tint)"><i
-                                class="fas fa-code"></i> Avanzado: JSON Manual</button>
-                        <div id="custom-json-area" class="hidden mt-3">
-                            <textarea id="custom-json-input" placeholder='Pegar JSON aquí...'
-                                class="stk-input w-full h-24 text-xs font-mono"></textarea>
-                            <button data-action="loadCustomJSON"
-                                class="stk-btn-primary mt-2 w-full py-2 text-xs">Cargar</button>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- UNIVERSITY CALENDAR SECTION: the link is a secret, it stays on this device (never synced) -->
-                <section id="settings-section-unical" class="settings-section scroll-mt-4">
-                    <h3
-                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
-                        <i class="fas fa-calendar-days"></i> Calendario de la universidad
-                    </h3>
-                    <div
-                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
-                        <p class="text-xs" style="color:var(--stk-text-2)">Pega el enlace de exportación de Moodle: Calendario &rarr; Importar o exportar calendarios &rarr; Exportar calendario &rarr; Obtener URL del calendario.</p>
-                        <div>
-                            <label for="uni-calendar-url-input"
-                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Enlace del calendario</label>
-                            <input type="url" id="uni-calendar-url-input" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
-                                placeholder="https://eva.uapa.edu.do/calendar/export_execute.php?..."
-                                class="stk-input text-xs font-mono">
-                        </div>
-                        <button id="uni-calendar-refresh-btn" data-action="refreshUniEvents"
-                            class="stk-btn-primary w-full py-2.5 text-sm"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
-                        <p id="uni-calendar-status" class="text-[11px] font-semibold" style="color:var(--stk-text-3)" role="status" aria-live="polite">A&uacute;n no se ha actualizado</p>
-                        <p class="text-[11px] pt-3" style="color:var(--stk-text-3);border-top:1px solid var(--stk-hairline)"><i class="fas fa-lock mr-1"></i> El enlace funciona como una contrase&ntilde;a: se guarda solo en este dispositivo y no se sube a la nube. Si el navegador bloquea la descarga, pasa por un intermediario que no guarda nada.</p>
-                        <button data-action="clearUniCalendar"
-                            class="text-xs font-bold hover:underline" style="color:var(--stk-ink-goal)"><i class="fas fa-unlink mr-1"></i> Quitar enlace y entregas</button>
-                    </div>
-                </section>
-
-                <!-- REQUIREMENTS & DATA SECTIONS (Same as before) -->
-                <section id="settings-section-requirements" class="settings-section scroll-mt-4">
-                    <h3
-                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
-                        <i class="fas fa-list-check"></i> Requisitos
-                    </h3>
-                    <div class="space-y-2" id="settings-requirements-list"></div>
-                    <div class="mt-3">
-                        <div id="new-req-form" class="hidden flex gap-2 mb-2 animate-fade-in">
-                            <input type="text" id="new-req-name" placeholder="Nombre (ej. Tesis)"
-                                class="stk-input flex-1 text-sm">
-                            <button data-action="confirmAddRequirement"
-                                class="stk-btn-primary px-3"><i class="fas fa-check"></i></button>
-                            <button data-action="toggleAddReqForm" class="px-3 rounded-lg" style="background:var(--stk-surface-2);color:var(--stk-text-2)"><i
-                                    class="fas fa-times"></i></button>
-                        </div>
-                        <button data-action="toggleAddReqForm" id="add-req-btn"
-                            class="w-full py-3 border-2 border-dashed rounded-xl font-bold text-sm flex items-center justify-center gap-2" style="border-color:var(--stk-hairline);color:var(--stk-text-3)"><i
-                                class="fas fa-plus"></i> Agregar Requisito</button>
-                    </div>
-                </section>
-                <section id="settings-section-data" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
-                            class="fas fa-shield-halved"></i> Datos</h3>
-                    <div class="space-y-2">
-                        <button data-action="exportProgress"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
-                        <button data-action="checkForAppUpdate"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-cloud-arrow-down mr-2" style="color:var(--stk-tint)"></i> <span id="update-check-label">Buscar actualizaciones</span></button>
-                        <button data-action="forceAppRefresh"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
-                        <button data-action="resetProgress"
-                            class="stk-settings-row stk-settings-row--warning w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-rotate-left mr-2"></i> Reiniciar Notas</button>
-                        <button data-action="deleteAllData"
-                            class="stk-settings-row stk-settings-row--danger w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
-                    </div>
-                </section>
-
-                <!-- NFC STUDENT CARD SECTION -->
-                <section id="settings-section-share" data-dev-feature="any" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
-                            class="fas fa-id-card"></i> Compartir carné</h3>
-                    <div class="space-y-2">
-                        <div>
-                            <label for="student-name-input"
-                                class="block text-[11px] font-bold mb-1" style="color:var(--stk-text-3)">Nombre del
-                                estudiante</label>
-                            <input type="text" id="student-name-input" placeholder="Tu nombre"
-                                data-change="setStudentName" data-args='["$value"]'
-                                class="stk-input text-sm font-bold">
-                        </div>
-                        <button data-action="shareStudentCardViaNfc" data-dev-feature="nfc"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-share-nodes mr-2" style="color:var(--stk-tint)"></i> Compartir carné por NFC</button>
-                        <button data-action="readStudentCardViaNfc" data-dev-feature="nfc"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-wifi mr-2" style="color:var(--stk-tint)"></i> Leer carné NFC</button>
-                        <button data-action="openQrShareModal" data-dev-feature="qr"
-                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
-                                class="fas fa-qrcode mr-2" style="color:var(--stk-tint)"></i> Compartir o leer carné (QR)</button>
-                        <input type="file" id="qr-scan-input" accept="image/*" class="hidden"
-                            data-change="onQrPhotoSelected" data-args='["$this"]'>
-                        <p class="text-[11px]" data-dev-feature="any" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
-                            funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
-                    </div>
-                </section>
-
-                <!-- PREFERENCES SECTION -->
-                <section id="settings-section-preferences" class="settings-section scroll-mt-4">
-                    <h3
-                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
-                        <i class="fas fa-sliders"></i> Preferencias
-                    </h3>
-                    <div
-                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex-1">
-                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Permitir saltar
-                                    prerrequisitos</p>
-                                <p class="text-[11px]" style="color:var(--stk-text-3)">Marcar materias sin cumplir
-                                    requisitos (⚠️ amarillo)</p>
-                            </div>
-                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites" role="switch" tabindex="0" aria-checked="true" aria-label="Saltar prerrequisitos"
-                                class="toggle-switch active shrink-0"></div>
-                        </div>
-
-                        <!-- Enrollment limit setting -->
-                        <div
-                            class="flex items-center justify-between gap-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
-                            <div class="flex-1">
-                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Límite de inscritas</p>
-                                <p class="text-[11px]" style="color:var(--stk-text-3)">Máx. materias en curso al
-                                    mismo tiempo</p>
-                            </div>
-                            <input type="number" id="enrollment-limit-input" min="1" max="20" value="10"
-                                data-change="updateEnrollmentLimit" data-args='["$value"]'
-                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
-                        </div>
-                    </div>
-                </section>
-
-                <!-- GRADE SCALE SECTION -->
-                <section id="settings-section-grades" class="settings-section scroll-mt-4">
-                    <h3
-                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
-                        <i class="fas fa-medal"></i> Escala de Calificaciones
-                    </h3>
-                    <div
-                        class="p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
-                        <p class="text-[10px] mb-3" style="color:var(--stk-text-3)">Define los rangos para asignar
-                            letras a tus notas.</p>
-                        <div id="grade-scale-settings-list" class="space-y-2 mb-3"></div>
-                        <button data-action="addGradeRange"
-                            class="w-full py-2 border-2 border-dashed rounded-lg text-xs font-bold transition-colors" style="border-color:var(--stk-hairline);color:var(--stk-text-2)">
-                            <i class="fas fa-plus mr-1"></i> Agregar Rango
-                        </button>
-                        <div
-                            class="flex items-center justify-between gap-3 mt-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
-                            <div class="flex-1">
-                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Nota mínima para aprobar
-                                </p>
-                                <p class="text-[11px]" style="color:var(--stk-text-3)">A partir de esta nota una
-                                    materia se marca como aprobada</p>
-                            </div>
-                            <input type="number" id="passing-grade-input" min="0" max="100" step="any" value="70"
-                                data-change="updatePassingGrade" data-args='["$value"]'
-                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
-                        </div>
-                    </div>
-                </section>
-
-                <!-- HONORS SECTION -->
-                <section id="settings-section-honors" class="settings-section scroll-mt-4">
-                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
-                            class="fas fa-award"></i> Reconocimientos</h3>
-                    <p class="text-[11px] mb-3" style="color:var(--stk-text-2)">Promedio mínimo (base 100) para cada reconocimiento. Se compara con tu Índice.</p>
-                    <div id="honor-settings-list" class="space-y-2"></div>
-                    <button data-action="resetHonorLevels" class="stk-settings-row w-full p-3 text-left text-sm font-bold mt-2"><i
-                            class="fas fa-rotate-left mr-2" style="color:var(--stk-tint)"></i> Restablecer valores</button>
-                </section>
-
-                <!-- CLOUD SYNC SECTION (FIREBASE) -->
-                <section id="settings-section-cloud" class="settings-section scroll-mt-4">
-                    <h3
-                        class="text-xs font-bold uppercase mb-3 flex items-center gap-2" style="color:var(--stk-text-3)">
-                        <i class="fas fa-cloud"></i> Sincronización en la Nube
-                    </h3>
+                <section id="settings-section-cloud" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-cloud"]' aria-expanded="false" aria-controls="settings-section-cloud-body">
+                        <span class="stk-acc-ico"><i class="fas fa-cloud"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Cuenta y nube</span><span class="stk-acc-sum" id="settings-sum-cloud"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-cloud-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
                     <div
                         class="p-4 rounded-xl space-y-4" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
                         <p class="text-xs" style="color:var(--stk-text-2)">
@@ -2207,6 +1980,250 @@
                             </button>
                         </div>
                     </div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-career" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-career"]' aria-expanded="false" aria-controls="settings-section-career-body">
+                        <span class="stk-acc-ico"><i class="fas fa-book"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Carrera</span><span class="stk-acc-sum" id="settings-sum-career"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-career-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold" style="color:var(--stk-text-3)">Biblioteca en la nube</span>
+                        <button data-action="updateLibraryFromCloud"
+                            class="text-xs font-bold hover:underline" style="color:var(--stk-tint)"><i
+                                class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                    </div>
+
+                    <div id="library-loading" class="hidden py-4 text-center">
+                        <div class="loading-spinner mx-auto mb-2"></div>
+                        <span class="text-xs" style="color:var(--stk-text-3)">Buscando en la nube...</span>
+                    </div>
+
+                    <!-- Settings Selectors -->
+                    <div
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Universidad</label>
+                            <select id="settings-uni-select" class="stk-input text-sm">
+                                <option value="" disabled selected>Selecciona...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Carrera</label>
+                            <select id="settings-career-select" class="stk-input text-sm"
+                                disabled>
+                                <option value="" disabled selected>Elige universidad primero...</option>
+                            </select>
+                        </div>
+                        <button id="settings-load-btn" data-action="startAppFromSettings"
+                            class="stk-btn-primary w-full py-2.5 text-sm opacity-50 pointer-events-none">
+                            Cargar Carrera Seleccionada
+                        </button>
+                    </div>
+
+                    <!-- Advanced Import -->
+                    <div class="mt-4 pt-4" style="border-top:1px solid var(--stk-hairline)">
+                        <label for="import-file"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold cursor-pointer flex items-center justify-center gap-2 border border-dashed" style="border-color:var(--stk-hairline)">
+                            <i class="fas fa-file-import"></i> Importar Archivo JSON
+                        </label>
+                        <input type="file" id="import-file" class="hidden" accept=".json" data-change="importData" data-args='["$this"]'>
+
+                        <button data-action="toggleCustomJson"
+                            class="mt-3 text-xs font-bold flex items-center gap-1 hover:underline w-full justify-center" style="color:var(--stk-tint)"><i
+                                class="fas fa-code"></i> Avanzado: JSON Manual</button>
+                        <div id="custom-json-area" class="hidden mt-3">
+                            <textarea id="custom-json-input" placeholder='Pegar JSON aquí...'
+                                class="stk-input w-full h-24 text-xs font-mono"></textarea>
+                            <button data-action="loadCustomJSON"
+                                class="stk-btn-primary mt-2 w-full py-2 text-xs">Cargar</button>
+                        </div>
+                    </div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-unical" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-unical"]' aria-expanded="false" aria-controls="settings-section-unical-body">
+                        <span class="stk-acc-ico"><i class="fas fa-calendar-days"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Calendario</span><span class="stk-acc-sum" id="settings-sum-unical"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-unical-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-xs" style="color:var(--stk-text-2)">Pega el enlace de exportación de Moodle: Calendario &rarr; Importar o exportar calendarios &rarr; Exportar calendario &rarr; Obtener URL del calendario.</p>
+                        <div>
+                            <label for="uni-calendar-url-input"
+                                class="block text-[10px] font-bold uppercase mb-1 ml-1" style="color:var(--stk-text-3)">Enlace del calendario</label>
+                            <input type="url" id="uni-calendar-url-input" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+                                placeholder="https://eva.uapa.edu.do/calendar/export_execute.php?..."
+                                class="stk-input text-xs font-mono">
+                        </div>
+                        <button id="uni-calendar-refresh-btn" data-action="refreshUniEvents"
+                            class="stk-btn-primary w-full py-2.5 text-sm"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                        <p id="uni-calendar-status" class="text-[11px] font-semibold" style="color:var(--stk-text-3)" role="status" aria-live="polite">A&uacute;n no se ha actualizado</p>
+                        <p class="text-[11px] pt-3" style="color:var(--stk-text-3);border-top:1px solid var(--stk-hairline)"><i class="fas fa-lock mr-1"></i> El enlace funciona como una contrase&ntilde;a: se guarda solo en este dispositivo y no se sube a la nube. Si el navegador bloquea la descarga, pasa por un intermediario que no guarda nada.</p>
+                        <button data-action="clearUniCalendar"
+                            class="text-xs font-bold hover:underline" style="color:var(--stk-ink-goal)"><i class="fas fa-unlink mr-1"></i> Quitar enlace y entregas</button>
+                    </div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-preferences" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-preferences"]' aria-expanded="false" aria-controls="settings-section-preferences-body">
+                        <span class="stk-acc-ico"><i class="fas fa-sliders"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Preferencias</span><span class="stk-acc-sum" id="settings-sum-preferences"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-preferences-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div
+                        class="space-y-3 p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Permitir saltar
+                                    prerrequisitos</p>
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">Marcar materias sin cumplir
+                                    requisitos (⚠️ amarillo)</p>
+                            </div>
+                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites" role="switch" tabindex="0" aria-checked="true" aria-label="Saltar prerrequisitos"
+                                class="toggle-switch active shrink-0"></div>
+                        </div>
+
+                        <!-- Enrollment limit setting -->
+                        <div
+                            class="flex items-center justify-between gap-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
+                            <div class="flex-1">
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Límite de inscritas</p>
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">Máx. materias en curso al
+                                    mismo tiempo</p>
+                            </div>
+                            <input type="number" id="enrollment-limit-input" min="1" max="20" value="10"
+                                data-change="updateEnrollmentLimit" data-args='["$value"]'
+                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
+                        </div>
+                    </div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-grades" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-grades"]' aria-expanded="false" aria-controls="settings-section-grades-body">
+                        <span class="stk-acc-ico"><i class="fas fa-medal"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Notas y reconocimientos</span><span class="stk-acc-sum" id="settings-sum-grades"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-grades-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div
+                        class="p-4 rounded-xl" style="background:var(--stk-surface-2);border:1px solid var(--stk-hairline)">
+                        <p class="text-[10px] mb-3" style="color:var(--stk-text-3)">Define los rangos para asignar
+                            letras a tus notas.</p>
+                        <div id="grade-scale-settings-list" class="space-y-2 mb-3"></div>
+                        <button data-action="addGradeRange"
+                            class="w-full py-2 border-2 border-dashed rounded-lg text-xs font-bold transition-colors" style="border-color:var(--stk-hairline);color:var(--stk-text-2)">
+                            <i class="fas fa-plus mr-1"></i> Agregar Rango
+                        </button>
+                        <div
+                            class="flex items-center justify-between gap-3 mt-3 pt-3" style="border-top:1px solid var(--stk-hairline)">
+                            <div class="flex-1">
+                                <p class="text-sm font-bold" style="color:var(--stk-text-1)">Nota mínima para aprobar
+                                </p>
+                                <p class="text-[11px]" style="color:var(--stk-text-3)">A partir de esta nota una
+                                    materia se marca como aprobada</p>
+                            </div>
+                            <input type="number" id="passing-grade-input" min="0" max="100" step="any" value="70"
+                                data-change="updatePassingGrade" data-args='["$value"]'
+                                class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
+                        </div>
+                    </div>
+<div id="settings-section-honors" class="mt-5 pt-4" style="border-top:1px solid var(--stk-hairline)">
+<h4 class="text-xs font-bold uppercase mb-2 flex items-center gap-2" style="color:var(--stk-text-3)"><i class="fas fa-award"></i> Reconocimientos</h4>
+                    <p class="text-[11px] mb-3" style="color:var(--stk-text-2)">Promedio mínimo (base 100) para cada reconocimiento. Se compara con tu Índice.</p>
+                    <div id="honor-settings-list" class="space-y-2"></div>
+                    <button data-action="resetHonorLevels" class="stk-settings-row w-full p-3 text-left text-sm font-bold mt-2"><i
+                            class="fas fa-rotate-left mr-2" style="color:var(--stk-tint)"></i> Restablecer valores</button>
+</div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-requirements" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-requirements"]' aria-expanded="false" aria-controls="settings-section-requirements-body">
+                        <span class="stk-acc-ico"><i class="fas fa-list-check"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Requisitos</span><span class="stk-acc-sum" id="settings-sum-requirements"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-requirements-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div class="space-y-2" id="settings-requirements-list"></div>
+                    <div class="mt-3">
+                        <div id="new-req-form" class="hidden flex gap-2 mb-2 animate-fade-in">
+                            <input type="text" id="new-req-name" placeholder="Nombre (ej. Tesis)"
+                                class="stk-input flex-1 text-sm">
+                            <button data-action="confirmAddRequirement"
+                                class="stk-btn-primary px-3"><i class="fas fa-check"></i></button>
+                            <button data-action="toggleAddReqForm" class="px-3 rounded-lg" style="background:var(--stk-surface-2);color:var(--stk-text-2)"><i
+                                    class="fas fa-times"></i></button>
+                        </div>
+                        <button data-action="toggleAddReqForm" id="add-req-btn"
+                            class="w-full py-3 border-2 border-dashed rounded-xl font-bold text-sm flex items-center justify-center gap-2" style="border-color:var(--stk-hairline);color:var(--stk-text-3)"><i
+                                class="fas fa-plus"></i> Agregar Requisito</button>
+                    </div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-data" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-data"]' aria-expanded="false" aria-controls="settings-section-data-body">
+                        <span class="stk-acc-ico"><i class="fas fa-shield-halved"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Datos y actualizaciones</span><span class="stk-acc-sum" id="settings-sum-data"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-data-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div class="space-y-2">
+                        <button data-action="exportProgress"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-download mr-2" style="color:var(--stk-tint)"></i> Exportar / Compartir</button>
+                        <button data-action="checkForAppUpdate"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-cloud-arrow-down mr-2" style="color:var(--stk-tint)"></i> <span id="update-check-label">Buscar actualizaciones</span></button>
+                        <button data-action="forceAppRefresh"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-sync-alt mr-2" style="color:var(--stk-tint)"></i> Actualizar app (limpiar caché)</button>
+                        <button data-action="resetProgress"
+                            class="stk-settings-row stk-settings-row--warning w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-rotate-left mr-2"></i> Reiniciar Notas</button>
+                        <button data-action="deleteAllData"
+                            class="stk-settings-row stk-settings-row--danger w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-trash-alt mr-2"></i> Borrar Todo</button>
+                    </div>
+                    </div></div></div>
+                </section>
+                <section id="settings-section-share" data-dev-feature="any" class="settings-section stk-acc">
+                    <button type="button" class="stk-acc-head" data-action="toggleSettingsSection" data-args='["settings-section-share"]' aria-expanded="false" aria-controls="settings-section-share-body">
+                        <span class="stk-acc-ico"><i class="fas fa-id-card"></i></span>
+                        <span class="stk-acc-txt"><span class="stk-acc-title">Carné</span><span class="stk-acc-sum" id="settings-sum-share"></span></span>
+                        <i class="fas fa-chevron-down stk-acc-chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="stk-acc-body" id="settings-section-share-body"><div class="stk-acc-inner"><div class="stk-acc-pad">
+                    <div class="space-y-2">
+                        <div>
+                            <label for="student-name-input"
+                                class="block text-[11px] font-bold mb-1" style="color:var(--stk-text-3)">Nombre del
+                                estudiante</label>
+                            <input type="text" id="student-name-input" placeholder="Tu nombre"
+                                data-change="setStudentName" data-args='["$value"]'
+                                class="stk-input text-sm font-bold">
+                        </div>
+                        <button data-action="shareStudentCardViaNfc" data-dev-feature="nfc"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-share-nodes mr-2" style="color:var(--stk-tint)"></i> Compartir carné por NFC</button>
+                        <button data-action="readStudentCardViaNfc" data-dev-feature="nfc"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-wifi mr-2" style="color:var(--stk-tint)"></i> Leer carné NFC</button>
+                        <button data-action="openQrShareModal" data-dev-feature="qr"
+                            class="stk-settings-row w-full p-3 text-left text-sm font-bold"><i
+                                class="fas fa-qrcode mr-2" style="color:var(--stk-tint)"></i> Compartir o leer carné (QR)</button>
+                        <input type="file" id="qr-scan-input" accept="image/*" class="hidden"
+                            data-change="onQrPhotoSelected" data-args='["$this"]'>
+                        <p class="text-[11px]" data-dev-feature="any" style="color:var(--stk-text-3)">NFC requiere Chrome en Android. El QR
+                            funciona en cualquier teléfono: lo escanean con la cámara y se abre el carné.</p>
+                    </div>
+                    </div></div></div>
                 </section>
 
                 <!-- APP VERSION -->

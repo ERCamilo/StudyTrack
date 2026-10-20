@@ -3,9 +3,20 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.9.0';
+  const APP_VERSION = '1.10.0';
 
   const CHANGELOG = [
+    {
+      version: '1.10.0',
+      date: '2026-10-20',
+      title: 'Más rápida y más simple',
+      items: [
+        'Las animaciones son más cortas y fluidas: las tarjetas, los períodos y los cambios de pestaña responden al instante.',
+        'Configuración ahora es una lista corta: cada tema es una fila que se abre sola, de una en una, con un resumen de su valor actual.',
+        'Se quitaron los botones de acceso rápido de Configuración: ya no hay que desplazarse por una pantalla larga.',
+        'Escala de notas y Reconocimientos se juntaron en una sola fila, «Notas y reconocimientos».'
+      ]
+    },
     {
       version: '1.9.0',
       date: '2026-10-20',
