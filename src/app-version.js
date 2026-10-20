@@ -3,9 +3,20 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.3.0';
+  const APP_VERSION = '1.4.0';
 
   const CHANGELOG = [
+    {
+      version: '1.4.0',
+      date: '2026-10-20',
+      title: 'Más accesible y con mejores mensajes',
+      items: [
+        'Si buscas una materia y no hay resultados, la app te lo explica y te deja volver a ver todas con un toque.',
+        'Los menús de períodos y materias, los filtros y los interruptores se pueden usar con teclado y los leen bien los lectores de pantalla.',
+        'Las ventanas del carné y del QR también se cierran con el botón atrás del teléfono.',
+        'Botones más fáciles de tocar y mejor descritos.'
+      ]
+    },
     {
       version: '1.3.0',
       date: '2026-10-19',

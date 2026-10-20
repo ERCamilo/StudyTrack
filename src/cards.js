@@ -170,7 +170,7 @@
     </label>`;
 
     return `<div id="subject-card-${safeIdHtml}" class="subject-card-mobile stk-subject-card stk-subject-card--enrolled">
-      <div class="stk-subject-header" data-action="toggleSubjectDetails" data-args="${actionArgs(data.id)}">
+      <div class="stk-subject-header" data-action="toggleSubjectDetails" data-args="${actionArgs(data.id)}" role="button" tabindex="0" aria-expanded="false">
         <button class="stk-orb" aria-label="Cambiar estado de ${safeSubjectName}" title="${shortStatus.enrolled}" data-action="toggleSubjectStatus" data-args="${actionArgs(data.id)}"><span class="stk-orb-tile stk-orb-tile--enrolled"><i class="fas ${STATUS_ICON.enrolled}"></i></span></button>
         <div class="stk-subject-main">
           <div class="stk-subject-name">${safeSubjectName}</div>
@@ -249,7 +249,7 @@
       : gradeInputHTML(data, helpers, 'data-action="stop"');
 
     return `<div id="subject-card-${safeIdHtml}" class="subject-card-mobile stk-subject-card ${stateClass}">
-      <div class="stk-subject-row-head" data-action="toggleSubjectDetails" data-args="${actionArgs(data.id)}">
+      <div class="stk-subject-row-head" data-action="toggleSubjectDetails" data-args="${actionArgs(data.id)}" role="button" tabindex="0" aria-expanded="false">
         <button class="stk-orb" aria-label="Cambiar estado de ${safeSubjectName}" title="${isWarning ? shortStatus.warning : shortStatus.approved}" data-action="toggleSubjectStatus" data-args="${actionArgs(data.id)}"><span class="stk-orb-tile stk-orb-tile--row"><i class="fas ${isWarning ? STATUS_ICON.warning : STATUS_ICON.approved}"></i></span></button>
         <div class="stk-subject-main">
           <div class="stk-subject-name">${safeSubjectName}</div>

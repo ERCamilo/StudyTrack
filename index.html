@@ -1151,7 +1151,7 @@
                     <!-- Google Account / Sync Button -->
                     <button id="auth-header-btn" data-action="openGoogleSyncSettings"
                         class="stk-icon-btn overflow-hidden" style="border-radius:50%"
-                        title="Cuenta de Google y Sincronización">
+                        title="Cuenta de Google y Sincronización" aria-label="Cuenta de Google y sincronización">
                         <i id="auth-header-icon" class="fas fa-user text-sm"></i>
                     </button>
                     <button data-action="openSettings" class="stk-icon-btn" aria-label="Configuración"><i
@@ -1359,19 +1359,19 @@
 
         <div id="filter-bar" class="py-0 sm:py-1">
             <div class="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
-                <button data-action="setFilter" data-args='["all"]' id="filter-all"
+                <button data-action="setFilter" data-args='["all"]' id="filter-all" aria-pressed="true"
                     class="filter-btn active shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Todas <span id="count-all" class="ml-1 opacity-70">0</span>
                 </button>
-                <button data-action="setFilter" data-args='["enrolled"]' id="filter-enrolled"
+                <button data-action="setFilter" data-args='["enrolled"]' id="filter-enrolled" aria-pressed="false"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Inscritas <span id="count-enrolled" class="ml-1 opacity-70">0</span>
                 </button>
-                <button data-action="setFilter" data-args='["completed"]' id="filter-completed"
+                <button data-action="setFilter" data-args='["completed"]' id="filter-completed" aria-pressed="false"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Cursadas <span id="count-completed" class="ml-1 opacity-70">0</span>
                 </button>
-                <button data-action="setFilter" data-args='["pending"]' id="filter-pending"
+                <button data-action="setFilter" data-args='["pending"]' id="filter-pending" aria-pressed="false"
                     class="filter-btn shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all">
                     Faltantes <span id="count-pending" class="ml-1 opacity-70">0</span>
                 </button>
@@ -1704,8 +1704,8 @@
             id="details-modal-content">
             <div id="details-header"
                 class="px-6 py-6 text-white bg-gradient-to-br from-slate-700 to-slate-800 relative">
-                <button data-action="closeDetailsModal"
-                    class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition-all backdrop-blur-sm">
+                <button data-action="closeDetailsModal" aria-label="Cerrar" style="width:44px;height:44px"
+                    class="absolute top-3 right-3 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition-all backdrop-blur-sm">
                     <i class="fas fa-times text-sm"></i>
                 </button>
                 <div
@@ -1753,7 +1753,7 @@
     </div>
 
     <!-- SCROLL TO TOP BUTTON -->
-    <button id="scroll-top-btn" data-action="scrollToTop"
+    <button id="scroll-top-btn" data-action="scrollToTop" aria-label="Volver arriba" tabindex="-1" aria-hidden="true"
         style="box-shadow:var(--stk-shadow-hover)"
         class="stk-press fixed bottom-20 right-4 w-12 h-12 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center transition-all z-40 opacity-0 pointer-events-none">
         <i class="fas fa-arrow-up text-lg"></i>
@@ -1991,7 +1991,7 @@
                                 <p class="text-[11px]" style="color:var(--stk-text-3)">Marcar materias sin cumplir
                                     requisitos (⚠️ amarillo)</p>
                             </div>
-                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites"
+                            <div id="toggle-skip-prereqs" data-action="toggleSkipPrerequisites" role="switch" tabindex="0" aria-checked="true" aria-label="Saltar prerrequisitos"
                                 class="toggle-switch active shrink-0"></div>
                         </div>
 

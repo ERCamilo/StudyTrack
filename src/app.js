@@ -793,7 +793,9 @@
         function updateCompletionDate(id, val) { if (!userProgress[id]) userProgress[id] = { status: 'pending' }; userProgress[id].completionDate = val; saveUserProgress(); }
         function toggleSubjectDetails(id) {
             const card = document.getElementById(`subject-card-${id}`);
-            if (card) card.classList.toggle('open');
+            if (!card) return;
+            card.classList.toggle('open');
+            card.querySelector('[data-action="toggleSubjectDetails"]')?.setAttribute('aria-expanded', card.classList.contains('open') ? 'true' : 'false');
         }
         function prepareSubjectReport(subjectId) {
             const loc = findSubjectLocation(subjectId);
@@ -1257,6 +1259,7 @@
             // in that case fall back to the full re-render (previous behavior).
             if (!textFilter && currentFilter === 'all' && content && content.classList.contains('collapsible-content')) {
                 content.classList.toggle('open', willOpen);
+                headerContent.parentElement.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
                 const chev = headerContent.parentElement.querySelector('.stk-chev');
                 if (chev) chev.style.transform = willOpen ? 'rotate(180deg)' : '';
                 if (willOpen) staggerCardsIn(content.querySelectorAll('.stk-subject-card'));
@@ -1315,6 +1318,19 @@
                 });
                 c.appendChild(div);
             });
+            if (!c.children.length && currentCurriculum) {
+                const msg = StudyTrackPeriods.getEmptyListMessage(filter, currentFilter);
+                const empty = document.createElement('div');
+                empty.className = 'text-center py-10 px-4';
+                empty.setAttribute('role', 'status');
+                empty.innerHTML = `<div class="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:var(--stk-surface-2);color:var(--stk-text-3)"><i class="fas fa-magnifying-glass"></i></div><p class="text-sm font-bold" style="color:var(--stk-text-1)">${escapeHtml(msg.title)}</p><p class="text-xs mt-1" style="color:var(--stk-text-2)">${escapeHtml(msg.hint)}</p>${msg.showClear ? '<button data-action="clearSubjectFilters" class="stk-btn-primary mt-4 px-5 text-sm" style="min-height:44px">Ver todas las materias</button>' : ''}`;
+                c.appendChild(empty);
+            }
+        }
+        function clearSubjectFilters() {
+            const input = document.getElementById('search-input');
+            if (input) input.value = '';
+            setFilter('all');
         }
         function staggerCardsIn(cards) {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1333,7 +1349,7 @@
         function animateSubjectEntrance() {
             staggerCardsIn(document.querySelectorAll('#subjects-view .stk-period-card, #subjects-view .stk-subject-card'));
         }
-        function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); }); const activeBtn = document.getElementById(`filter-${filter}`); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
+        function setFilter(filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'active-enrolled', 'active-completed', 'active-pending'); btn.setAttribute('aria-pressed', 'false'); }); const activeBtn = document.getElementById(`filter-${filter}`); activeBtn.setAttribute('aria-pressed', 'true'); if (filter === 'enrolled') activeBtn.classList.add('active-enrolled'); else if (filter === 'completed') activeBtn.classList.add('active-completed'); else if (filter === 'pending') activeBtn.classList.add('active-pending'); else activeBtn.classList.add('active'); renderPeriods(document.getElementById('search-input').value); }
         function updateFilterCounts() { if (!currentCurriculum) return; const counts = StudyTrackAcademics.calculateFilterCounts(currentCurriculum, userProgress); document.getElementById('count-all').textContent = counts.all; document.getElementById('count-enrolled').textContent = counts.enrolled; document.getElementById('count-completed').textContent = counts.completed; document.getElementById('count-pending').textContent = counts.pending; }
         function toggleDarkMode() { APP_CONFIG.darkMode = !APP_CONFIG.darkMode; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.darkMode, APP_CONFIG.darkMode); document.documentElement.classList.toggle('dark'); document.getElementById('theme-icon').className = APP_CONFIG.darkMode ? 'fas fa-sun text-sm' : 'fas fa-moon text-sm'; notifySyncChange(); }
         function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -1526,6 +1542,12 @@
                 new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['class'] });
                 sync();
             });
+            // Dialogs created in code (QR, shared card, scan progress) become layers too: back and Escape close them.
+            const isOverlay = (n) => n.nodeType === 1 && n.classList.contains('fixed') && n.classList.contains('inset-0');
+            new MutationObserver((records) => records.forEach((rec) => {
+                rec.addedNodes.forEach((n) => { if (isOverlay(n) && !n.hasAttribute('data-static-overlay')) layerOpened(n, () => n.remove()); });
+                rec.removedNodes.forEach((n) => { if (isOverlay(n)) layerClosed(n); });
+            })).observe(document.body, { childList: true });
             window.addEventListener('popstate', () => {
                 if (ignoredPops > 0) { ignoredPops--; if (ignoredPops === 0) syncHistory(); return; }
                 if (historyDepth > 0) historyDepth--; // the user's back press consumed one of our entries
@@ -1744,7 +1766,7 @@
                     <input type="text" value="${safeLabel}" data-change="updateGradeRange" data-args="${actionArgs(i, 'label', '$value')}" class="w-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs uppercase outline-none focus:ring-1 focus:ring-primary-500 ${safeColor}" placeholder="Letra">
                     <span class="text-xs text-slate-400">=</span>
                     <input type="number" step="0.1" value="${safePoints}" data-change="updateGradeRange" data-args="${actionArgs(i, 'points', '$value')}" class="w-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1 text-center font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500" placeholder="Pts">
-                    <button data-action="removeGradeRange" data-args="${actionArgs(i)}" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
+                    <button data-action="removeGradeRange" data-args="${actionArgs(i)}" aria-label="Quitar rango" class="text-red-500 hover:text-red-700 p-1 ml-auto"><i class="fas fa-trash"></i></button>
                 </div>
             `;
             }).join('');
@@ -1752,14 +1774,15 @@
 
         function getCurrentViewNavId() { return currentView === 'schedule' ? 'nav-schedule' : currentView === 'subjects' ? 'nav-subjects' : currentView === 'profile' ? 'nav-progress' : 'nav-home'; }
         function setActiveMobileNav(activeId) {
-            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.id === activeId));
             const sideId = activeId.replace('nav-', 'side-');
-            document.querySelectorAll('.side-tab').forEach(btn => btn.classList.toggle('active', btn.id === sideId));
+            const mark = (btn, isActive) => { btn.classList.toggle('active', isActive); if (isActive) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current'); };
+            document.querySelectorAll('.nav-tab').forEach(btn => mark(btn, btn.id === activeId));
+            document.querySelectorAll('.side-tab').forEach(btn => mark(btn, btn.id === sideId));
         }
         function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
-        function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
+        function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { toggle.setAttribute('aria-checked', APP_CONFIG.allowSkipPrerequisites ? 'true' : 'false'); if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
         function getEnrolledCount() { if (!currentCurriculum) return 0; let count = 0; currentCurriculum.periods.forEach(p => p.subjects.forEach(s => { if (userProgress[s.id]?.status === 'enrolled') count++; })); return count; }
         function toggleEnrollment(id) { const undoSnapshot = snapshotSubjectProgress(id); if (!userProgress[id]) userProgress[id] = { status: 'pending', grade: null, attempts: [], completionDate: null }; const currentStatus = userProgress[id].status; const loc = findSubjectLocation(id); if (currentStatus === 'enrolled') { userProgress[id].status = 'pending'; } else { const prereqsMet = loc ? checkPrerequisites(loc.subject.prerequisites) : true; if (!prereqsMet && !APP_CONFIG.allowSkipPrerequisites) { if (!undoSnapshot) delete userProgress[id]; showPrerequisiteBlockedToast(loc.subject.prerequisites); return; } const enrolledCount = getEnrolledCount(); if (enrolledCount >= APP_CONFIG.maxEnrolledSubjects) { showToast(`⚠️ Límite alcanzado (${APP_CONFIG.maxEnrolledSubjects}). Ve a Ajustes para aumentar el límite o marca alguna materia como completada.`, 'error'); return; } userProgress[id].status = 'enrolled'; } saveUserProgress(); if (loc) reRenderSubjectCardDOM(loc.subject, loc.period.period_number); calculateStatistics(); offerUndo(id, undoSnapshot, userProgress[id].status === 'enrolled' ? 'Materia inscrita' : 'Inscripción quitada'); }
         function updateEnrollmentLimit(val) { const newLimit = Math.max(1, Math.min(20, parseInt(val) || 10)); APP_CONFIG.maxEnrolledSubjects = newLimit; StudyTrackStorage.setNumber(StudyTrackStorage.KEYS.maxEnrolledSubjects, newLimit); document.getElementById('enrollment-limit-input').value = newLimit; notifySyncChange(); showToast(`Límite actualizado a ${newLimit} materias`, 'success'); }
@@ -2979,6 +3002,14 @@
             }
             runAction(el.getAttribute('data-action'), el, event);
         });
+        // Non-button elements that act as buttons/switches (role set in markup) respond to Enter and Space.
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const el = event.target;
+            if (!el.matches || !el.matches('[data-action][role="button"], [data-action][role="switch"]')) return;
+            event.preventDefault();
+            el.click();
+        });
         document.addEventListener('change', (event) => {
             const el = event.target.closest('[data-change]');
             if (!el || el !== event.target) return;
@@ -2988,4 +3019,4 @@
         window.addEventListener('DOMContentLoaded', initApp);
         window.addEventListener('load', registerServiceWorker);
         document.getElementById('settings-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });
-        window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); if (window.scrollY > 300) { btn.classList.remove('opacity-0', 'pointer-events-none'); btn.classList.add('opacity-100'); } else { btn.classList.add('opacity-0', 'pointer-events-none'); btn.classList.remove('opacity-100'); } });
+        window.addEventListener('scroll', () => { const btn = document.getElementById('scroll-top-btn'); const show = window.scrollY > 300; btn.classList.toggle('opacity-0', !show); btn.classList.toggle('pointer-events-none', !show); btn.classList.toggle('opacity-100', show); btn.tabIndex = show ? 0 : -1; btn.setAttribute('aria-hidden', show ? 'false' : 'true'); });

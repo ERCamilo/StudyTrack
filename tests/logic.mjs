@@ -1233,6 +1233,22 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
     assert.equal(P.getMissingPrerequisites(['ALL', 'SEM'], progress, cur).length === 0, P.checkPrerequisites(['ALL', 'SEM'], progress, cur));
   }
 }
+
+// Lista vacía de materias: el mensaje explica por qué no hay nada y ofrece limpiar solo si hay algo que limpiar.
+{
+  const E = StudyTrackPeriods.getEmptyListMessage;
+  const search = E('cálculo', 'all');
+  assert.ok(search.title.includes('cálculo'), 'menciona lo que se buscó');
+  assert.equal(search.showClear, true);
+  assert.equal(E('  ', 'all').showClear, false, 'solo espacios no cuenta como búsqueda (límite)');
+  assert.equal(E('', 'enrolled').showClear, true, 'un filtro activo se puede quitar');
+  assert.equal(E('', 'completed').showClear, true);
+  assert.equal(E('', 'pending').showClear, true);
+  assert.equal(E('', 'all').showClear, false, 'sin filtro ni búsqueda no hay nada que limpiar');
+  assert.equal(E(null, undefined).showClear, false, 'valores nulos');
+  assert.ok(E('', 'enrolled').title !== E('', 'completed').title, 'cada filtro tiene su propio mensaje');
+  assert.ok(E('', 'all').title.length > 0 && E('', 'all').hint.length > 0);
+}
 }
 
 console.log('Logic checks passed');

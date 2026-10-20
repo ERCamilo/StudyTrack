@@ -173,6 +173,14 @@ assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs mus
 assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
 assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
 assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Keyboard / screen-reader support
+assert.ok(/data-action="togglePeriod"[^>]*role="button"[^>]*tabindex="0"[^>]*aria-expanded/.test(fs.readFileSync('src/periods.js', 'utf8')), 'period headers are keyboard-operable');
+assert.ok(/toggleSubjectDetails[^>]*role="button"[^>]*tabindex="0"[^>]*aria-expanded/.test(cardsJs), 'subject headers are keyboard-operable');
+assert.ok(/id="toggle-skip-prereqs"[^>]*role="switch"[^>]*aria-checked/.test(html), 'the prerequisites toggle is a switch');
+for (const f of ['all', 'enrolled', 'completed', 'pending']) assert.ok(html.includes(`id="filter-${f}" aria-pressed=`), `filter ${f} exposes aria-pressed`);
+assert.ok(appJs.includes("'aria-current'") && appJs.includes('clearSubjectFilters') && appJs.includes('getEmptyListMessage'), 'tabs expose the current page and empty lists offer a way out');
+assert.ok(/data-action="scrollToTop" aria-label=/.test(html) && /data-action="closeDetailsModal" aria-label=/.test(html), 'icon-only buttons are labelled');
+
 // Self-hosted icons/fonts (work offline) and the mobile "Más" sheet
 assert.ok(!/https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)/.test(html), 'icons and fonts must be self-hosted, not loaded from CDNs');
 for (const f of ['src/vendor/fa/css/all.min.css', 'src/vendor/fa/webfonts/fa-solid-900.woff2', 'src/vendor/fa/webfonts/fa-regular-400.woff2', 'src/vendor/fonts/fonts.css', 'src/vendor/fonts/outfit.woff2', 'src/vendor/fonts/sora.woff2', 'src/vendor/fonts/space-grotesk.woff2']) { assert.ok(fs.existsSync(f), `Missing ${f}`); assert.ok(serviceWorker.includes('./' + f), `Service worker should precache ${f}`); }
