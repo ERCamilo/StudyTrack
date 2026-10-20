@@ -1880,7 +1880,7 @@
             document.querySelectorAll('.nav-tab').forEach(btn => mark(btn, btn.id === activeId));
             document.querySelectorAll('.side-tab').forEach(btn => mark(btn, btn.id === sideId));
         }
-        function openSettings() { renderGradeScaleSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
+        function openSettings() { renderGradeScaleSettings(); renderHonorSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
         function scrollSettingsSection(sectionId) { document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         function toggleSkipPrerequisites() { APP_CONFIG.allowSkipPrerequisites = !APP_CONFIG.allowSkipPrerequisites; StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.allowSkipPrerequisites, APP_CONFIG.allowSkipPrerequisites); updateSkipPrereqsToggle(); renderPeriods(document.getElementById('search-input').value); notifySyncChange(); }
         function updateSkipPrereqsToggle() { const toggle = document.getElementById('toggle-skip-prereqs'); if (toggle) { toggle.setAttribute('aria-checked', APP_CONFIG.allowSkipPrerequisites ? 'true' : 'false'); if (APP_CONFIG.allowSkipPrerequisites) toggle.classList.add('active'); else toggle.classList.remove('active'); } }
@@ -2186,6 +2186,85 @@
             notifySyncChange();
             applyCarneVariant(true);
         }
+        // ── Reconocimientos (Perfil + Ajustes) ─────────────────────────────
+        // Levels are device-local (Cum Laude 90 / Magna 95 / Summa 98 until edited in Ajustes). The average is the
+        // same "Índice" the rest of the app shows; StudyTrackHonors does the math, this only words it.
+        function getHonorLevels() { return StudyTrackHonors.normalizeHonorLevels(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.honorLevels, null)); }
+        function saveHonorLevels(levels) { StudyTrackStorage.setJson(StudyTrackStorage.KEYS.honorLevels, StudyTrackHonors.normalizeHonorLevels(levels)); renderHonorSettings(); renderHonors(); }
+        function updateHonorLevel(index, field, value) { const levels = getHonorLevels(); if (!levels[index]) return; levels[index] = { ...levels[index], [field]: value }; saveHonorLevels(levels); }
+        function resetHonorLevels() { StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.honorLevels); renderHonorSettings(); renderHonors(); showToast('Reconocimientos restablecidos', 'success', { key: 'honors-reset' }); }
+        function renderHonorSettings() {
+            const box = document.getElementById('honor-settings-list');
+            if (!box) return;
+            box.innerHTML = getHonorLevels().map((l, i) => `<div class="flex items-center gap-2"><input type="text" maxlength="30" value="${escapeHtml(l.name)}" aria-label="Nombre del reconocimiento ${i + 1}" data-change="updateHonorLevel" data-args="${actionArgs(i, 'name', '$value')}" class="stk-input flex-1 min-w-0"><input type="number" inputmode="decimal" min="1" max="100" step="0.5" value="${escapeHtml(l.min)}" aria-label="Promedio mínimo de ${escapeHtml(l.name)}" data-change="updateHonorLevel" data-args="${actionArgs(i, 'min', '$value')}" class="stk-input" style="width:5.5rem"></div>`).join('');
+        }
+        function openHonorSettings() { openSettings(); requestAnimationFrame(() => scrollSettingsSection('settings-section-honors')); }
+        function renderHonors() {
+            const box = document.getElementById('honors-result');
+            if (!box || !currentCurriculum) return;
+            const H = StudyTrackHonors;
+            const summary = H.summarizeGrades(currentCurriculum, userProgress);
+            const plan = getPlanSettings().settings;
+            const perPeriodCredits = plan.mode === 'credits' ? plan.perPeriod : plan.perPeriod * summary.typicalCredits;
+            const res = H.evaluateHonors({ levels: getHonorLevels(), ...summary, perPeriodCredits, passingGrade: APP_CONFIG.passingGrade });
+            const noun = (n) => StudyTrackGraduation.periodNoun(currentCurriculum.metadata?.period_type, n);
+            const num = (n) => Number(n).toFixed(2).replace(/\.?0+$/, '');
+            const block = (icon, title, body) => `<div class="mt-3 flex gap-2.5"><i class="fas ${icon} mt-0.5 w-4 text-center text-xs shrink-0" style="color:var(--stk-tint)"></i><div class="min-w-0"><div class="text-xs font-bold" style="color:var(--stk-text-1)">${escapeHtml(title)}</div><div class="text-xs leading-snug mt-0.5" style="color:var(--stk-text-2)">${body}</div></div></div>`;
+            const e = escapeHtml;
+            let html = '';
+
+            if (res.status === 'no-grades') {
+                html = `<div class="text-sm font-bold" style="color:var(--stk-text-1)">Aún no tienes notas</div><div class="text-xs mt-1" style="color:var(--stk-text-2)">Registra las notas de tus materias aprobadas para ver a qué reconocimiento calificas.</div>`;
+                if (res.toReach) html += block('fa-bullseye', `Para llegar a ${res.toReach.level.name}`, `Necesitarás promediar <strong>${num(res.toReach.requiredAvg)}</strong> en toda la carrera.`);
+            } else {
+                const badge = res.current
+                    ? `<span class="stk-urg stk-urg--low" style="background:var(--stk-soft-approved);color:var(--stk-ink-approved)"><i class="fas fa-award"></i> ${e(res.current.name)}</span>`
+                    : `<span class="stk-urg stk-urg--low"><i class="fas fa-circle-info"></i> Sin reconocimiento aún</span>`;
+                html = `<div class="flex items-center justify-between gap-3"><div><div class="text-[11px] font-bold" style="color:var(--stk-text-2)">Tu promedio (Índice)</div><div class="text-2xl font-black leading-tight" style="font-family:var(--stk-font-numeric);color:var(--stk-text-1)">${num(res.average)}</div></div>${badge}</div>`;
+                if (res.next) {
+                    html += `<div class="mt-3"><div class="stk-urg-bar" role="img" aria-label="${e(`${res.progressToNext}% del camino hacia ${res.next.name}`)}"><span style="width:${res.progressToNext}%;--urg-color:var(--stk-tint)"></span></div><div class="text-[11px] mt-1" style="color:var(--stk-text-2)">Te faltan <strong>${num(res.toReach.gap)}</strong> puntos de promedio para ${e(res.next.name)} (${num(res.next.min)})</div></div>`;
+                } else {
+                    html += `<div class="text-[11px] mt-2 font-semibold" style="color:var(--stk-ink-approved)">¡Tienes el reconocimiento más alto!</div>`;
+                }
+                if (res.finished) {
+                    html += block('fa-flag-checkered', 'Ya cursaste todo', `Tu promedio final ya no puede cambiar${res.current ? `: terminas con ${e(res.current.name)}` : ''}.`);
+                } else {
+                    html += block('fa-chart-line', 'Si mantienes tu promedio', `Terminarías con <strong>${num(res.average)}</strong>: ${res.current ? e(res.current.name) : 'sin reconocimiento'}.`);
+                    if (res.toReach) {
+                        const t = res.toReach;
+                        let body;
+                        if (!t.feasible) body = `Ya no es alcanzable: ni con 100 en todo lo que te falta (${num(res.remainingCredits)} créditos) llegarías a ${num(t.target)}.`;
+                        else {
+                            body = `Necesitas promediar <strong>${num(t.requiredAvg)}</strong> en tus ${num(res.remainingCredits)} créditos restantes (${num(t.requiredAvg - res.average)} más que ahora).`;
+                            const lines = t.options.map((o) => o.enough
+                                ? `Con notas de ${o.grade}: <strong>${o.subjects === null ? `${num(o.credits)} créditos` : `${o.subjects} ${o.subjects === 1 ? 'materia' : 'materias'}`}</strong> más${o.periods ? ` (≈ ${o.periods} ${noun(o.periods)})` : ''}.`
+                                : `Con notas de ${o.grade} no alcanzan los créditos que te faltan.`);
+                            if (lines.length) body += `<ul class="mt-1 space-y-0.5 list-disc pl-4">${lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
+                        }
+                        html += block('fa-bullseye', `Para llegar a ${t.level.name}`, body);
+                    }
+                    if (res.toKeep) {
+                        const k = res.toKeep;
+                        html += block('fa-shield-halved', `Para conservar ${k.level.name}`, k.onlyPassing
+                            ? 'Mientras apruebes tus materias, lo conservas.'
+                            : `Mantén al menos <strong>${num(k.requiredAvg)}</strong> de promedio en lo que te falta.`);
+                    }
+                    if (res.risk) {
+                        const lines = [];
+                        const heavy = res.risk.heaviest;
+                        const typ = res.risk.typical;
+                        if (heavy && !heavy.safe) lines.push(`Las materias de más créditos pesan más: en una de ${num(heavy.credits)} créditos, menos de <strong>${num(heavy.minGrade)}</strong> te saca de ${e(res.risk.levelName)}.`);
+                        if (typ && !typ.safe) lines.push(`En una materia típica (${num(typ.credits)} créditos) el mínimo es <strong>${num(typ.minGrade)}</strong>.`);
+                        if (!lines.length) lines.push(`Una sola materia no te saca de ${e(res.risk.levelName)} mientras la apruebes.`);
+                        html += block('fa-triangle-exclamation', 'Qué evitar', lines.join('<br>'));
+                    }
+                }
+            }
+            if (summary.ungradedApproved.count) html += block('fa-pen', 'Faltan notas', `Tienes ${summary.ungradedApproved.count} ${summary.ungradedApproved.count === 1 ? 'materia aprobada' : 'materias aprobadas'} sin nota (${num(summary.ungradedApproved.credits)} créditos). Agrégalas para que el cálculo sea exacto.`);
+            html += `<div class="mt-4"><button type="button" data-action="openHonorSettings" class="text-xs font-bold" style="color:var(--stk-tint);min-height:44px">Cambiar los promedios mínimos</button></div>`;
+            box.innerHTML = html;
+        }
+
         // ── Tiempo para terminar (Perfil) ──────────────────────────────────
         // The student's plan (period length, load per period) is device-local. Until they change it, the card
         // starts from values derived from the loaded curriculum and says so.
@@ -2280,6 +2359,7 @@
                 return;
             }
             renderGraduationPlan();
+            renderHonors();
             const card = collectStudentCard();
             setTxt('profile-career', card.career || 'Sin carrera');
             setTxt('profile-institution', card.institution || '');

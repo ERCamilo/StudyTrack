@@ -24,7 +24,8 @@
     lastSeenVersion: 'studytrack_last_seen_version',
     devMode: 'studytrack_dev_mode',
     devFlags: 'studytrack_dev_flags',
-    gradPlan: 'studytrack_grad_plan'
+    gradPlan: 'studytrack_grad_plan',
+    honorLevels: 'studytrack_honor_levels'
   };
 
   function getStorage() {

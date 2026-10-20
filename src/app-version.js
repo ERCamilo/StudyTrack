@@ -3,9 +3,20 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.8.0';
+  const APP_VERSION = '1.9.0';
 
   const CHANGELOG = [
+    {
+      version: '1.9.0',
+      date: '2026-10-20',
+      title: 'Reconocimientos académicos',
+      items: [
+        'En Perfil, «Reconocimientos» te dice a cuál calificas hoy (Cum Laude, Magna o Summa) según tu promedio.',
+        'Te muestra cuánto te falta para el siguiente nivel, qué promedio necesitas en lo que te queda, y cuántas materias (o períodos) con buenas notas harían falta.',
+        'También te avisa qué evitar para no perder tu nivel, como bajar de cierta nota en las materias de más créditos.',
+        'Los promedios mínimos de cada nivel se pueden cambiar en Configuración.'
+      ]
+    },
     {
       version: '1.8.0',
       date: '2026-10-20',

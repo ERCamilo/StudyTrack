@@ -176,5 +176,5 @@
     return /[aeiouáéíóú]$/.test(base) ? `${base}s` : `${base}es`;
   }
 
-  global.StudyTrackGraduation = { periodNoun, planGraduation, estimateEnd, formatDuration, defaultPlanSettings, defaultCreditsPerPeriod, normalizePlanSettings, LIMITS };
+  global.StudyTrackGraduation = { getRequiredPending, periodNoun, planGraduation, estimateEnd, formatDuration, defaultPlanSettings, defaultCreditsPerPeriod, normalizePlanSettings, LIMITS };
 })(typeof window !== 'undefined' ? window : globalThis);

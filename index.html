@@ -51,6 +51,7 @@
     <script src="./src/dev-mode.js"></script>
     <script src="./src/blockers.js"></script>
     <script src="./src/graduation.js"></script>
+    <script src="./src/honors.js"></script>
     <script src="./src/nfc.js"></script>
     <script src="./src/vendor/qrcode.min.js"></script>
     <script src="./src/vendor/jsqr.min.js"></script>
@@ -1690,6 +1691,15 @@
             <p id="plan-note" class="text-[11px] mt-3 leading-snug" style="color:var(--stk-text-2)"></p>
         </section>
 
+        <!-- Reconocimientos -->
+        <section id="profile-honors" class="stk-surface-card p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-award" style="color:var(--stk-tint)"></i>
+                <h3 class="text-sm font-black" style="color:var(--stk-text-1)">Reconocimientos</h3>
+            </div>
+            <div id="honors-result" role="status" aria-live="polite"></div>
+        </section>
+
         <!-- Milestones -->
         <section class="stk-surface-card p-5">
             <div class="flex items-center gap-2 mb-3">
@@ -1874,6 +1884,7 @@
                     <button data-action="scrollSettingsSection" data-args='["settings-section-preferences"]' class="settings-quick-link px-3 py-2 text-xs font-black">Preferencias</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-requirements"]' class="settings-quick-link px-3 py-2 text-xs font-black">Requisitos</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-grades"]' class="settings-quick-link px-3 py-2 text-xs font-black">Escala</button>
+                    <button data-action="scrollSettingsSection" data-args='["settings-section-honors"]' class="settings-quick-link px-3 py-2 text-xs font-black">Honores</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-data"]' class="settings-quick-link px-3 py-2 text-xs font-black">Datos</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-share"]' data-dev-feature="any" class="settings-quick-link px-3 py-2 text-xs font-black">Carné NFC</button>
                     <button data-action="scrollSettingsSection" data-args='["settings-section-cloud"]' class="settings-quick-link px-3 py-2 text-xs font-black">Nube</button>
@@ -2101,6 +2112,16 @@
                                 class="stk-input w-16 px-2 py-2 text-sm font-bold text-center">
                         </div>
                     </div>
+                </section>
+
+                <!-- HONORS SECTION -->
+                <section id="settings-section-honors" class="settings-section scroll-mt-4">
+                    <h3 class="text-xs font-bold uppercase mb-3" style="color:var(--stk-text-3)"><i
+                            class="fas fa-award"></i> Reconocimientos</h3>
+                    <p class="text-[11px] mb-3" style="color:var(--stk-text-2)">Promedio mínimo (base 100) para cada reconocimiento. Se compara con tu Índice.</p>
+                    <div id="honor-settings-list" class="space-y-2"></div>
+                    <button data-action="resetHonorLevels" class="stk-settings-row w-full p-3 text-left text-sm font-bold mt-2"><i
+                            class="fas fa-rotate-left mr-2" style="color:var(--stk-tint)"></i> Restablecer valores</button>
                 </section>
 
                 <!-- CLOUD SYNC SECTION (FIREBASE) -->

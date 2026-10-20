@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js', 'src/graduation.js', 'src/honors.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers, StudyTrackGraduation } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers, StudyTrackGraduation, StudyTrackHonors } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1514,6 +1514,118 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.equal(G.periodNoun('Mes', 3), 'meses', 'termina en consonante: +es');
   assert.equal(G.periodNoun(undefined, 2), 'períodos');
   assert.equal(G.periodNoun('', 1), 'período');
+}
+
+{
+  const H = StudyTrackHonors;
+  const levels = H.normalizeHonorLevels(null);
+  const sub = (id, credits, extra = {}) => ({ id, code: id, name: `Materia ${id}`, credits, prerequisites: [], ...extra });
+  const cur = (...subjects) => ({ periods: [{ period_number: 1, subjects }] });
+  // S = suma de nota×créditos, W = créditos con nota, R = créditos que faltan.
+  const ev = (S, W, R, extra = {}) => H.evaluateHonors({ levels, weightedSum: S, weightBase: W, remainingCredits: R, passingGrade: 70, ...extra });
+
+  // Regla de negocio: los niveles de reconocimiento por defecto son Cum Laude 90, Magna Cum Laude 95 y Summa Cum Laude 98 (promedio en base 100); lo que edite el estudiante se limita a 1–100, se ordena de menor a mayor y lo inválido vuelve al valor por defecto.
+  sameData(levels.map((l) => [l.name, l.min]), [['Cum Laude', 90], ['Magna Cum Laude', 95], ['Summa Cum Laude', 98]]);
+  sameData(H.normalizeHonorLevels([{ name: 'Honor A', min: 85 }, { name: 'Honor B', min: 92.5 }, { name: 'Honor C', min: 99 }]).map((l) => [l.name, l.min]), [['Honor A', 85], ['Honor B', 92.5], ['Honor C', 99]]);
+  sameData(H.normalizeHonorLevels([{ min: 150 }, { min: 0 }, { min: 'x' }]).map((l) => l.min), [1, 98, 100], '150 pasa a 100, 0 pasa a 1, "x" vuelve a 98; queda ordenado');
+  sameData(H.normalizeHonorLevels([{ name: '  ', min: 90 }, {}, {}]).map((l) => l.name), ['Cum Laude', 'Magna Cum Laude', 'Summa Cum Laude'], 'nombre vacío: el de siempre');
+  assert.equal(H.normalizeHonorLevels([{ name: 'x'.repeat(60), min: 90 }])[0].name.length, 30, 'nombre de a lo sumo 30 letras');
+  assert.equal(H.normalizeHonorLevels('basura').length, 3, 'entrada inválida: los 3 por defecto');
+  sameData(H.normalizeHonorLevels([{ name: 'B', min: 95 }, { name: 'A', min: 90 }, { name: 'C', min: 98 }]).map((l) => l.name), ['A', 'B', 'C'], 'ordena por promedio mínimo');
+
+  // Regla de negocio: el reconocimiento actual es el más alto cuyo promedio mínimo ya cumples; el promedio se compara redondeado a 2 decimales (el mismo que se muestra).
+  const lvl = (S, W) => ev(S, W, 10).current?.name || null;
+  assert.equal(lvl(899, 10), null, '89.9: ninguno');
+  assert.equal(lvl(900, 10), 'Cum Laude', 'justo 90');
+  assert.equal(lvl(899.96, 10), 'Cum Laude', '89.996 se muestra 90.00 y cuenta como 90');
+  assert.equal(lvl(949, 10), 'Cum Laude', '94.9');
+  assert.equal(lvl(950, 10), 'Magna Cum Laude', 'justo 95');
+  assert.equal(lvl(979, 10), 'Magna Cum Laude', '97.9');
+  assert.equal(lvl(980, 10), 'Summa Cum Laude', 'justo 98');
+  assert.equal(lvl(1000, 10), 'Summa Cum Laude', '100');
+  assert.equal(ev(1000, 10, 10).next, null, 'en el nivel más alto no hay siguiente');
+  assert.equal(ev(900, 10, 10).next.name, 'Magna Cum Laude', 'desde Cum Laude el siguiente es Magna');
+  assert.equal(ev(850, 10, 10).next.name, 'Cum Laude', 'sin nivel, el siguiente es el primero');
+  assert.equal(ev(850, 10, 10).average, 85);
+  const none = ev(0, 0, 10);
+  assert.equal(none.status, 'no-grades', 'sin notas no hay promedio');
+  assert.equal(none.average, null);
+  assert.equal(none.current, null);
+  assert.equal(none.toReach.requiredAvg, 90, 'sin notas, para el primer nivel necesitas promediar 90 en todo lo que falta');
+  assert.equal(ev(925, 10, 10).progressToNext, 50, 'a mitad de camino entre 90 y 95');
+  assert.equal(ev(900, 10, 10).progressToNext, 0);
+  assert.equal(ev(900, 10, 10).toReach.gap, 5, 'faltan 5 puntos de promedio para Magna');
+
+  // Regla de negocio: para llegar a un nivel al graduarte debes promediar ((meta × (créditos con nota + créditos que faltan)) − puntos acumulados) ÷ créditos que faltan; si pide más de 100 no es posible; para conservar el nivel actual rige la misma fórmula, y nunca se pide menos que la nota mínima de aprobar.
+  const a = ev(900, 10, 10);
+  assert.equal(a.toReach.requiredAvg, 100, '(95×20−900)/10 = 100');
+  assert.equal(a.toReach.feasible, true, 'justo 100 todavía es posible');
+  const b = ev(8800, 100, 10);
+  assert.equal(b.toReach.requiredAvg, 110, '(90×110−8800)/10');
+  assert.equal(b.toReach.feasible, false, 'ni con 100 en todo');
+  const c = ev(8900, 100, 10);
+  assert.equal(c.toReach.requiredAvg, 100);
+  assert.equal(c.toReach.feasible, true, 'justo en el límite');
+  assert.equal(ev(850, 10, 7).toReach.requiredAvg, 97.2, '97.14… se redondea hacia arriba a 97.2 para no quedarse corto');
+  const d = ev(9600, 100, 10);
+  assert.equal(d.current.name, 'Magna Cum Laude');
+  assert.equal(d.toKeep.requiredAvg, 85, 'conservar Magna: (95×110−9600)/10');
+  assert.equal(d.toKeep.onlyPassing, false);
+  assert.equal(d.toReach.requiredAvg, 118);
+  assert.equal(d.toReach.feasible, false, 'Summa ya no es alcanzable');
+  const e = ev(9900, 100, 2);
+  assert.equal(e.current.name, 'Summa Cum Laude');
+  assert.equal(e.toKeep.requiredAvg, 70, 'la fórmula da 48, pero se pide al menos la nota de aprobar');
+  assert.equal(e.toKeep.onlyPassing, true);
+  assert.equal(e.toReach, null, 'en el nivel más alto no hay meta siguiente');
+  assert.equal(ev(0, 0, 0).status, 'no-grades');
+  const fin = ev(9000, 100, 0);
+  assert.equal(fin.finished, true, 'sin créditos por cursar ya no se puede mover el promedio');
+  assert.equal(fin.current.name, 'Cum Laude');
+  assert.equal(fin.toReach.feasible, false);
+  assert.equal(fin.toKeep.secure, true, 'el nivel actual ya está asegurado');
+
+  // Regla de negocio: se ofrecen caminos concretos para subir de nivel: cuántas materias (y períodos) con una nota mayor que la meta hacen falta, y se avisa si los créditos que faltan no alcanzan.
+  const opt = ev(900, 10, 10, { typicalCredits: 3, perPeriodCredits: 12 });
+  sameData(opt.toReach.options.map((o) => o.grade), [100], 'solo notas mayores que la meta 95');
+  assert.equal(opt.toReach.options[0].credits, 10, '(95×10−900)/(100−95) = 10 créditos');
+  assert.equal(opt.toReach.options[0].subjects, 4, '10 créditos / 3 por materia = 3.3 → 4');
+  assert.equal(opt.toReach.options[0].periods, 1, '10 créditos en períodos de 12');
+  assert.equal(opt.toReach.options[0].enough, true, 'justo los 10 créditos que faltan');
+  assert.equal(ev(900, 10, 9, { typicalCredits: 3 }).toReach.options[0].enough, false, 'con 9 créditos por cursar no alcanza');
+  const two = ev(850, 10, 20, { typicalCredits: 3, perPeriodCredits: 12 });
+  sameData(two.toReach.options.map((o) => [o.grade, o.credits, o.subjects]), [[100, 5, 2], [95, 10, 4]], 'con meta 90: notas 100 y 95; la de 90 no ayuda');
+  assert.equal(ev(850, 10, 20, { typicalCredits: 3 }).toReach.options[0].periods, null, 'sin carga por período no se estiman períodos');
+
+  // Regla de negocio: se avisa qué evitar: la nota mínima que debes sacar en una sola materia (típica y la de más créditos) para no perder tu nivel; si bastaría con aprobar, se dice que no hay riesgo.
+  const r = ev(960, 10, 20, { typicalCredits: 3, heaviestCredits: 6 });
+  assert.equal(r.current.name, 'Magna Cum Laude');
+  assert.equal(r.risk.typical.minGrade, 91.7, '(95×13−960)/3 = 91.67');
+  assert.equal(r.risk.typical.safe, false);
+  assert.equal(r.risk.heaviest.minGrade, 93.4, '(95×16−960)/6 = 93.33');
+  assert.equal(r.risk.heaviest.credits, 6);
+  const safe = ev(9600, 100, 20, { typicalCredits: 3, heaviestCredits: 6 });
+  assert.equal(safe.risk.typical.safe, true, '61.7 es menos que aprobar: una materia no te baja de nivel');
+  assert.equal(ev(850, 10, 20, { typicalCredits: 3, heaviestCredits: 6 }).risk, null, 'sin nivel actual no hay nada que perder');
+
+  // Regla de negocio: el promedio de reconocimientos es el mismo "Índice" de la app: ponderado por créditos sobre toda materia con nota (también las no aprobadas); las aprobadas sin nota se avisan aparte y lo que falta cuenta solo si es obligatorio y sin nota.
+  const curr = cur(
+    sub('A', 3, { name: 'A' }), sub('B', 4), sub('C', 3), sub('D', 3), sub('E', 6), sub('F', 3, { is_optional: true }), sub('G', 3), sub('H', 0));
+  const prog = {
+    A: { status: 'approved', grade: '85,5' }, B: { status: 'approved', grade: 90 }, C: { status: 'approved', grade: '' },
+    E: { status: 'enrolled' }, G: { status: 'pending', grade: 50 }
+  };
+  const sum = plainData(H.summarizeGrades(curr, prog));
+  assert.equal(sum.weightedSum, 766.5, '85.5×3 + 90×4 + 50×3');
+  assert.equal(sum.weightBase, 10, 'A, B y G tienen nota');
+  assert.equal(sum.remainingCredits, 9, 'faltan D (3) y E (6); F es optativa, G ya tiene nota, H vale 0 créditos');
+  assert.equal(sum.typicalCredits, 4.5);
+  assert.equal(sum.heaviestCredits, 6);
+  sameData(sum.ungradedApproved, { count: 1, credits: 3 }, 'C está aprobada sin nota');
+  const academic = plainData(StudyTrackAcademics.calculateAcademicSummary(curr, prog));
+  assert.equal(Math.round((sum.weightedSum / sum.weightBase) * 100) / 100, Math.round(academic.globalAvg * 100) / 100, 'mismo promedio que el Índice de la app');
+  const empty = plainData(H.summarizeGrades(null, null));
+  sameData([empty.weightedSum, empty.weightBase, empty.remainingCredits, empty.typicalCredits, empty.heaviestCredits], [0, 0, 0, 0, 0], 'currículo nulo');
 }
 }
 
