@@ -132,5 +132,8 @@
     };
   }
 
-  global.StudyTrackHonors = { DEFAULT_LEVELS, normalizeHonorLevels, evaluateHonors, summarizeGrades };
+  // Honors are shown unless the user explicitly hid them (not everyone can reach one, and that's their call).
+  function isHonorsVisible(hidden) { return hidden !== true; }
+
+  global.StudyTrackHonors = { isHonorsVisible, DEFAULT_LEVELS, normalizeHonorLevels, evaluateHonors, summarizeGrades };
 })(typeof window !== 'undefined' ? window : globalThis);

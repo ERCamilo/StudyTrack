@@ -1880,7 +1880,7 @@
             document.querySelectorAll('.nav-tab').forEach(btn => mark(btn, btn.id === activeId));
             document.querySelectorAll('.side-tab').forEach(btn => mark(btn, btn.id === sideId));
         }
-        function openSettings() { closeAllSettingsSections(); renderSettingsSummaries(); renderGradeScaleSettings(); renderHonorSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
+        function openSettings() { closeAllSettingsSections(); applyHonorsVisibility(); renderSettingsSummaries(); renderGradeScaleSettings(); renderHonorSettings(); renderSettingsRequirements(); updateSkipPrereqsToggle(); document.getElementById('enrollment-limit-input').value = APP_CONFIG.maxEnrolledSubjects; document.getElementById('passing-grade-input').value = APP_CONFIG.passingGrade; const nameInput = document.getElementById('student-name-input'); if (nameInput) nameInput.value = getStudentName(); renderUniCalendarSettings(); document.getElementById('settings-modal').classList.remove('hidden'); }
         // Settings rows are accordions: one open at a time. Any section (or a block inside one, like honors) can be asked for by id.
         function setSettingsSectionOpen(row, open) {
             row.classList.toggle('open', open);
@@ -2225,6 +2225,22 @@
         function getHonorLevels() { return StudyTrackHonors.normalizeHonorLevels(StudyTrackStorage.getJson(StudyTrackStorage.KEYS.honorLevels, null)); }
         function saveHonorLevels(levels) { StudyTrackStorage.setJson(StudyTrackStorage.KEYS.honorLevels, StudyTrackHonors.normalizeHonorLevels(levels)); renderHonorSettings(); renderHonors(); }
         function updateHonorLevel(index, field, value) { const levels = getHonorLevels(); if (!levels[index]) return; levels[index] = { ...levels[index], [field]: value }; saveHonorLevels(levels); }
+        function getHonorsVisible() { return StudyTrackHonors.isHonorsVisible(StudyTrackStorage.getBoolean(StudyTrackStorage.KEYS.honorsHidden, false)); }
+        function applyHonorsVisibility() {
+            const visible = getHonorsVisible();
+            document.getElementById('profile-honors')?.classList.toggle('hidden', !visible);
+            document.getElementById('honor-settings-body')?.classList.toggle('hidden', !visible);
+            const toggle = document.getElementById('toggle-honors-visible');
+            if (toggle) { toggle.setAttribute('aria-checked', String(visible)); toggle.classList.toggle('active', visible); }
+        }
+        function setHonorsVisible(visible, { announce = false } = {}) {
+            StudyTrackStorage.setBoolean(StudyTrackStorage.KEYS.honorsHidden, !visible);
+            applyHonorsVisibility();
+            if (visible) renderHonors();
+            if (announce) showToast('Reconocimientos ocultos', 'info', { key: 'honors-visibility', action: { label: 'Deshacer', run: () => setHonorsVisible(true) } });
+        }
+        function toggleHonorsVisible() { setHonorsVisible(!getHonorsVisible()); }
+        function hideHonors() { setHonorsVisible(false, { announce: true }); }
         function resetHonorLevels() { StudyTrackStorage.removeItem(StudyTrackStorage.KEYS.honorLevels); renderHonorSettings(); renderHonors(); showToast('Reconocimientos restablecidos', 'success', { key: 'honors-reset' }); }
         function renderHonorSettings() {
             const box = document.getElementById('honor-settings-list');

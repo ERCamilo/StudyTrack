@@ -1643,4 +1643,14 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   assert.equal(plainData(S({ requirementsCount: -3, passingGrade: 0, maxEnrolled: 'x' })).requirements, 'Ninguno', 'valores inválidos no rompen');
 }
 
+{
+  // Regla de negocio: los reconocimientos se muestran por defecto; solo se ocultan cuando el usuario lo pidió explícitamente (valor true). Cualquier otro valor guardado (vacío, nulo, texto) los deja visibles.
+  const vis = StudyTrackHonors.isHonorsVisible;
+  assert.equal(vis(true), false, 'ocultados por el usuario');
+  assert.equal(vis(false), true, 'visibles por defecto');
+  assert.equal(vis(undefined), true, 'sin preferencia guardada');
+  assert.equal(vis(null), true, 'nulo');
+  assert.equal(vis('true'), true, 'solo el booleano true oculta');
+}
+
 console.log('Logic checks passed');

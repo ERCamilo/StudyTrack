@@ -305,6 +305,8 @@ assert.ok(code.includes('function openMobileMore()'));
 assert.ok(!code.includes('id="settings-quick-nav"'), 'Settings is a short accordion list, not a chip row');
 for (const fn of ['toggleSettingsSection', 'closeAllSettingsSections', 'renderSettingsSummaries']) assert.ok(code.includes(`function ${fn}(`), `${fn} must exist`);
 assert.equal((code.match(/class="settings-section stk-acc"/g) || []).length, 8, 'Settings has 8 accordion rows');
+for (const id of ['toggle-honors-visible', 'honor-settings-body']) assert.ok(code.includes(`id="${id}"`), `#${id} must exist`);
+assert.ok(code.includes('data-action="hideHonors"') && code.includes('function setHonorsVisible('), 'Honors can be hidden from Profile and Settings');
 assert.ok(code.includes('<script src="./src/settings-summary.js"></script>') && serviceWorker.includes('./src/settings-summary.js'), 'settings-summary module is loaded and cached');
 for (const id of ['settings-section-career', 'settings-section-preferences', 'settings-section-requirements', 'settings-section-grades', 'settings-section-data']) {
   assert.ok(code.includes(`id="${id}"`), `Missing settings section ${id}`);

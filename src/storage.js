@@ -25,7 +25,8 @@
     devMode: 'studytrack_dev_mode',
     devFlags: 'studytrack_dev_flags',
     gradPlan: 'studytrack_grad_plan',
-    honorLevels: 'studytrack_honor_levels'
+    honorLevels: 'studytrack_honor_levels',
+    honorsHidden: 'studytrack_honors_hidden'
   };
 
   function getStorage() {
