@@ -14,11 +14,11 @@ context.localStorage = {
   removeItem: (key) => store.delete(key)
 };
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/report-entry.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
 
-const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode } = context;
+const { StudyTrackAcademics, StudyTrackCurriculum, StudyTrackGrades, StudyTrackInsights, StudyTrackPrerequisites, StudyTrackProgress, StudyTrackSanitize, StudyTrackStorage, StudyTrackSchedule, StudyTrackRequirements, StudyTrackPeriods, StudyTrackMilestones, StudyTrackCards, StudyTrackReportEntry, StudyTrackUniEvents, StudyTrackUniEventsView, StudyTrackUniEventsUI, StudyTrackVersion, StudyTrackSyncStatus, StudyTrackDevMode, StudyTrackBlockers } = context;
 
 const scale = [
   { min: 90, label: 'A', points: 4, color: 'a' },
@@ -1317,6 +1317,92 @@ assert.equal(StudyTrackProgress.applyGradeToSubjectProgress({}, '69,9').grade, 6
   const frozen = Object.freeze({ qr: false, nfc: false });
   assert.notEqual(D.toggleFlag(frozen, 'qr'), frozen, 'no muta el original');
   assert.ok(D.FEATURES.every((f) => f.id && f.label && f.hint));
+}
+
+{
+  const B = StudyTrackBlockers;
+  const ap = { status: 'approved' };
+  const sub = (id, prerequisites = [], extra = {}) => ({ id, code: id, name: `Materia ${id}`, credits: 3, prerequisites, ...extra });
+  const cur = (...periods) => ({ periods: periods.map((subjects, i) => ({ period_number: i + 1, name: `P${i + 1}`, subjects })) });
+  const ids = (list) => list.map((b) => b.id);
+
+  // Regla de negocio: una materia "frena tu avance" si aún no está aprobada, se puede cursar ya (sus prerrequisitos están cumplidos o está en curso) y de ella depende, directamente o en cadena, alguna materia hoy bloqueada.
+  const chain = cur([sub('A'), sub('B', ['A']), sub('C', ['B']), sub('D', ['B']), sub('E', ['C'])]);
+  let r = B.analyzeBlockers(chain, {});
+  assert.equal(r.lockedCount, 4, 'B, C, D y E están bloqueadas');
+  sameData(ids(r.blockers), ['A'], 'solo A se puede cursar ya; B, C, D y E no son accionables');
+  assert.equal(r.blockers[0].blocks, 4, 'cuenta las que bloquea en cadena (B, C, D, E)');
+  assert.equal(r.blockers[0].total, 4);
+  assert.equal(r.blockers[0].unlocksNow, 1, 'aprobar A desbloquea ya solo a B');
+  sameData(r.blockers[0].blockedIds, ['B', 'C', 'D', 'E']);
+  r = B.analyzeBlockers(chain, { A: ap });
+  assert.equal(r.lockedCount, 3);
+  sameData(ids(r.blockers), ['B']);
+  assert.equal(r.blockers[0].blocks, 3);
+  assert.equal(r.blockers[0].unlocksNow, 2, 'aprobar B desbloquea ya a C y a D');
+  r = B.analyzeBlockers(chain, { A: { status: 'enrolled' } });
+  sameData(ids(r.blockers), ['A'], 'una materia en curso sigue frenando hasta que se apruebe');
+  assert.equal(r.blockers[0].status, 'enrolled');
+
+  // Regla de negocio: no aparece nada si no hay materias bloqueadas, y una materia que no bloquea a nadie no se lista.
+  sameData(B.analyzeBlockers(chain, { A: ap, B: ap, C: ap, D: ap }).blockers, [], 'solo E queda disponible y no bloquea a nadie');
+  sameData(B.analyzeBlockers(cur([sub('X'), sub('Y')]), {}).blockers, [], 'sin dependencias no hay bloqueos');
+  assert.equal(B.analyzeBlockers(null, {}).lockedCount, 0, 'currículo nulo');
+  sameData(B.analyzeBlockers({ periods: [] }, null).blockers, [], 'currículo vacío y progreso nulo');
+
+  // Regla de negocio: si un prerrequisito es un grupo "A o B", las dos alternativas cuentan como frenos; una materia aprobada en medio corta la cadena.
+  const orCur = cur([sub('P'), sub('Q'), sub('X', [['P', 'Q']])]);
+  sameData(ids(B.analyzeBlockers(orCur, {}).blockers), ['P', 'Q'], 'cada alternativa del "o" frena a X');
+  sameData(B.analyzeBlockers(orCur, { Q: ap }).blockers, [], 'con Q aprobada, X ya no está bloqueada');
+  // Aprobada en medio: B está aprobada (p. ej. se saltó el prerrequisito), así que A ya no frena a C.
+  sameData(B.analyzeBlockers(cur([sub('A'), sub('B', ['A']), sub('C', ['B'])]), { B: ap }).blockers, [], 'la cadena se corta en la aprobada');
+
+  // Regla de negocio: las materias que exigen "ALL" (cursar todo lo demás) no cuentan ni como bloqueadas ni como bloqueo: todas las pendientes las frenan por igual.
+  const allCur = cur([sub('A'), sub('B', ['A']), sub('TES', ['ALL'])]);
+  const allR = B.analyzeBlockers(allCur, {});
+  assert.equal(allR.lockedCount, 1, 'TES no cuenta como bloqueada');
+  assert.equal(allR.blockers[0].blocks, 1);
+
+  // Regla de negocio: la urgencia es el % de las materias bloqueadas que frena: 50% o más es alta, de 20% a menos de 50% es media y menos de 20% es baja.
+  assert.equal(B.getUrgency(5, 10), 'high', 'justo 50%');
+  assert.equal(B.getUrgency(4, 10), 'medium');
+  assert.equal(B.getUrgency(2, 10), 'medium', 'justo 20%');
+  assert.equal(B.getUrgency(1, 10), 'low');
+  assert.equal(B.getUrgency(50, 100), 'high');
+  assert.equal(B.getUrgency(49, 100), 'medium');
+  assert.equal(B.getUrgency(20, 100), 'medium');
+  assert.equal(B.getUrgency(19, 100), 'low');
+  assert.equal(B.getUrgency(10, 10), 'high');
+  assert.equal(B.getUrgency(0, 10), null, 'no frena nada');
+  assert.equal(B.getUrgency(3, 0), null, 'sin bloqueadas no hay urgencia');
+  assert.equal(B.getUrgency(undefined, undefined), null);
+
+  // Orden: más materias frenadas primero; a igual número, las que desbloquean más ya; luego el período más bajo; luego el id.
+  const ord = cur([sub('A'), sub('B'), sub('C'), sub('A1', ['A']), sub('A2', ['A']), sub('B1', ['B']), sub('B2', ['B']), sub('C1', ['C'])]);
+  const o = B.analyzeBlockers(ord, {});
+  sameData(ids(o.blockers), ['A', 'B', 'C'], 'A y B frenan 2 cada una (A antes que B por id), C frena 1');
+  assert.equal(o.lockedCount, 5);
+  assert.equal(o.blockers[0].percent, 40, '2 de 5 bloqueadas');
+  assert.equal(o.blockers[0].urgency, 'medium');
+  assert.equal(o.blockers[2].percent, 20, '1 de 5');
+  assert.equal(o.blockers[2].urgency, 'medium', 'justo 20% ya es media');
+  const tie = cur([sub('Z')], [sub('A')], [sub('Z1', ['Z']), sub('A1', ['A'])]);
+  sameData(ids(B.analyzeBlockers(tie, {}).blockers), ['Z', 'A'], 'a igual de todo gana el período más bajo');
+  // Textos de la tarjeta: singular/plural y el caso de "no desbloquea nada todavía".
+  const d1 = B.describeBlocker({ blocks: 8, total: 10, percent: 80, unlocksNow: 3 });
+  assert.equal(d1.headline, 'Frena 8 de 10 materias bloqueadas (80%)');
+  assert.equal(d1.detail, 'Aprobarla desbloquea 3 materias ya.');
+  const d2 = B.describeBlocker({ blocks: 1, total: 1, percent: 100, unlocksNow: 1 });
+  assert.equal(d2.headline, 'Frena 1 de 1 materia bloqueada (100%)');
+  assert.equal(d2.detail, 'Aprobarla desbloquea 1 materia ya.');
+  assert.equal(B.describeBlocker({ blocks: 2, total: 9, percent: 22, unlocksNow: 0 }).detail, 'Abre el camino a las siguientes de la cadena.');
+  assert.equal(B.URGENCY_LABELS.high, 'Urgencia alta');
+  assert.ok(B.URGENCY_LABELS.medium && B.URGENCY_LABELS.low);
+  // Un ciclo mal cargado no cuelga la app.
+  const cyc = cur([sub('A', ['B']), sub('B', ['A']), sub('F')]);
+  assert.doesNotThrow(() => B.analyzeBlockers(cyc, {}));
+  // Un prerrequisito que no existe en el currículo no bloquea a nadie por sí solo.
+  sameData(B.analyzeBlockers(cur([sub('A'), sub('B', ['A', 'FANTASMA'])]), {}).blockers.map((b) => b.id), ['A']);
 }
 }
 

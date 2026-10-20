@@ -103,7 +103,7 @@ for (const item of libraryIndex) {
   assert.ok(fs.existsSync(`library/${item.path}`), `Missing mirrored career file: ${item.path}`);
 }
 
-for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js']) {
+for (const file of ['src/storage.js', 'src/sanitize.js', 'src/curriculum.js', 'src/grades.js', 'src/academics.js', 'src/progress.js', 'src/prerequisites.js', 'src/periods.js', 'src/cards.js', 'src/requirements.js', 'src/schedule.js', 'src/insights.js', 'src/milestones.js', 'src/nfc.js', 'src/qr-share.js', 'src/firebase-sync.js', 'src/uni-events.js', 'src/uni-events-view.js', 'src/uni-events-ui.js', 'src/app-version.js', 'src/sync-status.js', 'src/dev-mode.js', 'src/blockers.js']) {
   new Function(fs.readFileSync(file, 'utf8'));
 }
 
@@ -173,6 +173,12 @@ assert.ok(/\.stk-input\.stk-input[^}]*font-size:\s*16px/.test(html), 'inputs mus
 assert.ok(/--stk-text-3:\s*#6b7290/.test(html), 'tertiary text must keep 4.5:1 contrast on white');
 assert.ok(/height:\s*44px/.test(html.slice(html.indexOf('.stk-icon-btn {'), html.indexOf('.stk-icon-btn {') + 200)), 'icon buttons are at least 44px');
 assert.equal(manifest.orientation, 'any', 'schedule view needs landscape');
+// Home: subjects that hold back progress
+assert.ok(code.includes('<script src="./src/blockers.js"></script>') && serviceWorker.includes('./src/blockers.js'), 'blockers module is loaded and cached');
+for (const id of ['home-blockers', 'home-blockers-list', 'home-blockers-count']) assert.ok(html.includes(`id="${id}"`), `index.html must contain #${id}`);
+assert.ok(appJs.includes('function renderHomeBlockers(') && /renderHomeBlockers\(\);\s*\}/.test(appJs), 'the home view renders the blockers card');
+assert.ok(/\.stk-urg--high/.test(html) && appJs.includes('URGENCY_ICON') && appJs.includes('URGENCY_LABELS'), 'urgency is shown with icon + words, not colour alone');
+
 // Developer mode: QR/NFC hidden by default, unlocked from the app version, no header gear
 assert.ok(code.includes('<script src="./src/dev-mode.js"></script>') && serviceWorker.includes('./src/dev-mode.js'), 'dev-mode module is loaded and cached');
 assert.ok(!/data-action="openSettings"[^>]*aria-label="Configuración"/.test(html), 'the header gear next to the account button is gone');

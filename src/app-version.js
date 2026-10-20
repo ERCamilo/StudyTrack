@@ -3,9 +3,19 @@
   // To ship a release: add a new entry at the TOP of CHANGELOG, set APP_VERSION to
   // the same number, and bump CACHE_NAME in sw.js. tests/logic.mjs enforces that
   // APP_VERSION matches the newest entry. Pure module: it never touches the DOM or Date.
-  const APP_VERSION = '1.6.0';
+  const APP_VERSION = '1.7.0';
 
   const CHANGELOG = [
+    {
+      version: '1.7.0',
+      date: '2026-10-20',
+      title: 'Sabes qué materias te frenan',
+      items: [
+        'En la pantalla principal, «Frenan tu avance» te dice qué materias debes aprobar para desbloquear más asignaturas.',
+        'Cada una muestra cuántas materias bloqueadas frena (contando las que bloquean a otras en cadena), su nivel de urgencia y cuántas desbloquea de inmediato.',
+        'Toca una para ir directo a ella.'
+      ]
+    },
     {
       version: '1.6.0',
       date: '2026-10-20',

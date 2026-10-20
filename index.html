@@ -49,6 +49,7 @@
     <script src="./src/app-version.js"></script>
     <script src="./src/sync-status.js"></script>
     <script src="./src/dev-mode.js"></script>
+    <script src="./src/blockers.js"></script>
     <script src="./src/nfc.js"></script>
     <script src="./src/vendor/qrcode.min.js"></script>
     <script src="./src/vendor/jsqr.min.js"></script>
@@ -892,6 +893,17 @@
         html:not(.dev-qr) [data-dev-feature="qr"], html:not(.dev-nfc) [data-dev-feature="nfc"],
         html:not(.dev-qr):not(.dev-nfc) [data-dev-feature="any"] { display: none; }
 
+        /* ---- Blockers card (urgency = icon + words + colour, never colour alone) ---- */
+        .stk-urg { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+        .stk-urg--high { background: var(--stk-soft-goal); color: var(--stk-ink-goal); }
+        .stk-urg--medium { background: var(--stk-soft-warning); color: var(--stk-ink-warning); }
+        .stk-urg--low { background: var(--stk-soft-locked); color: var(--stk-ink-locked); }
+        .stk-urg-row { --urg-color: var(--stk-accent-locked); }
+        .stk-urg-row--high { --urg-color: var(--stk-accent-goal); }
+        .stk-urg-row--medium { --urg-color: var(--stk-accent-warning); }
+        .stk-urg-bar { height: 6px; border-radius: 99px; background: var(--stk-surface-2); overflow: hidden; }
+        .stk-urg-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--urg-color); }
+
         /* ---- Header sync indicator (state is also spelled out in the button's aria-label and the Más sheet) ---- */
         .stk-sync-dot { position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--stk-surface); background: var(--stk-accent-approved); pointer-events: none; display: none; }
         .stk-sync-dot:not([data-state="none"]) { display: block; }
@@ -1289,6 +1301,15 @@
                         <button data-action="openUniCalendarDay" data-args='[null]' class="text-[11px] font-bold text-primary-600 dark:text-primary-400">Ver calendario</button>
                     </div>
                     <div id="home-uni-events-list"></div>
+                </div>
+
+                <div id="home-blockers" class="stk-surface-card overflow-hidden hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
+                        <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2"><i class="fas fa-lock-open" style="color:var(--stk-tint)"></i> Frenan tu avance</h3>
+                        <span id="home-blockers-count" class="text-[11px] font-bold" style="color:var(--stk-text-2)"></span>
+                    </div>
+                    <div id="home-blockers-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+                    <p id="home-blockers-more" class="hidden px-4 py-2 text-[11px] font-semibold" style="color:var(--stk-text-2)"></p>
                 </div>
 
                 <div class="stk-surface-card overflow-hidden">

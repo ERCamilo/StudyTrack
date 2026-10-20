@@ -1165,6 +1165,27 @@
             return html;
         }
 
+        // "Frenan tu avance": the unapproved, takeable subjects that hold back the most locked ones.
+        const URGENCY_ICON = { high: 'fa-triangle-exclamation', medium: 'fa-circle-exclamation', low: 'fa-circle-info' };
+        function renderHomeBlockers() {
+            const card = document.getElementById('home-blockers');
+            if (!card) return;
+            const { lockedCount, blockers } = StudyTrackBlockers.analyzeBlockers(currentCurriculum, userProgress);
+            if (!blockers.length) { card.classList.add('hidden'); return; }
+            const top = blockers.slice(0, 3);
+            document.getElementById('home-blockers-count').textContent = `${lockedCount} ${lockedCount === 1 ? 'materia bloqueada' : 'materias bloqueadas'}`;
+            document.getElementById('home-blockers-list').innerHTML = top.map((b) => {
+                const text = StudyTrackBlockers.describeBlocker(b);
+                const level = b.urgency || 'low';
+                const label = StudyTrackBlockers.URGENCY_LABELS[level];
+                return `<button type="button" data-action="navigateToSubject" data-args="${actionArgs(b.id)}" class="stk-urg-row stk-urg-row--${level} w-full text-left px-4 py-3 flex flex-col gap-2 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors" style="min-height:44px"><span class="flex items-start gap-2"><span class="flex-1 min-w-0"><span class="block text-sm font-bold truncate" style="color:var(--stk-text-1)">${escapeHtml(b.name || b.code)}</span><span class="block text-[11px]" style="color:var(--stk-text-2)">${escapeHtml(b.code)} · Período ${escapeHtml(b.period)}${b.status === 'enrolled' ? ' · En curso' : ''}</span></span><span class="stk-urg stk-urg--${level}"><i class="fas ${URGENCY_ICON[level]}"></i> ${label}</span></span><span class="stk-urg-bar" role="img" aria-label="${escapeHtml(text.headline)}"><span style="width:${b.percent}%"></span></span><span class="block text-[11px] leading-snug" style="color:var(--stk-text-2)"><strong style="color:var(--stk-text-1)">${escapeHtml(text.headline)}</strong><br>${escapeHtml(text.detail)}</span></button>`;
+            }).join('');
+            const more = document.getElementById('home-blockers-more');
+            more.textContent = blockers.length > top.length ? `y ${blockers.length - top.length} más que también frenan materias` : '';
+            more.classList.toggle('hidden', blockers.length <= top.length);
+            card.classList.remove('hidden');
+        }
+
         function renderHomeView(summary = null) {
             renderHomeMotivation();
             renderHomeUniEvents();
@@ -1229,6 +1250,7 @@
             document.getElementById('home-recommended-list').innerHTML = recommended.length
                 ? recommended.map((subject) => renderHomeRecommendationRow(subject)).join('')
                 : renderHomeEmpty('fas fa-check-circle', 'Sin recomendaciones pendientes', 'Cuando haya materias disponibles aparecerán aquí.');
+            renderHomeBlockers();
         }
 
         function handleHomeAction(target) {
